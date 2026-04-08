@@ -11,7 +11,7 @@ const SCHEDULE_SLUG = window.SCHEDULE_CONTEXT?.scheduleSlug || '2026-05';
 const TABLE_NAME = 'wnmu_sched_shared_marks';
 const LOCAL_STORAGE_KEY = `${PROJECT_SCOPE}_${CHANNEL_SLUG}_${SCHEDULE_SLUG}_marks_v6`;
 const LOCAL_EDITOR_KEY = `${PROJECT_SCOPE}_${CHANNEL_SLUG}_${SCHEDULE_SLUG}_editor_v6`;
-const HOVER_DELAY_MS = 2000;
+const HOVER_DELAY_MS = 250;
 
 let supabase = null;
 let useSupabase = false;
@@ -85,6 +85,60 @@ function notePreview(note) {
   return clean.length > 80 ? `${clean.slice(0, 77)}...` : clean;
 }
 
+function notePeek(note) {
+  const clean = cleanNote(note);
+  if (!clean) return '';
+  const words = clean.split(/\s+/).slice(0, 8).join(' ');
+  return words.length > 42 ? `${words.slice(0, 39)}...` : (clean.length > words.length ? `${words}...` : words);
+}
+
+function shouldSuppressSeasonStart(timeText) {
+  if (!timeText) return false;
+  const match = String(timeText).trim().match(/^(\d{1,2}):(\d{2})\s*([AP]M)$/i);
+  if (!match) return false;
+  let hour = parseInt(match[1], 10) % 12;
+  const minute = parseInt(match[2], 10);
+  const meridiem = match[3].toUpperCase();
+  if (meridiem === 'PM') hour += 12;
+  const total = hour * 60 + minute;
+  return total >= 120 && total <= 390;
+}
+
+function suppressOvernightSeasonStarts() {
+  document.querySelectorAll('.season-start[data-time]').forEach((el) => {
+    if (shouldSuppressSeasonStart(el.getAttribute('data-time'))) {
+      el.classList.remove('season-start');
+      el.setAttribute('data-season-suppressed', '1');
+    }
+  });
+}
+
+function syncNoteIndicators() {
+  document.querySelectorAll('.note-peek').forEach((el) => el.remove());
+  document.querySelectorAll('[data-key]').forEach((el) => {
+    const key = el.getAttribute('data-key');
+    const note = cleanNote(recordFor(key)?.note);
+    if (!note) return;
+    const preview = notePeek(note);
+    if (!preview) return;
+    if (el.matches('td.program')) {
+      const peek = document.createElement('div');
+      peek.className = 'note-peek';
+      peek.textContent = `Note: ${preview}`;
+      el.appendChild(peek);
+      return;
+    }
+    if (el.matches('tr[data-key]')) {
+      const holder = el.querySelector('.title-cell') || el.querySelector('td:nth-child(4)') || el.querySelector('td:last-child');
+      if (!holder) return;
+      const peek = document.createElement('div');
+      peek.className = 'note-peek note-peek-inline';
+      peek.textContent = `Note: ${preview}`;
+      holder.appendChild(peek);
+    }
+  });
+}
+
 function updateNoteButtons() {
   document.querySelectorAll('.note-btn').forEach((btn) => {
     const key = btn.dataset.key;
@@ -112,6 +166,7 @@ function applyMarks() {
     box.checked = !!recordFor(key)?.is_marked;
   });
   updateNoteButtons();
+  syncNoteIndicators();
 }
 
 function buildNoteControls() {
@@ -295,6 +350,7 @@ function showTooltip(key, anchor) {
 function queueTooltip(anchor) {
   const key = anchor.getAttribute('data-key');
   if (!key || !hasNote(key)) return;
+  hideTooltip();
   window.clearTimeout(hoverTimer);
   hoverTimer = window.setTimeout(() => showTooltip(key, anchor), HOVER_DELAY_MS);
 }
@@ -396,14 +452,17 @@ function startPolling() {
 
 function wireBoxes() {
   document.querySelectorAll('input.markbox').forEach((box) => {
+    box.addEventListener('click', (event) => {
+      event.stopPropagation();
+    });
     box.addEventListener('change', async () => {
       const key = box.dataset.key;
       const existing = recordFor(key) || { entry_key: key, note: '' };
       if (box.checked) {
         marks[key] = { ...existing, entry_key: key, is_marked: true, updated_by: getEditorName() || null, updated_at: new Date().toISOString() };
         applyMarks();
-        await persistRecord(key);
         openNoteModal(key);
+        await persistRecord(key);
         return;
       }
       let note = cleanNote(existing.note);
@@ -443,6 +502,7 @@ function toggleSeasonOnly() {
 window.toggleSeasonOnly = toggleSeasonOnly;
 
 async function init() {
+  suppressOvernightSeasonStarts();
   buildModal();
   buildNoteControls();
   if (editorEl) {

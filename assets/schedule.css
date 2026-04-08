@@ -129,7 +129,7 @@ body.modal-open{overflow:hidden}
 .note-btn.is-marked{box-shadow:0 0 0 1px rgba(61,111,182,.18) inset}
 
 
-/* v13.4 stronger gaps + clickable rows */
+/* v13.5 notes + overnight season suppression */
 .btn-link, a.button-link{display:inline-block;border:1px solid #8ea9db;background:#eef3f8;color:var(--blue);padding:6px 10px;border-radius:6px;font:inherit;cursor:pointer;text-decoration:none;font-weight:700}
 .title-row{cursor:pointer}
 .title-row .markbox,.title-row .note-btn{cursor:pointer}
@@ -141,3 +141,10 @@ table.grid td.outside-empty::after{content:'outside month';display:block;text-al
 .report-block h3{margin:0 0 8px 0;color:var(--blue)}
 .report-block pre{white-space:pre-wrap;font:12px/1.35 Consolas,Menlo,monospace;margin:0;color:#1f1f1f}
 .report-meta{font-size:13px;color:#5b6573;margin:0 0 14px 0}
+
+
+table.grid td.program.marked .title, table.companion tr.marked .title{color:#173d7a}
+table.grid td.program.marked .episode, table.companion tr.marked .episode{color:#274d88}
+table.companion tr.marked{box-shadow:inset 0 0 0 2px var(--marked-outline)}
+.note-peek{margin-top:6px;padding:3px 6px;border-left:3px solid #d4a353;background:#fff8dc;color:#6a4a00;border-radius:4px;font-size:11px;line-height:1.25;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+.note-peek-inline{margin-top:4px;display:inline-block}
