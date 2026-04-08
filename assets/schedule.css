@@ -1,0 +1,96 @@
+
+:root{
+  --ink:#1f1f1f;
+  --blue:#203864;
+  --blue2:#d9e2f3;
+  --grid:#cfd8e3;
+  --outside:#ffffff;
+  --outside-border:#d9d9d9;
+  --season-border:#9b7c00;
+  --empty:#fbfcfe;
+  --overnight:#f6f2fb;
+  --overnight-mark:#d8c5f3;
+  --daytime:#eef8e8;
+  --daytime-mark:#b7e1a1;
+  --afternoon:#fff7e8;
+  --afternoon-mark:#ffd38a;
+  --primetime:#eef4ff;
+  --primetime-mark:#b6cdfa;
+  --season-overnight:#eadcf8;
+  --season-daytime:#d8efc8;
+  --season-afternoon:#ffe2aa;
+  --season-primetime:#d3e1ff;
+  --marked-outline:#3d6fb6;
+}
+@page { size: landscape; margin: 0.35in; }
+body{font-family:Calibri,Arial,sans-serif;margin:18px;color:var(--ink);background:#fff}
+h1{margin:0 0 6px 0;font-size:24px;color:var(--blue);display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.version-badge{display:inline-block;background:#203864;color:#fff;font-size:12px;padding:3px 8px;border-radius:999px;font-weight:700}
+p.note{margin:0 0 10px 0;color:#44546a;max-width:1100px}
+.controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:0 0 16px 0}
+button{border:1px solid #8ea9db;background:#eef3f8;color:var(--blue);padding:6px 10px;border-radius:6px;font:inherit;cursor:pointer}
+button:hover{background:#e2ebf7}
+#editor-name{border:1px solid #b7c7d8;border-radius:6px;padding:6px 8px;font:inherit;min-width:170px}
+.sync-status{padding:4px 8px;border-radius:999px;font-size:12px;font-weight:700;border:1px solid #cbd6e2}
+.sync-status.local{background:#f4f6f8;color:#4a5867}
+.sync-status.online{background:#e7f5ea;color:#245c35}
+.sync-status.saving{background:#fff4db;color:#7a5a00}
+.sync-status.error{background:#fdecea;color:#8a1f17}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:#44546a;margin:0 0 10px 0}
+.legend .chip{display:inline-flex;align-items:center;gap:6px}
+.swatch{display:inline-block;width:14px;height:14px;border:1px solid #9aa8b7;border-radius:3px}
+.swatch.overnight{background:var(--overnight)}
+.swatch.daytime{background:var(--daytime)}
+.swatch.afternoon{background:var(--afternoon)}
+.swatch.primetime{background:var(--primetime)}
+.swatch.season{background:#fde293}
+.swatch.marked{background:#9fc5f8}
+.swatch.outside{background:#fff}
+.week{margin:0 0 28px 0;break-after:page}
+.week h2{margin:0 0 8px 0;font-size:18px;color:var(--blue)}
+table.grid{border-collapse:collapse;width:100%;table-layout:fixed}
+table.grid th, table.grid td{border:1px solid var(--grid)}
+table.grid th{background:var(--blue2);color:var(--blue);font-weight:700;padding:7px 6px}
+table.grid th.time{width:78px}
+table.grid td.time{background:#eef3f8;font-weight:700;color:var(--blue);text-align:center;vertical-align:middle;padding:6px 4px;font-size:12px}
+table.grid td.empty{background:var(--empty);height:26px}
+table.grid td.program{vertical-align:top;padding:6px 6px;position:relative;transition:background-color .12s ease, box-shadow .12s ease}
+table.grid td.program.overnight{background:var(--overnight)}
+table.grid td.program.daytime{background:var(--daytime)}
+table.grid td.program.afternoon{background:var(--afternoon)}
+table.grid td.program.primetime{background:var(--primetime)}
+table.grid td.outside{background:var(--outside) !important;color:#666;box-shadow:inset 0 0 0 1px var(--outside-border)}
+table.grid td.program.season-start.overnight{background:var(--season-overnight);box-shadow:inset 0 0 0 2px var(--season-border)}
+table.grid td.program.season-start.daytime{background:var(--season-daytime);box-shadow:inset 0 0 0 2px var(--season-border)}
+table.grid td.program.season-start.afternoon{background:var(--season-afternoon);box-shadow:inset 0 0 0 2px var(--season-border)}
+table.grid td.program.season-start.primetime{background:var(--season-primetime);box-shadow:inset 0 0 0 2px var(--season-border)}
+table.grid td.program.marked.overnight{background:var(--overnight-mark);box-shadow:inset 0 0 0 2px var(--marked-outline)}
+table.grid td.program.marked.daytime{background:var(--daytime-mark);box-shadow:inset 0 0 0 2px var(--marked-outline)}
+table.grid td.program.marked.afternoon{background:var(--afternoon-mark);box-shadow:inset 0 0 0 2px var(--marked-outline)}
+table.grid td.program.marked.primetime{background:var(--primetime-mark);box-shadow:inset 0 0 0 2px var(--marked-outline)}
+table.grid td.program.season-start.marked{box-shadow:inset 0 0 0 3px var(--marked-outline)}
+.title-row{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.title{font-size:13px;line-height:1.18;font-weight:600}
+.episode{font-size:12px;color:#44546a;line-height:1.2;margin-top:4px}
+.season-start .title,.season-start .episode{text-decoration:underline;font-weight:700}
+.duration{font-size:11px;color:#6b7280;margin-top:4px}
+input.markbox{margin:2px 0 0 0;transform:scale(1.06);cursor:pointer;accent-color:#3d6fb6;flex:0 0 auto}
+section.companion-wrap{margin-top:24px}
+section.companion-wrap h2{font-size:18px;color:var(--blue);margin-bottom:8px}
+table.companion{border-collapse:collapse;width:100%;font-size:13px}
+table.companion th, table.companion td{border:1px solid var(--grid);padding:6px 8px;vertical-align:top}
+table.companion th{background:#eef3f8;color:var(--blue);text-align:left}
+table.companion tr.outside{background:#fff !important;color:#888}
+table.companion tr.overnight{background:var(--overnight)}
+table.companion tr.daytime{background:var(--daytime)}
+table.companion tr.afternoon{background:var(--afternoon)}
+table.companion tr.primetime{background:var(--primetime)}
+table.companion tr.season-start{font-weight:700;text-decoration:underline}
+table.companion tr.marked.overnight{background:var(--overnight-mark)}
+table.companion tr.marked.daytime{background:var(--daytime-mark)}
+table.companion tr.marked.afternoon{background:var(--afternoon-mark)}
+table.companion tr.marked.primetime{background:var(--primetime-mark)}
+@media print{
+  .controls,.sync-status,.editor-wrap{display:none !important}
+  body{margin:0.15in}
+}
