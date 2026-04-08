@@ -1,5 +1,5 @@
-const SUPABASE_URL = '';
-const SUPABASE_ANON_KEY = '';
+const SUPABASE_URL = 'https://tdepltlnughyfrjqufdg.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_oz-1MPs6ix3grIJ7dCbOZg_jYpw6_Q1';
 const PROJECT_SCOPE = 'wnmu_schedule_shareboard';
 const CHANNEL_SLUG = 'wnmu1hd';
 const SCHEDULE_SLUG = '2026-05';
