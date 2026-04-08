@@ -129,7 +129,7 @@ body.modal-open{overflow:hidden}
 .note-btn.is-marked{box-shadow:0 0 0 1px rgba(61,111,182,.18) inset}
 
 
-/* v13.5 notes + overnight season suppression */
+/* v13.6 notes + overnight season suppression */
 .btn-link, a.button-link{display:inline-block;border:1px solid #8ea9db;background:#eef3f8;color:var(--blue);padding:6px 10px;border-radius:6px;font:inherit;cursor:pointer;text-decoration:none;font-weight:700}
 .title-row{cursor:pointer}
 .title-row .markbox,.title-row .note-btn{cursor:pointer}

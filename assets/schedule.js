@@ -59,13 +59,15 @@ function hideWarning() {
 }
 
 function getEditorName() { return (editorEl?.value || '').trim(); }
-function saveEditorName() { if (editorEl) localStorage.setItem(LOCAL_EDITOR_KEY, editorEl.value || ''); }
+function storageGet(key, fallback = '') { try { const value = localStorage.getItem(key); return value == null ? fallback : value; } catch { return fallback; } }
+function storageSet(key, value) { try { localStorage.setItem(key, value); return true; } catch { return false; } }
+function saveEditorName() { if (editorEl) storageSet(LOCAL_EDITOR_KEY, editorEl.value || ''); }
 
 function loadLocalMarks() {
-  try { return JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY) || '{}') || {}; }
+  try { return JSON.parse(storageGet(LOCAL_STORAGE_KEY, '{}') || '{}') || {}; }
   catch { return {}; }
 }
-function saveLocalMarks(data) { localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(data)); }
+function saveLocalMarks(data) { storageSet(LOCAL_STORAGE_KEY, JSON.stringify(data)); }
 function recordFor(key) { return marks[key] || null; }
 function cleanNote(note) { return (note || '').replace(/\r\n/g, '\n').trim(); }
 
@@ -109,6 +111,42 @@ function suppressOvernightSeasonStarts() {
     if (shouldSuppressSeasonStart(el.getAttribute('data-time'))) {
       el.classList.remove('season-start');
       el.setAttribute('data-season-suppressed', '1');
+    }
+  });
+}
+
+function sanitizeOutsideMonth() {
+  const targetMonth = /^\d{4}-\d{2}$/.test(SCHEDULE_SLUG) ? SCHEDULE_SLUG : '';
+  if (!targetMonth) return;
+
+  document.querySelectorAll('th.outside').forEach((th) => {
+    th.innerHTML = ' ';
+  });
+
+  document.querySelectorAll('td.program.outside, td.outside.program').forEach((td) => {
+    const rowspan = td.getAttribute('rowspan') || '1';
+    td.className = 'outside-empty';
+    td.setAttribute('rowspan', rowspan);
+    for (const attr of [...td.attributes]) {
+      if (attr.name.startsWith('data-')) td.removeAttribute(attr.name);
+    }
+    td.innerHTML = '';
+  });
+
+  document.querySelectorAll('[data-date]').forEach((el) => {
+    const date = el.getAttribute('data-date') || '';
+    if (!date.startsWith(targetMonth)) {
+      if (el.matches('td.program')) {
+        const rowspan = el.getAttribute('rowspan') || '1';
+        el.className = 'outside-empty';
+        el.setAttribute('rowspan', rowspan);
+        for (const attr of [...el.attributes]) {
+          if (attr.name.startsWith('data-')) el.removeAttribute(attr.name);
+        }
+        el.innerHTML = '';
+      } else if (el.matches('tr[data-date]')) {
+        el.remove();
+      }
     }
   });
 }
@@ -502,11 +540,12 @@ function toggleSeasonOnly() {
 window.toggleSeasonOnly = toggleSeasonOnly;
 
 async function init() {
+  sanitizeOutsideMonth();
   suppressOvernightSeasonStarts();
   buildModal();
   buildNoteControls();
   if (editorEl) {
-    editorEl.value = localStorage.getItem(LOCAL_EDITOR_KEY) || '';
+    editorEl.value = storageGet(LOCAL_EDITOR_KEY, '');
     editorEl.addEventListener('change', saveEditorName);
   }
   marks = loadLocalMarks();
