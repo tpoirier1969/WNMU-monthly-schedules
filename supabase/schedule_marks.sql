@@ -13,9 +13,9 @@ create table if not exists public.wnmu_sched_shared_marks (
 create index if not exists wnmu_sched_shared_marks_updated_at_idx
   on public.wnmu_sched_shared_marks (updated_at desc);
 
+alter table public.wnmu_sched_shared_marks replica identity full;
 alter table public.wnmu_sched_shared_marks enable row level security;
 
--- Public read policy for GitHub Pages front end.
 do $$ begin
   create policy "wnmu_sched_shared_marks_read"
   on public.wnmu_sched_shared_marks
@@ -24,8 +24,6 @@ do $$ begin
   using (true);
 exception when duplicate_object then null; end $$;
 
--- Public write policy. Convenient for a small internal shareboard.
--- Tighten this later if you decide to require auth.
 do $$ begin
   create policy "wnmu_sched_shared_marks_insert"
   on public.wnmu_sched_shared_marks
@@ -49,4 +47,9 @@ do $$ begin
   for delete
   to anon, authenticated
   using (true);
+exception when duplicate_object then null; end $$;
+
+-- Needed for live updates in the browser.
+do $$ begin
+  alter publication supabase_realtime add table public.wnmu_sched_shared_marks;
 exception when duplicate_object then null; end $$;

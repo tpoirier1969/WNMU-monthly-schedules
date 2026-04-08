@@ -94,3 +94,29 @@ table.companion tr.marked.primetime{background:var(--primetime-mark)}
   .controls,.sync-status,.editor-wrap{display:none !important}
   body{margin:0.15in}
 }
+
+
+.top-nav{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:0 0 10px 0}
+.top-nav a{color:var(--blue);text-decoration:none;font-weight:700}
+.top-nav a:hover{text-decoration:underline}
+.top-nav-spacer{flex:1 1 auto}
+.sync-status.unconfigured{background:#fff3cd;color:#7a5a00;border-color:#e0c36c}
+.sync-status.live{background:#e8f6ee;color:#1f5d34;border-color:#9fd0ae}
+.sync-status.polling{background:#eef4ff;color:#244a86;border-color:#a9c0e8}
+.share-warning{margin:0 0 12px 0;padding:10px 12px;border:1px solid #e0c36c;background:#fff9e6;border-radius:10px;color:#6b5200;font-size:13px;max-width:1100px}
+.share-warning strong{color:#5f4200}
+.note-modal textarea{width:100%;box-sizing:border-box;font:inherit;padding:10px;border:1px solid #c8d3df;border-radius:8px;resize:vertical;min-height:130px}
+.note-modal-shell.hidden,.note-tooltip.hidden{display:none}
+.note-modal-shell{position:fixed;inset:0;z-index:1000}
+.note-modal-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.35)}
+.note-modal{position:relative;max-width:760px;margin:8vh auto;background:#fff;border-radius:14px;box-shadow:0 18px 60px rgba(0,0,0,.22);padding:16px}
+.note-modal-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:10px}
+.note-modal-head h3{margin:0;color:var(--blue)}
+.note-modal-meta{font-size:12px;color:#5b6573;margin-top:4px}
+.note-modal-actions{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;margin-top:10px}
+.note-btn{padding:2px 7px;font-size:11px;border-radius:999px;background:#fff;border:1px solid #9fb8d9}
+.note-btn.has-note{background:#fff4c7;border-color:#d2ad27}
+.note-btn.is-marked{font-weight:700}
+.note-close{background:#f4f6f8}
+.note-tooltip{position:absolute;z-index:1100;max-width:360px;background:#203864;color:#fff;padding:10px 12px;border-radius:10px;font-size:12px;line-height:1.35;box-shadow:0 10px 30px rgba(0,0,0,.2);white-space:pre-wrap}
+body.modal-open{overflow:hidden}
