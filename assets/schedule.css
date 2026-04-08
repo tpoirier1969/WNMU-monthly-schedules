@@ -148,3 +148,10 @@ table.grid td.program.marked .episode, table.companion tr.marked .episode{color:
 table.companion tr.marked{box-shadow:inset 0 0 0 2px var(--marked-outline)}
 .note-peek{margin-top:6px;padding:3px 6px;border-left:3px solid #d4a353;background:#fff8dc;color:#6a4a00;border-radius:4px;font-size:11px;line-height:1.25;max-width:100%;overflow:hidden;text-overflow:ellipsis}
 .note-peek-inline{margin-top:4px;display:inline-block}
+
+/* v13.7 hardened notes + month cleanup */
+.note-btn{margin-right:6px}
+.note-btn.has-note{background:#fff2cc;border-color:#d4a353;color:#6a4a00}
+td.program.has-note .title, tr.has-note .title{text-decoration:underline dotted #d4a353 2px;text-underline-offset:2px}
+input.markbox{outline-offset:2px}
+input.markbox:checked{outline:2px solid #3d6fb6}
