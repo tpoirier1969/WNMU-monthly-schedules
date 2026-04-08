@@ -33,6 +33,8 @@ let lastSyncTs = null;
 const statusEl = document.getElementById('sync-status');
 const editorEl = document.getElementById('editor-name');
 const refreshBtn = document.getElementById('refresh-marks');
+const clearBtn = document.getElementById('clear-marks');
+const seasonBtn = document.getElementById('toggle-season-only');
 const shareWarningEl = document.getElementById('share-warning');
 
 function setStatus(mode, text) {
@@ -114,6 +116,12 @@ function applyMarks() {
 
 function buildNoteControls() {
   document.querySelectorAll('.title-row').forEach((row) => {
+    row.addEventListener('click', (event) => {
+      if (event.target.closest('.note-btn') || event.target.closest('.markbox')) return;
+      const key = row.querySelector('.markbox')?.dataset.key || row.closest('[data-key]')?.getAttribute('data-key');
+      if (!key) return;
+      openNoteModal(key);
+    });
     if (row.querySelector('.note-btn')) return;
     const box = row.querySelector('.markbox');
     const key = box?.dataset.key || row.closest('[data-key]')?.getAttribute('data-key');
@@ -306,7 +314,7 @@ async function connectSupabase() {
   if (!SUPABASE_URL || !SUPABASE_ANON_KEY || !window.supabase) {
     useSupabase = false;
     if (REQUIRE_SHARED) {
-      showWarning('<strong>Not shared yet.</strong> This board is running in local-only mode because Supabase credentials are blank or missing. Edit <code>assets/shareboard-config.js</code>, then refresh both browsers.');
+      showWarning('<strong>Not shared yet.</strong> This board is running in local-only mode because Supabase credentials are blank or missing. Provide your existing <code>config.js</code>, then refresh both browsers.');
       setStatus('unconfigured', 'NOT SHARED');
     } else {
       setStatus('local', 'Local mode');
@@ -448,6 +456,8 @@ async function init() {
   refreshBtn?.addEventListener('click', async () => {
     if (useSupabase) await loadSharedMarks();
   });
+  clearBtn?.addEventListener('click', clearMarks);
+  seasonBtn?.addEventListener('click', toggleSeasonOnly);
   const connected = await connectSupabase();
   if (connected) {
     await loadSharedMarks();

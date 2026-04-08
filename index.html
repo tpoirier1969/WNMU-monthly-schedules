@@ -8,39 +8,32 @@
 <style>
 :root{--ink:#1f1f1f;--blue:#203864;--line:#cfd8e3;--panel:#f7f9fc;--accent:#e8effa}
 body{font-family:Calibri,Arial,sans-serif;margin:0;background:#fff;color:var(--ink)}
-.wrap{max-width:1100px;margin:0 auto;padding:24px}
-h1{margin:0 0 8px;color:var(--blue)}
-p.lead{margin:0 0 20px;color:#44546a;max-width:920px}
-.warn{margin:0 0 18px;padding:12px 14px;border:1px solid #e0c36c;background:#fff9e6;border-radius:12px;color:#6b5200;max-width:980px}
+.wrap{max-width:980px;margin:0 auto;padding:24px}
+h1{margin:0 0 18px;color:var(--blue);display:flex;align-items:center;gap:12px;flex-wrap:wrap}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:18px}
 .card{border:1px solid var(--line);border-radius:16px;background:var(--panel);padding:18px;box-shadow:0 6px 18px rgba(0,0,0,.04)}
-.card h2{margin:0 0 6px;color:var(--blue)}
-.meta{font-size:13px;color:#5b6573;margin-bottom:10px}
-ul{margin:10px 0 0 18px;padding:0}
-li{margin:4px 0}
-.actions{margin-top:16px;display:flex;gap:10px;flex-wrap:wrap}
-a.btn{display:inline-block;padding:9px 12px;border-radius:10px;background:var(--accent);color:var(--blue);text-decoration:none;font-weight:700;border:1px solid #afc1df}
-.small{font-size:13px;color:#5b6573;margin-top:18px}
-.badge{display:inline-block;background:var(--blue);color:#fff;border-radius:999px;padding:3px 8px;font-size:12px;font-weight:700;margin-left:8px}
+.card h2{margin:0 0 8px;color:var(--blue)}
+.meta{font-size:13px;color:#5b6573;margin-bottom:14px}
+.actions{display:flex;gap:10px;flex-wrap:wrap}
+.btn{display:inline-block;padding:10px 14px;border-radius:10px;background:var(--accent);color:var(--blue);text-decoration:none;font-weight:700;border:1px solid #afc1df}
+.badge{display:inline-block;background:var(--blue);color:#fff;border-radius:999px;padding:3px 8px;font-size:12px;font-weight:700}
 </style>
 </head>
-<body><div class="wrap">
-<h1 style="display:flex;align-items:center;gap:12px;flex-wrap:wrap"><img src="assets/icon-month.svg" alt="Monthly calendar icon" style="width:56px;height:56px;flex:0 0 auto">WNMU Monthly Shareboard <span class="badge">v13.3</span></h1>
-<p class="lead">Land here first, choose the channel, and work from the same shared note board. The WNMU1HD board in this package supports shared checkmarks, popup notes, delayed hover notes, and live Supabase sync. WNMU3PL remains a slot in this build while the upload-driven next step waits in the wings.</p>
-<p class="warn"><strong>Important:</strong> this build is only truly shared after you fill in <code>config.js</code> and run <code>supabase/schedule_marks.sql</code>. Until then the board will say <strong>NOT SHARED</strong> and behave locally.</p>
+<body>
+<div class="wrap">
+<h1><img src="assets/icon-month.svg" alt="Monthly calendar icon" style="width:56px;height:56px;flex:0 0 auto">WNMU Monthly Shareboard <span class="badge">v13.4</span></h1>
 <div class="grid">
   <section class="card">
     <h2>WNMU1HD</h2>
-    <div class="meta">May 2026 board included in this package, now aligned to the 13.3 handoff.</div>
-    <ul><li>Shared highlights</li><li>Popup note editor when you mark a program</li><li>2-second hover note display</li><li>Live sync + polling fallback</li><li>Standalone credential-only <code>config.js</code></li></ul>
-    <div class="actions"><a class="btn" href="channels/wnmu1hd/index.html">Open WNMU1HD board</a></div>
+    <div class="meta">May 2026 shareboard</div>
+    <div class="actions"><a class="btn" href="channels/wnmu1hd/index.html">Open WNMU1HD</a></div>
   </section>
   <section class="card">
     <h2>WNMU3PL</h2>
-    <div class="meta">Main-page routing is ready. Schedule import is not in this fix build.</div>
-    <ul><li>No auto-highlighting planned by default</li><li>Will use the same shared Supabase table</li><li>Channel data stays separated by scoped keys</li></ul>
-    <div class="actions"><a class="btn" href="channels/wnmu3pl/index.html">Open WNMU3PL slot</a></div>
+    <div class="meta">May 2026 report board</div>
+    <div class="actions"><a class="btn" href="channels/wnmu3pl/index.html">Open WNMU3PL</a></div>
   </section>
 </div>
-<p class="small">One table, many boards. Rows are separated by <code>project_scope</code>, <code>channel_slug</code>, <code>schedule_slug</code>, and <code>entry_key</code> so they do not collide with your other Supabase work. Supabase credentials now live in the root <code>config.js</code> file by themselves.</p>
-</div></body></html>
+</div>
+</body>
+</html>
