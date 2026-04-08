@@ -9,19 +9,16 @@
   const TABLE_NAME = 'wnmu_sched_shared_marks';
   const LOCAL_STORAGE_KEY = `${PROJECT_SCOPE}_${CHANNEL_SLUG}_${SCHEDULE_SLUG}_marks_v7`;
   const LOCAL_EDITOR_KEY = `${PROJECT_SCOPE}_${CHANNEL_SLUG}_${SCHEDULE_SLUG}_editor_v7`;
-  const HOVER_DELAY_MS = 240;
 
   let supabase = null;
   let useSupabase = false;
   let marks = {};
   let activeEditKey = null;
-  let hoverTimer = null;
-  let hoverAnchor = null;
-  let hoverKey = null;
   let pollTimer = null;
   let lastSyncTs = null;
   let modalOpen = false;
-  let scrollRaf = 0;
+  let domIndex = null;
+  let noteButtonsInjected = false;
 
   const statusEl = document.getElementById('sync-status');
   const editorEl = document.getElementById('editor-name');
@@ -115,8 +112,7 @@
             <button type="button" id="note-cancel-btn" data-note-close="1">Done</button>
           </div>
         </div>
-      </div>
-      <div class="note-tooltip hidden" id="note-tooltip"></div>`;
+      </div>`;
     document.body.appendChild(shell);
     q('note-modal-shell').addEventListener('click', (event) => {
       if (event.target.closest('[data-note-close="1"]')) closeNoteModal();
@@ -165,6 +161,7 @@
   }
 
   function ensureNoteButtons() {
+    if (noteButtonsInjected) return;
     document.querySelectorAll('.title-row').forEach((row) => {
       if (row.querySelector('.note-btn')) return;
       const box = row.querySelector('.markbox');
@@ -177,6 +174,20 @@
       btn.textContent = 'Note';
       if (box) row.insertBefore(btn, box); else row.appendChild(btn);
     });
+    noteButtonsInjected = true;
+  }
+
+  function buildDomIndex() {
+    const index = new Map();
+    const add = (key, bucket, el) => {
+      if (!key || !el) return;
+      if (!index.has(key)) index.set(key, { entries: [], boxes: [], buttons: [] });
+      index.get(key)[bucket].push(el);
+    };
+    document.querySelectorAll('td.program[data-key], tr[data-key]').forEach((el) => add(el.getAttribute('data-key'), 'entries', el));
+    document.querySelectorAll('input.markbox[data-key]').forEach((el) => add(el.dataset.key, 'boxes', el));
+    document.querySelectorAll('.note-btn[data-key]').forEach((el) => add(el.dataset.key, 'buttons', el));
+    domIndex = index;
   }
 
   function updateNoteIndicatorForEntry(el, note) {
@@ -205,36 +216,27 @@
     const rec = recordFor(key) || {};
     const marked = !!rec.is_marked;
     const note = cleanNote(rec.note);
-    document.querySelectorAll(`td.program[data-key="${key}"], tr[data-key="${key}"]`).forEach((el) => {
+    const refs = domIndex?.get(key) || { entries: [], boxes: [], buttons: [] };
+    refs.entries.forEach((el) => {
       el.classList.toggle('marked', marked);
       el.classList.toggle('has-note', !!note);
-      if (note) el.dataset.note = note;
-      else delete el.dataset.note;
-      el.removeAttribute('title');
       updateNoteIndicatorForEntry(el, note);
     });
-    document.querySelectorAll(`input.markbox[data-key="${key}"]`).forEach((box) => {
+    refs.boxes.forEach((box) => {
       box.checked = marked;
     });
-    document.querySelectorAll(`.note-btn[data-key="${key}"]`).forEach((btn) => {
+    refs.buttons.forEach((btn) => {
       btn.classList.toggle('has-note', !!note);
       btn.classList.toggle('is-marked', marked);
       btn.textContent = note ? 'Note*' : 'Note';
-      btn.title = note ? `Edit note: ${notePreview(note, 60)}` : 'Add or edit note';
     });
   }
 
-  function applyMarks() {
+  function applyMarks(keysToRender) {
     ensureNoteButtons();
-    const keys = new Set();
-    document.querySelectorAll('td.program[data-key], tr[data-key]').forEach((el) => {
-      const key = el.getAttribute('data-key');
-      if (key) keys.add(key);
-    });
+    if (!domIndex) buildDomIndex();
+    const keys = keysToRender ? Array.from(keysToRender) : Array.from(domIndex.keys());
     keys.forEach((key) => renderEntryState(key));
-    document.querySelectorAll('input.markbox[data-key]').forEach((box) => {
-      if (!(box.dataset.key in marks)) box.checked = false;
-    });
   }
 
   function loadLocalMarks() {
@@ -282,16 +284,22 @@
   }
 
   async function loadSharedMarks() {
-    if (!useSupabase || !supabase) return;
+    if (!useSupabase || !supabase || modalOpen) return;
     try {
       const { data, error } = await supabase.from(TABLE_NAME)
         .select('entry_key,is_marked,note,updated_at,updated_by')
         .eq('project_scope', PROJECT_SCOPE).eq('channel_slug', CHANNEL_SLUG).eq('schedule_slug', SCHEDULE_SLUG);
       if (error) throw error;
       const next = {};
-      for (const row of (data || [])) next[row.entry_key] = row;
+      const changedKeys = new Set();
+      for (const row of (data || [])) {
+        next[row.entry_key] = row;
+        const prev = marks[row.entry_key];
+        if (!prev || !!prev.is_marked !== !!row.is_marked || cleanNote(prev.note) !== cleanNote(row.note)) changedKeys.add(row.entry_key);
+      }
+      Object.keys(marks).forEach((key) => { if (!(key in next)) changedKeys.add(key); });
       marks = next;
-      applyMarks();
+      if (changedKeys.size) applyMarks(changedKeys);
       lastSyncTs = new Date().toISOString();
       stampStatus('Shared live');
     } catch (error) {
@@ -325,10 +333,10 @@
     if (!useSupabase) return;
     if (pollTimer) window.clearInterval(pollTimer);
     pollTimer = window.setInterval(() => {
-      if (document.visibilityState === 'visible') loadSharedMarks();
-    }, 5000);
+      if (document.visibilityState === 'visible' && !modalOpen) loadSharedMarks();
+    }, 15000);
     document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'visible') loadSharedMarks();
+      if (document.visibilityState === 'visible' && !modalOpen) loadSharedMarks();
     });
   }
 
@@ -343,7 +351,7 @@
     if (!activeEditKey) return;
     const key = activeEditKey;
     const note = cleanNote(q('note-textarea')?.value || '');
-    const currentMarked = !!(recordFor(key)?.is_marked || document.querySelector(`input.markbox[data-key="${key}"]`)?.checked);
+    const currentMarked = !!recordFor(key)?.is_marked;
     upsertRecord(key, { note, is_marked: currentMarked });
     renderEntryState(key);
     await persistRecord(key);
@@ -360,46 +368,7 @@
     closeNoteModal();
   }
 
-  function hideTooltip() {
-    window.clearTimeout(hoverTimer);
-    hoverTimer = null;
-    hoverAnchor = null;
-    hoverKey = null;
-    q('note-tooltip')?.classList.add('hidden');
-  }
-  function placeTooltip(anchor) {
-    const tt = q('note-tooltip');
-    if (!tt || !anchor || modalOpen) return;
-    const rect = anchor.getBoundingClientRect();
-    const top = window.scrollY + rect.top - tt.offsetHeight - 10;
-    const left = window.scrollX + Math.min(rect.left, window.innerWidth - tt.offsetWidth - 20);
-    tt.style.top = `${Math.max(window.scrollY + 10, top)}px`;
-    tt.style.left = `${Math.max(window.scrollX + 10, left)}px`;
-  }
-  function showTooltip(anchor) {
-    if (modalOpen) return;
-    const key = anchor?.getAttribute('data-key');
-    const note = cleanNote(recordFor(key)?.note);
-    const tt = q('note-tooltip');
-    if (!key || !note || !tt) return;
-    hoverAnchor = anchor;
-    hoverKey = key;
-    tt.textContent = note;
-    tt.classList.remove('hidden');
-    placeTooltip(anchor);
-  }
-  function queueTooltip(anchor) {
-    if (modalOpen) return;
-    const key = anchor?.getAttribute('data-key');
-    if (!key || !cleanNote(recordFor(key)?.note)) return;
-    if (hoverKey === key && !q('note-tooltip')?.classList.contains('hidden')) return;
-    window.clearTimeout(hoverTimer);
-    hoverTimer = window.setTimeout(() => showTooltip(anchor), HOVER_DELAY_MS);
-  }
-
-  function targetEntryElement(start) {
-    return start?.closest?.('td.program[data-key], tr[data-key]') || null;
-  }
+  function hideTooltip() {}
 
   function wireDelegates() {
     document.addEventListener('click', (event) => {
@@ -408,15 +377,6 @@
         event.preventDefault();
         event.stopPropagation();
         openNoteModal(noteBtn.dataset.key);
-        return;
-      }
-      const row = event.target.closest('.title-row');
-      if (row && !event.target.closest('.markbox')) {
-        const key = row.querySelector('.markbox')?.dataset.key || row.closest('[data-key]')?.getAttribute('data-key');
-        if (key) {
-          event.preventDefault();
-          openNoteModal(key);
-        }
       }
     });
 
@@ -425,50 +385,10 @@
       if (!box) return;
       const key = box.dataset.key;
       if (!key) return;
-      if (box.checked) {
-        upsertRecord(key, { is_marked: true });
-        renderEntryState(key);
-        openNoteModal(key);
-        await persistRecord(key);
-      } else {
-        upsertRecord(key, { is_marked: false });
-        renderEntryState(key);
-        await persistRecord(key);
-      }
+      upsertRecord(key, { is_marked: box.checked });
+      renderEntryState(key);
+      await persistRecord(key);
     });
-
-    document.addEventListener('mouseover', (event) => {
-      if (modalOpen) return;
-      const entry = targetEntryElement(event.target);
-      if (!entry) return;
-      const from = targetEntryElement(event.relatedTarget);
-      if (from === entry) return;
-      queueTooltip(entry);
-    });
-    document.addEventListener('mouseout', (event) => {
-      const entry = targetEntryElement(event.target);
-      if (!entry) return;
-      const to = targetEntryElement(event.relatedTarget);
-      if (to === entry) return;
-      hideTooltip();
-    });
-    document.addEventListener('focusin', (event) => {
-      if (modalOpen) return;
-      const entry = targetEntryElement(event.target);
-      if (entry) queueTooltip(entry);
-    });
-    document.addEventListener('focusout', (event) => {
-      const entry = targetEntryElement(event.target);
-      if (entry) hideTooltip();
-    });
-    window.addEventListener('scroll', () => {
-      if (modalOpen || !hoverAnchor || q('note-tooltip')?.classList.contains('hidden')) return;
-      if (scrollRaf) return;
-      scrollRaf = window.requestAnimationFrame(() => {
-        scrollRaf = 0;
-        placeTooltip(hoverAnchor);
-      });
-    }, { passive:true });
   }
 
   function clearMarks() {
@@ -502,7 +422,7 @@
         editorEl.addEventListener('change', () => storageSet(LOCAL_EDITOR_KEY, editorEl.value || ''));
       }
     } catch (e) { console.error('editor init failed', e); }
-    try { applyMarks(); } catch (e) { console.error('applyMarks failed', e); }
+    try { ensureNoteButtons(); buildDomIndex(); applyMarks(); } catch (e) { console.error('applyMarks failed', e); }
     try { wireDelegates(); } catch (e) { console.error('wireDelegates failed', e); }
     refreshBtn?.addEventListener('click', () => loadSharedMarks());
     clearBtn?.addEventListener('click', clearMarks);
