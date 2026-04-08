@@ -9,7 +9,7 @@
   const TABLE_NAME = 'wnmu_sched_shared_marks';
   const LOCAL_STORAGE_KEY = `${PROJECT_SCOPE}_${CHANNEL_SLUG}_${SCHEDULE_SLUG}_marks_v7`;
   const LOCAL_EDITOR_KEY = `${PROJECT_SCOPE}_${CHANNEL_SLUG}_${SCHEDULE_SLUG}_editor_v7`;
-  const HOVER_DELAY_MS = 180;
+  const HOVER_DELAY_MS = 240;
 
   let supabase = null;
   let useSupabase = false;
@@ -17,8 +17,11 @@
   let activeEditKey = null;
   let hoverTimer = null;
   let hoverAnchor = null;
+  let hoverKey = null;
   let pollTimer = null;
   let lastSyncTs = null;
+  let modalOpen = false;
+  let scrollRaf = 0;
 
   const statusEl = document.getElementById('sync-status');
   const editorEl = document.getElementById('editor-name');
@@ -141,7 +144,9 @@
 
   function openNoteModal(key) {
     ensureModal();
+    hideTooltip();
     activeEditKey = key;
+    modalOpen = true;
     const meta = metaForKey(key);
     const rec = recordFor(key) || {};
     q('note-modal-title').textContent = `Note: ${meta.title}`;
@@ -154,6 +159,7 @@
 
   function closeNoteModal() {
     activeEditKey = null;
+    modalOpen = false;
     q('note-modal-shell')?.classList.add('hidden');
     document.body.classList.remove('modal-open');
   }
@@ -173,30 +179,44 @@
     });
   }
 
-  function syncNoteIndicators() {
-    document.querySelectorAll('.note-peek').forEach((el) => el.remove());
-    document.querySelectorAll('td.program[data-key], tr[data-key]').forEach((el) => {
-      const key = el.getAttribute('data-key');
-      const note = cleanNote(recordFor(key)?.note);
-      if (!note) return;
-      const peek = document.createElement('div');
+  function updateNoteIndicatorForEntry(el, note) {
+    if (!el) return;
+    let peek = el.querySelector(':scope > .note-peek');
+    if (!peek && el.matches('tr')) peek = el.querySelector('.note-peek');
+    if (!note) {
+      peek?.remove();
+      return;
+    }
+    if (!peek) {
+      peek = document.createElement('div');
       peek.className = el.matches('tr') ? 'note-peek note-peek-inline' : 'note-peek';
-      peek.textContent = `Note: ${notePeek(note)}`;
       if (el.matches('tr')) {
         const holder = el.querySelector('.title-cell') || el.querySelector('td:nth-child(4)') || el.lastElementChild;
-        if (holder) holder.appendChild(peek);
+        if (!holder) return;
+        holder.appendChild(peek);
       } else {
         el.appendChild(peek);
       }
-    });
+    }
+    peek.textContent = `Note: ${notePeek(note)}`;
   }
 
-  function updateNoteButtons() {
-    document.querySelectorAll('.note-btn').forEach((btn) => {
-      const key = btn.dataset.key;
-      const rec = recordFor(key) || {};
-      const note = cleanNote(rec.note);
-      const marked = !!rec.is_marked;
+  function renderEntryState(key) {
+    const rec = recordFor(key) || {};
+    const marked = !!rec.is_marked;
+    const note = cleanNote(rec.note);
+    document.querySelectorAll(`td.program[data-key="${key}"], tr[data-key="${key}"]`).forEach((el) => {
+      el.classList.toggle('marked', marked);
+      el.classList.toggle('has-note', !!note);
+      if (note) el.dataset.note = note;
+      else delete el.dataset.note;
+      el.removeAttribute('title');
+      updateNoteIndicatorForEntry(el, note);
+    });
+    document.querySelectorAll(`input.markbox[data-key="${key}"]`).forEach((box) => {
+      box.checked = marked;
+    });
+    document.querySelectorAll(`.note-btn[data-key="${key}"]`).forEach((btn) => {
       btn.classList.toggle('has-note', !!note);
       btn.classList.toggle('is-marked', marked);
       btn.textContent = note ? 'Note*' : 'Note';
@@ -206,26 +226,15 @@
 
   function applyMarks() {
     ensureNoteButtons();
+    const keys = new Set();
     document.querySelectorAll('td.program[data-key], tr[data-key]').forEach((el) => {
       const key = el.getAttribute('data-key');
-      const rec = recordFor(key) || {};
-      const marked = !!rec.is_marked;
-      const note = cleanNote(rec.note);
-      el.classList.toggle('marked', marked);
-      el.classList.toggle('has-note', !!note);
-      if (note) {
-        el.dataset.note = note;
-        el.setAttribute('title', note);
-      } else {
-        delete el.dataset.note;
-        el.removeAttribute('title');
-      }
+      if (key) keys.add(key);
     });
+    keys.forEach((key) => renderEntryState(key));
     document.querySelectorAll('input.markbox[data-key]').forEach((box) => {
-      box.checked = !!recordFor(box.dataset.key)?.is_marked;
+      if (!(box.dataset.key in marks)) box.checked = false;
     });
-    updateNoteButtons();
-    syncNoteIndicators();
   }
 
   function loadLocalMarks() {
@@ -336,7 +345,7 @@
     const note = cleanNote(q('note-textarea')?.value || '');
     const currentMarked = !!(recordFor(key)?.is_marked || document.querySelector(`input.markbox[data-key="${key}"]`)?.checked);
     upsertRecord(key, { note, is_marked: currentMarked });
-    applyMarks();
+    renderEntryState(key);
     await persistRecord(key);
     closeNoteModal();
   }
@@ -346,7 +355,7 @@
     const key = activeEditKey;
     const currentMarked = !!recordFor(key)?.is_marked;
     upsertRecord(key, { note: '', is_marked: currentMarked });
-    applyMarks();
+    renderEntryState(key);
     await persistRecord(key);
     closeNoteModal();
   }
@@ -355,11 +364,12 @@
     window.clearTimeout(hoverTimer);
     hoverTimer = null;
     hoverAnchor = null;
+    hoverKey = null;
     q('note-tooltip')?.classList.add('hidden');
   }
   function placeTooltip(anchor) {
     const tt = q('note-tooltip');
-    if (!tt || !anchor) return;
+    if (!tt || !anchor || modalOpen) return;
     const rect = anchor.getBoundingClientRect();
     const top = window.scrollY + rect.top - tt.offsetHeight - 10;
     const left = window.scrollX + Math.min(rect.left, window.innerWidth - tt.offsetWidth - 20);
@@ -367,19 +377,23 @@
     tt.style.left = `${Math.max(window.scrollX + 10, left)}px`;
   }
   function showTooltip(anchor) {
+    if (modalOpen) return;
     const key = anchor?.getAttribute('data-key');
     const note = cleanNote(recordFor(key)?.note);
     const tt = q('note-tooltip');
     if (!key || !note || !tt) return;
     hoverAnchor = anchor;
+    hoverKey = key;
     tt.textContent = note;
     tt.classList.remove('hidden');
     placeTooltip(anchor);
   }
   function queueTooltip(anchor) {
+    if (modalOpen) return;
     const key = anchor?.getAttribute('data-key');
     if (!key || !cleanNote(recordFor(key)?.note)) return;
-    hideTooltip();
+    if (hoverKey === key && !q('note-tooltip')?.classList.contains('hidden')) return;
+    window.clearTimeout(hoverTimer);
     hoverTimer = window.setTimeout(() => showTooltip(anchor), HOVER_DELAY_MS);
   }
 
@@ -413,25 +427,33 @@
       if (!key) return;
       if (box.checked) {
         upsertRecord(key, { is_marked: true });
-        applyMarks();
+        renderEntryState(key);
         openNoteModal(key);
         await persistRecord(key);
       } else {
         upsertRecord(key, { is_marked: false });
-        applyMarks();
+        renderEntryState(key);
         await persistRecord(key);
       }
     });
 
-    document.addEventListener('mouseenter', (event) => {
+    document.addEventListener('mouseover', (event) => {
+      if (modalOpen) return;
       const entry = targetEntryElement(event.target);
-      if (entry) queueTooltip(entry);
-    }, true);
-    document.addEventListener('mouseleave', (event) => {
+      if (!entry) return;
+      const from = targetEntryElement(event.relatedTarget);
+      if (from === entry) return;
+      queueTooltip(entry);
+    });
+    document.addEventListener('mouseout', (event) => {
       const entry = targetEntryElement(event.target);
-      if (entry) hideTooltip();
-    }, true);
+      if (!entry) return;
+      const to = targetEntryElement(event.relatedTarget);
+      if (to === entry) return;
+      hideTooltip();
+    });
     document.addEventListener('focusin', (event) => {
+      if (modalOpen) return;
       const entry = targetEntryElement(event.target);
       if (entry) queueTooltip(entry);
     });
@@ -440,7 +462,12 @@
       if (entry) hideTooltip();
     });
     window.addEventListener('scroll', () => {
-      if (hoverAnchor && !q('note-tooltip')?.classList.contains('hidden')) placeTooltip(hoverAnchor);
+      if (modalOpen || !hoverAnchor || q('note-tooltip')?.classList.contains('hidden')) return;
+      if (scrollRaf) return;
+      scrollRaf = window.requestAnimationFrame(() => {
+        scrollRaf = 0;
+        placeTooltip(hoverAnchor);
+      });
     }, { passive:true });
   }
 

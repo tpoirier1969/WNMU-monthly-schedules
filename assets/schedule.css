@@ -155,3 +155,14 @@ table.companion tr.marked{box-shadow:inset 0 0 0 2px var(--marked-outline)}
 td.program.has-note .title, tr.has-note .title{text-decoration:underline dotted #d4a353 2px;text-underline-offset:2px}
 input.markbox{outline-offset:2px}
 input.markbox:checked{outline:2px solid #3d6fb6}
+
+
+/* v13.8 performance cleanup */
+@media screen {
+  .week{content-visibility:auto;contain-intrinsic-size:1200px}
+}
+table.grid td.program{transition:none;contain:layout paint}
+.note-modal{box-shadow:0 8px 28px rgba(0,0,0,.18)}
+.note-modal-backdrop{backdrop-filter:none}
+.note-tooltip{pointer-events:none}
+body.modal-open .note-tooltip{display:none !important}
