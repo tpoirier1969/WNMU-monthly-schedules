@@ -3,7 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>WNMU Schedule Shareboard</title>
+<title>WNMU Monthly Shareboard</title>
+<link rel="icon" type="image/svg+xml" href="assets/icon-month.svg">
 <style>
 :root{--ink:#1f1f1f;--blue:#203864;--line:#cfd8e3;--panel:#f7f9fc;--accent:#e8effa}
 body{font-family:Calibri,Arial,sans-serif;margin:0;background:#fff;color:var(--ink)}
@@ -24,14 +25,14 @@ a.btn{display:inline-block;padding:9px 12px;border-radius:10px;background:var(--
 </style>
 </head>
 <body><div class="wrap">
-<h1>WNMU Schedule Shareboard <span class="badge">hub v2</span></h1>
-<p class="lead">Land here first, choose the channel, and work from the same shared note board. The WNMU1HD board in this package supports shared checkmarks, popup notes, delayed hover notes, and live Supabase sync. WNMU3PL remains a slot in this build.</p>
-<p class="warn"><strong>Important:</strong> this build is only truly shared after you fill in <code>assets/shareboard-config.js</code> and run <code>supabase/schedule_marks.sql</code>. Until then the board will say <strong>NOT SHARED</strong> and behave locally.</p>
+<h1 style="display:flex;align-items:center;gap:12px;flex-wrap:wrap"><img src="assets/icon-month.svg" alt="Monthly calendar icon" style="width:56px;height:56px;flex:0 0 auto">WNMU Monthly Shareboard <span class="badge">v13.3</span></h1>
+<p class="lead">Land here first, choose the channel, and work from the same shared note board. The WNMU1HD board in this package supports shared checkmarks, popup notes, delayed hover notes, and live Supabase sync. WNMU3PL remains a slot in this build while the upload-driven next step waits in the wings.</p>
+<p class="warn"><strong>Important:</strong> this build is only truly shared after you fill in <code>config.js</code> and run <code>supabase/schedule_marks.sql</code>. Until then the board will say <strong>NOT SHARED</strong> and behave locally.</p>
 <div class="grid">
   <section class="card">
     <h2>WNMU1HD</h2>
-    <div class="meta">May 2026 board included in this package.</div>
-    <ul><li>Shared highlights</li><li>Popup note editor when you mark a program</li><li>2-second hover note display</li><li>Live sync + polling fallback</li></ul>
+    <div class="meta">May 2026 board included in this package, now aligned to the 13.3 handoff.</div>
+    <ul><li>Shared highlights</li><li>Popup note editor when you mark a program</li><li>2-second hover note display</li><li>Live sync + polling fallback</li><li>Standalone credential-only <code>config.js</code></li></ul>
     <div class="actions"><a class="btn" href="channels/wnmu1hd/index.html">Open WNMU1HD board</a></div>
   </section>
   <section class="card">
@@ -41,5 +42,5 @@ a.btn{display:inline-block;padding:9px 12px;border-radius:10px;background:var(--
     <div class="actions"><a class="btn" href="channels/wnmu3pl/index.html">Open WNMU3PL slot</a></div>
   </section>
 </div>
-<p class="small">One table, many boards. Rows are separated by <code>project_scope</code>, <code>channel_slug</code>, <code>schedule_slug</code>, and <code>entry_key</code> so they do not collide with your other Supabase work.</p>
+<p class="small">One table, many boards. Rows are separated by <code>project_scope</code>, <code>channel_slug</code>, <code>schedule_slug</code>, and <code>entry_key</code> so they do not collide with your other Supabase work. Supabase credentials now live in the root <code>config.js</code> file by themselves.</p>
 </div></body></html>

@@ -1,9 +1,9 @@
-const cfg = window.SHAREBOARD_CONFIG || {};
-const SUPABASE_URL = cfg.supabaseUrl || '';
-const SUPABASE_ANON_KEY = cfg.supabaseAnonKey || '';
-const REQUIRE_SHARED = cfg.requireShared !== false;
-const ENABLE_REALTIME = cfg.enableRealtime !== false;
-const POLLING_MS = Number(cfg.pollingMs || 5000);
+const cfg = window.WNMU_SHAREBOARD_SUPABASE || {};
+const SUPABASE_URL = cfg.url || '';
+const SUPABASE_ANON_KEY = cfg.anonKey || '';
+const REQUIRE_SHARED = true;
+const ENABLE_REALTIME = true;
+const POLLING_MS = 5000;
 
 const PROJECT_SCOPE = window.SCHEDULE_CONTEXT?.projectScope || 'wnmu_schedule_shareboard';
 const CHANNEL_SLUG = window.SCHEDULE_CONTEXT?.channelSlug || 'wnmu1hd';
