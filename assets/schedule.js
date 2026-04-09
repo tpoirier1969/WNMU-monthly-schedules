@@ -313,10 +313,10 @@
       });
       items.sort((a, b) => slotIndex(a.time) - slotIndex(b.time));
       if (!items.length) {
-        cell.innerHTML = '<div class="sum-empty">Nothing checked</div>';
+        cell.innerHTML = '<div class="summary-inner"><div class="summary-label">Notes / Checked Items</div><div class="sum-empty">Nothing checked</div></div>';
         return;
       }
-      cell.innerHTML = '<ul>' + items.map((item) => `<li class="${item.category ? 'sum-' + item.category : ''}"><span class="sum-time">${escapeHtml(item.time)}</span><span class="sum-title">${escapeHtml(item.title)}</span><span class="sum-note">${escapeHtml(item.note || '')}</span></li>`).join('') + '</ul>';
+      cell.innerHTML = '<div class="summary-inner"><div class="summary-label">Notes / Checked Items</div><ul>' + items.map((item) => `<li class="${item.category ? 'sum-' + item.category : ''}"><span class="sum-time">${escapeHtml(item.time)}</span><span class="sum-title">${escapeHtml(item.title)}</span><span class="sum-note">${escapeHtml(item.note || '')}</span></li>`).join('') + '</ul></div>';
     });
   }
 
@@ -338,6 +338,18 @@
   function upsertRecord(key, patch) {
     const current = recordFor(key) || { entry_key: key, is_marked: false, note: '' };
     marks[key] = { ...current, ...patch, entry_key: key, updated_by: getEditorName() || null, updated_at: new Date().toISOString() };
+  }
+
+  function normalizeSeededNewSeriesNotes() {
+    const changed = [];
+    Object.entries(marks).forEach(([key, rec]) => {
+      const payload = parseNotePayload(rec?.note);
+      if (payload.category !== 'newseries' || payload.text) return;
+      marks[key] = { ...rec, note: encodeNotePayload('New Series', 'newseries') };
+      changed.push(key);
+    });
+    if (changed.length) saveLocalMarks();
+    return changed;
   }
 
   async function persistRecord(key) {
@@ -377,7 +389,7 @@
       if (!key || marks[key]) return;
       const timeText = el.getAttribute('data-time') || '';
       if (shouldSuppressSeasonStart(timeText)) return;
-      marks[key] = { entry_key: key, is_marked: true, note: encodeNotePayload('', 'newseries'), updated_by: null, updated_at: null, auto_seeded: true };
+      marks[key] = { entry_key: key, is_marked: true, note: encodeNotePayload('New Series', 'newseries'), updated_by: null, updated_at: null, auto_seeded: true };
       seeded.push(key);
     });
     if (seeded.length) saveLocalMarks();
@@ -568,8 +580,9 @@
       editorEl.addEventListener('change', () => storageSet(LOCAL_EDITOR_KEY, editorEl.value || ''));
     }
     buildDomIndex();
+    const normalizedNewSeries = normalizeSeededNewSeriesNotes();
     ensureAutoSeedMarks();
-    applyMarks();
+    applyMarks(normalizedNewSeries.length ? normalizedNewSeries : undefined);
     wireDelegates();
     refreshBtn?.addEventListener('click', () => loadSharedMarks());
     clearBtn?.addEventListener('click', clearMarks);
