@@ -60,15 +60,15 @@ table.grid td.program.daytime{background:var(--daytime)}
 table.grid td.program.afternoon{background:var(--afternoon)}
 table.grid td.program.primetime{background:var(--primetime)}
 table.grid td.outside{background:var(--outside) !important;color:#666;box-shadow:inset 0 0 0 1px var(--outside-border)}
-table.grid td.program.season-start.overnight{background:var(--season-overnight);box-shadow:inset 0 0 0 2px var(--season-border)}
-table.grid td.program.season-start.daytime{background:var(--season-daytime);box-shadow:inset 0 0 0 2px var(--season-border)}
-table.grid td.program.season-start.afternoon{background:var(--season-afternoon);box-shadow:inset 0 0 0 2px var(--season-border)}
-table.grid td.program.season-start.primetime{background:var(--season-primetime);box-shadow:inset 0 0 0 2px var(--season-border)}
-table.grid td.program.marked.overnight{background:var(--overnight-mark);box-shadow:inset 0 0 0 2px var(--marked-outline)}
-table.grid td.program.marked.daytime{background:var(--daytime-mark);box-shadow:inset 0 0 0 2px var(--marked-outline)}
-table.grid td.program.marked.afternoon{background:var(--afternoon-mark);box-shadow:inset 0 0 0 2px var(--marked-outline)}
-table.grid td.program.marked.primetime{background:var(--primetime-mark);box-shadow:inset 0 0 0 2px var(--marked-outline)}
-table.grid td.program.season-start.marked{box-shadow:inset 0 0 0 3px var(--marked-outline)}
+table.grid td.program.season-start.overnight{background:var(--season-overnight);outline:2px solid var(--season-border);outline-offset:-2px}
+table.grid td.program.season-start.daytime{background:var(--season-daytime);outline:2px solid var(--season-border);outline-offset:-2px}
+table.grid td.program.season-start.afternoon{background:var(--season-afternoon);outline:2px solid var(--season-border);outline-offset:-2px}
+table.grid td.program.season-start.primetime{background:var(--season-primetime);outline:2px solid var(--season-border);outline-offset:-2px}
+table.grid td.program.marked.overnight{background:var(--overnight-mark);outline:2px solid var(--marked-outline);outline-offset:-2px}
+table.grid td.program.marked.daytime{background:var(--daytime-mark);outline:2px solid var(--marked-outline);outline-offset:-2px}
+table.grid td.program.marked.afternoon{background:var(--afternoon-mark);outline:2px solid var(--marked-outline);outline-offset:-2px}
+table.grid td.program.marked.primetime{background:var(--primetime-mark);outline:2px solid var(--marked-outline);outline-offset:-2px}
+table.grid td.program.season-start.marked{outline:3px solid var(--marked-outline);outline-offset:-3px}
 .title-row{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
 .title{font-size:13px;line-height:1.18;font-weight:600}
 .episode{font-size:12px;color:#44546a;line-height:1.2;margin-top:4px}
@@ -109,7 +109,7 @@ table.companion tr.marked.primetime{background:var(--primetime-mark)}
 .note-modal-shell.hidden{display:none}
 .note-modal-shell{position:fixed;inset:0;z-index:1000}
 .note-modal-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.35)}
-.note-modal{position:relative;max-width:760px;margin:8vh auto;background:#fff;border-radius:14px;box-shadow:0 18px 60px rgba(0,0,0,.22);padding:16px}
+.note-modal{position:relative;max-width:760px;margin:8vh auto;background:#fff;border-radius:14px;box-shadow:0 18px 60px rgba(0,0,0,.22);padding:16px;contain:content}
 .note-modal-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:10px}
 .note-modal-head h3{margin:0;color:var(--blue)}
 .note-modal-meta{font-size:12px;color:#5b6573;margin-top:4px}
@@ -118,7 +118,7 @@ table.companion tr.marked.primetime{background:var(--primetime-mark)}
 .note-btn.has-note{background:#fff4c7;border-color:#d2ad27}
 .note-btn.is-marked{font-weight:700}
 .note-close{background:#f4f6f8}
-body.modal-open{overflow:hidden}
+
 
 .heading-with-icon{display:inline-flex;align-items:center;gap:10px;flex-wrap:wrap}
 .page-icon{width:38px;height:38px;flex:0 0 auto}
@@ -131,9 +131,9 @@ body.modal-open{overflow:hidden}
 /* v13.6 notes + overnight season suppression */
 .btn-link, a.button-link{display:inline-block;border:1px solid #8ea9db;background:#eef3f8;color:var(--blue);padding:6px 10px;border-radius:6px;font:inherit;cursor:pointer;text-decoration:none;font-weight:700}
 .title-row .markbox,.title-row .note-btn{cursor:pointer}
-table.grid td.empty{background:repeating-linear-gradient(135deg,#f8f8f8 0 8px,#ebebeb 8px 16px);height:26px;position:relative}
-table.grid td.empty::after{content:'—';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#9aa3ad;font-weight:700;opacity:.7}
-table.grid td.outside-empty{background:repeating-linear-gradient(135deg,#efefef 0 8px,#dfdfdf 8px 16px) !important;color:#777;box-shadow:inset 0 0 0 1px #c7c7c7}
+table.grid td.empty{background:#f5f6f8;height:26px;position:relative}
+table.grid td.empty::after{content:'//';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#a3aab4;font-weight:700;letter-spacing:1px;opacity:.85}
+table.grid td.outside-empty{background:#efefef !important;color:#777;outline:1px solid #d3d3d3;outline-offset:-1px}
 table.grid td.outside-empty::after{content:'outside month';display:block;text-align:center;font-size:11px;color:#777;margin-top:6px}
 .report-block{border:1px solid var(--grid);border-radius:10px;padding:12px 14px;margin:0 0 14px 0;background:#fafbfd}
 .report-block h3{margin:0 0 8px 0;color:var(--blue)}
@@ -157,11 +157,11 @@ input.markbox:checked{outline:2px solid #3d6fb6}
 
 
 /* v13.8 performance cleanup */
-table.grid td.program{transition:none;contain:layout paint}
+table.grid td.program{transition:none}
 .note-modal{box-shadow:0 8px 28px rgba(0,0,0,.18)}
 .note-modal-backdrop{backdrop-filter:none}
 
 
 /* v13.10 lighter notes + less hover work */
-table.grid td.program{contain:paint}
-.note-modal-shell{will-change:opacity}
+
+.note-modal-shell{}

@@ -147,17 +147,22 @@
     const rec = recordFor(key) || {};
     q('note-modal-title').textContent = `Note: ${meta.title}`;
     q('note-modal-meta').textContent = meta.when;
-    q('note-textarea').value = cleanNote(rec.note);
+    const noteArea = q('note-textarea');
+    if (noteArea) {
+      noteArea.value = cleanNote(rec.note);
+      noteArea.setAttribute('spellcheck', 'false');
+      noteArea.setAttribute('autocomplete', 'off');
+      noteArea.setAttribute('autocorrect', 'off');
+      noteArea.setAttribute('autocapitalize', 'off');
+    }
     q('note-modal-shell').classList.remove('hidden');
-    document.body.classList.add('modal-open');
-    window.setTimeout(() => q('note-textarea')?.focus(), 20);
+    window.setTimeout(() => noteArea?.focus(), 20);
   }
 
   function closeNoteModal() {
     activeEditKey = null;
     modalOpen = false;
     q('note-modal-shell')?.classList.add('hidden');
-    document.body.classList.remove('modal-open');
   }
 
   function ensureNoteButtons() {
@@ -235,7 +240,8 @@
   function applyMarks(keysToRender) {
     ensureNoteButtons();
     if (!domIndex) buildDomIndex();
-    const keys = keysToRender ? Array.from(keysToRender) : Array.from(domIndex.keys());
+    const keys = keysToRender ? Array.from(keysToRender) : Object.keys(marks || {});
+    if (!keys.length) return;
     keys.forEach((key) => renderEntryState(key));
   }
 
@@ -334,7 +340,7 @@
     if (pollTimer) window.clearInterval(pollTimer);
     pollTimer = window.setInterval(() => {
       if (document.visibilityState === 'visible' && !modalOpen) loadSharedMarks();
-    }, 15000);
+    }, 30000);
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'visible' && !modalOpen) loadSharedMarks();
     });
