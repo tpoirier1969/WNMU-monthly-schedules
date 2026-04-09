@@ -9,6 +9,8 @@
   const TABLE_NAME = 'wnmu_sched_shared_marks';
   const LOCAL_STORAGE_KEY = `${PROJECT_SCOPE}_${CHANNEL_SLUG}_${SCHEDULE_SLUG}_marks_v7`;
   const LOCAL_EDITOR_KEY = `${PROJECT_SCOPE}_${CHANNEL_SLUG}_${SCHEDULE_SLUG}_editor_v7`;
+  const NOTE_JSON_PREFIX = '__WNMU_NOTE__';
+  const CATEGORY_CLASSES = ['fundraiser','local','newseries','oneoff','highlight'];
 
   let supabase = null;
   let useSupabase = false;
@@ -16,7 +18,7 @@
   let activeEditKey = null;
   let pollTimer = null;
   let lastSyncTs = null;
-  let modalOpen = false;
+  let panelOpen = false;
   let domIndex = null;
   let noteButtonsInjected = false;
 
@@ -32,9 +34,51 @@
   function storageSet(key, value) { try { window.localStorage.setItem(key, value); return true; } catch (e) { return false; } }
   function cleanNote(note){ return String(note || '').replace(/\r\n/g,'\n').trim(); }
   function getEditorName(){ return (editorEl?.value || '').trim(); }
-  function recordFor(key){ return key ? marks[key] || null : null; }
   function notePreview(note, n=80){ const t = cleanNote(note); return t.length > n ? `${t.slice(0,n-3)}...` : t; }
-  function notePeek(note){ return notePreview(note, 46); }
+  function notePeek(note){ return notePreview(note, 52); }
+  function toDateIso(text){
+    if (!text) return '';
+    const d = new Date(text);
+    if (Number.isNaN(d.getTime())) return '';
+    return d.toISOString().slice(0,10);
+  }
+  function fmtDayHeader(iso){
+    if (!iso) return 'Outside month';
+    const d = new Date(`${iso}T12:00:00`);
+    return d.toLocaleDateString([], { weekday:'short', month:'short', day:'numeric' });
+  }
+  function escapeHtml(s){
+    return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  function parseNotePayload(raw) {
+    const text = String(raw ?? '');
+    if (text.startsWith(NOTE_JSON_PREFIX)) {
+      try {
+        const obj = JSON.parse(text.slice(NOTE_JSON_PREFIX.length));
+        return {
+          text: cleanNote(obj.text || ''),
+          category: CATEGORY_CLASSES.includes(obj.category) ? obj.category : ''
+        };
+      } catch (e) {}
+    }
+    return { text: cleanNote(text), category: '' };
+  }
+
+  function encodeNotePayload(text, category) {
+    const clean = cleanNote(text);
+    const cat = CATEGORY_CLASSES.includes(category) ? category : '';
+    if (!clean && !cat) return '';
+    return NOTE_JSON_PREFIX + JSON.stringify({ text: clean, category: cat });
+  }
+
+  function decodedRecord(rec) {
+    if (!rec) return { is_marked: false, noteText: '', category: '' };
+    const payload = parseNotePayload(rec.note);
+    return { is_marked: !!rec.is_marked, noteText: payload.text, category: payload.category };
+  }
+
+  function recordFor(key){ return key ? marks[key] || null : null; }
 
   function setStatus(mode, text) {
     if (!statusEl) return;
@@ -59,7 +103,7 @@
     const minute = parseInt(match[2], 10);
     if (match[3].toUpperCase() === 'PM') hour += 12;
     const total = hour * 60 + minute;
-    return total >= 120 && total <= 390;
+    return total >= 120 && total <= 420;
   }
 
   function suppressOvernightSeasonStarts() {
@@ -91,41 +135,15 @@
     });
   }
 
-  function ensureModal() {
-    if (q('note-modal-shell')) return;
-    const shell = document.createElement('div');
-    shell.innerHTML = `
-      <div class="note-modal-shell hidden" id="note-modal-shell">
-        <div class="note-modal-backdrop" data-note-close="1"></div>
-        <div class="note-modal" role="dialog" aria-modal="true" aria-labelledby="note-modal-title">
-          <div class="note-modal-head">
-            <div>
-              <h3 id="note-modal-title">Program note</h3>
-              <div class="note-modal-meta" id="note-modal-meta"></div>
-            </div>
-            <button type="button" class="note-close" data-note-close="1">Close</button>
-          </div>
-          <textarea id="note-textarea" rows="6" placeholder="Type a note for this airing..."></textarea>
-          <div class="note-modal-actions">
-            <button type="button" id="note-save-btn">Save note</button>
-            <button type="button" id="note-clear-btn">Remove note</button>
-            <button type="button" id="note-cancel-btn" data-note-close="1">Done</button>
-          </div>
-        </div>
-      </div>`;
-    document.body.appendChild(shell);
-    q('note-modal-shell').addEventListener('click', (event) => {
-      if (event.target.closest('[data-note-close="1"]')) closeNoteModal();
+  function setCategoryBoxes(selectedCategory) {
+    document.querySelectorAll('.catbox[data-category]').forEach((box) => {
+      box.checked = box.dataset.category === selectedCategory;
     });
-    q('note-save-btn')?.addEventListener('click', saveNoteFromModal);
-    q('note-clear-btn')?.addEventListener('click', clearNoteFromModal);
-    q('note-cancel-btn')?.addEventListener('click', closeNoteModal);
-    document.addEventListener('keydown', (event) => {
-      if (event.key === 'Escape') {
-        hideTooltip();
-        if (!q('note-modal-shell')?.classList.contains('hidden')) closeNoteModal();
-      }
-    });
+  }
+
+  function getSelectedCategory() {
+    const chosen = document.querySelector('.catbox[data-category]:checked');
+    return chosen?.dataset.category || '';
   }
 
   function metaForKey(key) {
@@ -139,30 +157,110 @@
   }
 
   function openNoteModal(key) {
-    ensureModal();
-    hideTooltip();
     activeEditKey = key;
-    modalOpen = true;
+    panelOpen = true;
     const meta = metaForKey(key);
-    const rec = recordFor(key) || {};
-    q('note-modal-title').textContent = `Note: ${meta.title}`;
-    q('note-modal-meta').textContent = meta.when;
-    const noteArea = q('note-textarea');
-    if (noteArea) {
-      noteArea.value = cleanNote(rec.note);
-      noteArea.setAttribute('spellcheck', 'false');
-      noteArea.setAttribute('autocomplete', 'off');
-      noteArea.setAttribute('autocorrect', 'off');
-      noteArea.setAttribute('autocapitalize', 'off');
+    const rec = decodedRecord(recordFor(key));
+    q('note-panel-title').textContent = `Edit: ${meta.title}`;
+    q('note-panel-meta').textContent = meta.when;
+    const area = q('note-textarea');
+    if (area) {
+      area.value = rec.noteText;
+      area.setAttribute('spellcheck', 'false');
+      area.setAttribute('autocomplete', 'off');
+      area.setAttribute('autocorrect', 'off');
+      area.setAttribute('autocapitalize', 'off');
     }
-    q('note-modal-shell').classList.remove('hidden');
-    window.setTimeout(() => noteArea?.focus(), 20);
+    setCategoryBoxes(rec.category);
+    q('note-panel')?.classList.remove('hidden');
+    window.setTimeout(() => area?.focus(), 20);
   }
 
   function closeNoteModal() {
     activeEditKey = null;
-    modalOpen = false;
-    q('note-modal-shell')?.classList.add('hidden');
+    panelOpen = false;
+    q('note-panel')?.classList.add('hidden');
+  }
+
+  function ensureAutoSeedMarks() {
+    const seeded = [];
+    document.querySelectorAll('.season-start[data-key]').forEach((el) => {
+      const key = el.getAttribute('data-key');
+      if (!key || marks[key]) return;
+      const timeText = el.getAttribute('data-time') || '';
+      if (shouldSuppressSeasonStart(timeText)) return;
+      marks[key] = { entry_key: key, is_marked: true, note: encodeNotePayload('', 'newseries'), updated_by: null, updated_at: null, auto_seeded: true };
+      seeded.push(key);
+    });
+    if (seeded.length) saveLocalMarks();
+    return seeded;
+  }
+
+  function addRightTimeRail() {
+    document.querySelectorAll('table.grid').forEach((table) => {
+      const headRow = table.querySelector('thead tr');
+      if (headRow && !headRow.querySelector('th.time-right')) {
+        const th = document.createElement('th');
+        th.className = 'time time-right';
+        th.textContent = 'Time';
+        headRow.appendChild(th);
+      }
+      table.querySelectorAll('tbody tr').forEach((tr) => {
+        if (tr.querySelector('td.time-right-cell')) return;
+        const firstTime = tr.querySelector('td.time');
+        if (!firstTime) return;
+        const td = document.createElement('td');
+        td.className = 'time time-right-cell';
+        td.textContent = firstTime.textContent;
+        tr.appendChild(td);
+      });
+    });
+  }
+
+  function ensureDailySummaries() {
+    document.querySelectorAll('section.week').forEach((section) => {
+      let wrap = section.querySelector('.week-summaries');
+      if (!wrap) {
+        wrap = document.createElement('div');
+        wrap.className = 'week-summaries';
+        const heads = section.querySelectorAll('table.grid thead th:not(.time):not(.time-right)');
+        heads.forEach((th) => {
+          const dateText = th.querySelector('.date-line')?.textContent?.trim() || '';
+          const iso = toDateIso(dateText);
+          const card = document.createElement('div');
+          card.className = 'day-summary' + (!iso ? ' outside-day' : '');
+          card.dataset.date = iso;
+          card.innerHTML = `<h3>${fmtDayHeader(iso)}</h3><div class="sum-body"><div class="sum-empty">Nothing checked</div></div>`;
+          wrap.appendChild(card);
+        });
+        const anchor = section.querySelector('.controls.export-controls.bottom-export');
+        if (anchor) section.insertBefore(wrap, anchor); else section.appendChild(wrap);
+      }
+    });
+  }
+
+  function renderDailySummaries() {
+    document.querySelectorAll('.week-summaries .day-summary').forEach((card) => {
+      const iso = card.dataset.date || '';
+      const body = card.querySelector('.sum-body');
+      if (!body) return;
+      if (!iso) { body.innerHTML = '<div class="sum-empty">Outside month</div>'; return; }
+      const items = [];
+      document.querySelectorAll(`td.program[data-date="${iso}"][data-key], tr[data-date="${iso}"][data-key]`).forEach((el) => {
+        const key = el.getAttribute('data-key');
+        const rec = decodedRecord(recordFor(key));
+        if (!rec.is_marked) return;
+        const title = el.getAttribute('data-title') || el.querySelector('.title')?.textContent?.trim() || 'Program';
+        const time = el.getAttribute('data-time') || '';
+        items.push({ time, title, note: rec.noteText, category: rec.category });
+      });
+      items.sort((a,b)=>a.time.localeCompare(b.time));
+      if (!items.length) {
+        body.innerHTML = '<div class="sum-empty">Nothing checked</div>';
+      } else {
+        body.innerHTML = '<ul>' + items.map((item) => `<li class="${item.category ? 'sum-'+item.category : ''}"><span class="sum-time">${escapeHtml(item.time)}</span> ${escapeHtml(item.title)}${item.note ? `<span class="sum-note">${escapeHtml(item.note)}</span>` : '<span class="sum-note">No note</span>'}</li>`).join('') + '</ul>';
+      }
+    });
   }
 
   function ensureNoteButtons() {
@@ -200,7 +298,7 @@
     let peek = el.querySelector(':scope > .note-peek');
     if (!peek && el.matches('tr')) peek = el.querySelector('.note-peek');
     if (!note) {
-      peek?.remove();
+      if (peek) peek.hidden = true;
       return;
     }
     if (!peek) {
@@ -214,17 +312,26 @@
         el.appendChild(peek);
       }
     }
+    peek.hidden = false;
     peek.textContent = `Note: ${notePeek(note)}`;
   }
 
+  function setCategoryClass(el, category) {
+    if (!el) return;
+    CATEGORY_CLASSES.forEach((cat) => el.classList.remove(`cat-${cat}`));
+    if (category) el.classList.add(`cat-${category}`);
+  }
+
   function renderEntryState(key) {
-    const rec = recordFor(key) || {};
-    const marked = !!rec.is_marked;
-    const note = cleanNote(rec.note);
+    const rec = decodedRecord(recordFor(key));
+    const marked = rec.is_marked;
+    const note = rec.noteText;
+    const category = rec.category;
     const refs = domIndex?.get(key) || { entries: [], boxes: [], buttons: [] };
     refs.entries.forEach((el) => {
       el.classList.toggle('marked', marked);
       el.classList.toggle('has-note', !!note);
+      setCategoryClass(el, category);
       updateNoteIndicatorForEntry(el, note);
     });
     refs.boxes.forEach((box) => {
@@ -233,6 +340,7 @@
     refs.buttons.forEach((btn) => {
       btn.classList.toggle('has-note', !!note);
       btn.classList.toggle('is-marked', marked);
+      setCategoryClass(btn, category);
       btn.textContent = note ? 'Note*' : 'Note';
     });
   }
@@ -241,8 +349,8 @@
     ensureNoteButtons();
     if (!domIndex) buildDomIndex();
     const keys = keysToRender ? Array.from(keysToRender) : Object.keys(marks || {});
-    if (!keys.length) return;
-    keys.forEach((key) => renderEntryState(key));
+    if (keys.length) keys.forEach((key) => renderEntryState(key));
+    renderDailySummaries();
   }
 
   function loadLocalMarks() {
@@ -274,7 +382,7 @@
           schedule_slug: SCHEDULE_SLUG,
           entry_key: key,
           is_marked: !!rec.is_marked,
-          note: cleanNote(rec.note) || null,
+          note: rec.note || null,
           updated_by: getEditorName() || null,
           updated_at: new Date().toISOString(),
         };
@@ -290,7 +398,7 @@
   }
 
   async function loadSharedMarks() {
-    if (!useSupabase || !supabase || modalOpen) return;
+    if (!useSupabase || !supabase || panelOpen) return;
     try {
       const { data, error } = await supabase.from(TABLE_NAME)
         .select('entry_key,is_marked,note,updated_at,updated_by')
@@ -301,11 +409,13 @@
       for (const row of (data || [])) {
         next[row.entry_key] = row;
         const prev = marks[row.entry_key];
-        if (!prev || !!prev.is_marked !== !!row.is_marked || cleanNote(prev.note) !== cleanNote(row.note)) changedKeys.add(row.entry_key);
+        if (!prev || prev.is_marked !== row.is_marked || prev.note !== row.note) changedKeys.add(row.entry_key);
       }
       Object.keys(marks).forEach((key) => { if (!(key in next)) changedKeys.add(key); });
       marks = next;
+      ensureAutoSeedMarks().forEach((key) => changedKeys.add(key));
       if (changedKeys.size) applyMarks(changedKeys);
+      else renderDailySummaries();
       lastSyncTs = new Date().toISOString();
       stampStatus('Shared live');
     } catch (error) {
@@ -339,27 +449,28 @@
     if (!useSupabase) return;
     if (pollTimer) window.clearInterval(pollTimer);
     pollTimer = window.setInterval(() => {
-      if (document.visibilityState === 'visible' && !modalOpen) loadSharedMarks();
+      if (document.visibilityState === 'visible' && !panelOpen) loadSharedMarks();
     }, 30000);
     document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'visible' && !modalOpen) loadSharedMarks();
+      if (document.visibilityState === 'visible' && !panelOpen) loadSharedMarks();
     });
   }
 
   function upsertRecord(key, patch) {
     const current = recordFor(key) || { entry_key: key, is_marked: false, note: '' };
     const next = { ...current, ...patch, entry_key: key, updated_by: getEditorName() || null, updated_at: new Date().toISOString() };
-    if (!next.is_marked && !cleanNote(next.note)) delete marks[key];
-    else marks[key] = next;
+    marks[key] = next;
   }
 
   async function saveNoteFromModal() {
     if (!activeEditKey) return;
     const key = activeEditKey;
-    const note = cleanNote(q('note-textarea')?.value || '');
+    const noteText = cleanNote(q('note-textarea')?.value || '');
+    const category = getSelectedCategory();
     const currentMarked = !!recordFor(key)?.is_marked;
-    upsertRecord(key, { note, is_marked: currentMarked });
+    upsertRecord(key, { note: encodeNotePayload(noteText, category), is_marked: currentMarked || !!category || !!noteText });
     renderEntryState(key);
+    renderDailySummaries();
     await persistRecord(key);
     closeNoteModal();
   }
@@ -370,11 +481,10 @@
     const currentMarked = !!recordFor(key)?.is_marked;
     upsertRecord(key, { note: '', is_marked: currentMarked });
     renderEntryState(key);
+    renderDailySummaries();
     await persistRecord(key);
     closeNoteModal();
   }
-
-  function hideTooltip() {}
 
   function wireDelegates() {
     document.addEventListener('click', (event) => {
@@ -388,20 +498,29 @@
 
     document.addEventListener('change', async (event) => {
       const box = event.target.closest('input.markbox');
-      if (!box) return;
-      const key = box.dataset.key;
-      if (!key) return;
-      upsertRecord(key, { is_marked: box.checked });
-      renderEntryState(key);
-      await persistRecord(key);
+      if (box) {
+        const key = box.dataset.key;
+        if (!key) return;
+        upsertRecord(key, { is_marked: box.checked });
+        renderEntryState(key);
+        renderDailySummaries();
+        await persistRecord(key);
+        return;
+      }
+      const catbox = event.target.closest('.catbox[data-category]');
+      if (catbox && catbox.checked) {
+        document.querySelectorAll('.catbox[data-category]').forEach((other) => {
+          if (other !== catbox) other.checked = false;
+        });
+      }
     });
   }
 
   function clearMarks() {
     const next = {};
     Object.entries(marks).forEach(([key, rec]) => {
-      const note = cleanNote(rec.note);
-      if (note) next[key] = { ...rec, is_marked: false };
+      const payload = parseNotePayload(rec.note);
+      if (payload.text || payload.category) next[key] = { ...rec, is_marked: false };
     });
     marks = next;
     applyMarks();
@@ -420,7 +539,6 @@
   async function init() {
     try { sanitizeOutsideMonth(); } catch (e) { console.error('sanitizeOutsideMonth failed', e); }
     try { suppressOvernightSeasonStarts(); } catch (e) { console.error('suppressOvernightSeasonStarts failed', e); }
-    try { ensureModal(); } catch (e) { console.error('ensureModal failed', e); }
     try { marks = loadLocalMarks(); } catch (e) { console.error('loadLocalMarks failed', e); }
     try {
       if (editorEl) {
@@ -428,19 +546,29 @@
         editorEl.addEventListener('change', () => storageSet(LOCAL_EDITOR_KEY, editorEl.value || ''));
       }
     } catch (e) { console.error('editor init failed', e); }
-    try { ensureNoteButtons(); buildDomIndex(); applyMarks(); } catch (e) { console.error('applyMarks failed', e); }
+    try {
+      addRightTimeRail();
+      ensureDailySummaries();
+      ensureNoteButtons();
+      buildDomIndex();
+      ensureAutoSeedMarks();
+      applyMarks();
+    } catch (e) { console.error('initial render failed', e); }
     try { wireDelegates(); } catch (e) { console.error('wireDelegates failed', e); }
+    q('note-save-btn')?.addEventListener('click', saveNoteFromModal);
+    q('note-clear-btn')?.addEventListener('click', clearNoteFromModal);
+    q('note-close-btn')?.addEventListener('click', closeNoteModal);
     refreshBtn?.addEventListener('click', () => loadSharedMarks());
     clearBtn?.addEventListener('click', clearMarks);
     seasonBtn?.addEventListener('click', toggleSeasonOnly);
     const connected = await connectSupabase();
     if (connected) {
       await loadSharedMarks();
+      ensureAutoSeedMarks();
+      applyMarks();
       startPolling();
     }
     window.openNoteModal = openNoteModal;
-    window.clearMarks = clearMarks;
-    window.toggleSeasonOnly = toggleSeasonOnly;
   }
 
   init().catch((e) => console.error('schedule init failed', e));
