@@ -1,4 +1,3 @@
-
 (function(){
   const cfg = window.WNMU_SHAREBOARD_SUPABASE || {};
   const SUPABASE_URL = cfg.url || '';
@@ -11,16 +10,18 @@
   const LOCAL_EDITOR_KEY = `${PROJECT_SCOPE}_${CHANNEL_SLUG}_${SCHEDULE_SLUG}_editor_v7`;
   const NOTE_JSON_PREFIX = '__WNMU_NOTE__';
   const CATEGORY_CLASSES = ['fundraiser','local','newseries','oneoff','highlight'];
+  const SLOT_COUNT = 48;
 
   let supabase = null;
   let useSupabase = false;
   let marks = {};
   let activeEditKey = null;
+  let activeHost = null;
   let pollTimer = null;
   let lastSyncTs = null;
-  let panelOpen = false;
+  let editorOpen = false;
   let domIndex = null;
-  let noteButtonsInjected = false;
+  let editorHome = null;
 
   const statusEl = document.getElementById('sync-status');
   const editorEl = document.getElementById('editor-name');
@@ -35,21 +36,41 @@
   function cleanNote(note){ return String(note || '').replace(/\r\n/g,'\n').trim(); }
   function getEditorName(){ return (editorEl?.value || '').trim(); }
   function notePreview(note, n=80){ const t = cleanNote(note); return t.length > n ? `${t.slice(0,n-3)}...` : t; }
-  function notePeek(note){ return notePreview(note, 52); }
-  function toDateIso(text){
-    if (!text) return '';
-    const d = new Date(text);
-    if (Number.isNaN(d.getTime())) return '';
-    return d.toISOString().slice(0,10);
+  function notePeek(note){ return notePreview(note, 64); }
+  function escapeHtml(s){ return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+  function dateOnly(d){ return d.toISOString().slice(0,10); }
+  function addDays(iso, days){ const d = new Date(`${iso}T12:00:00`); d.setDate(d.getDate() + days); return dateOnly(d); }
+  function monthSlug(iso){ return (iso || '').slice(0,7); }
+  function weekdayLabel(iso){ return new Date(`${iso}T12:00:00`).toLocaleDateString([], { weekday:'long' }); }
+  function headerDateLabel(iso){ return new Date(`${iso}T12:00:00`).toLocaleDateString([], { month:'long', day:'numeric', year:'numeric' }); }
+  function fmtDayHeader(iso){ return new Date(`${iso}T12:00:00`).toLocaleDateString([], { weekday:'short', month:'short', day:'numeric' }); }
+  function weekStartSunday(iso){ const d = new Date(`${iso}T12:00:00`); d.setDate(d.getDate() - d.getDay()); return dateOnly(d); }
+  function minutesFromDuration(text){ const m = String(text || '').match(/(\d+)\s*m/i); return m ? parseInt(m[1], 10) : 30; }
+  function slotLabel(slot){
+    const total = slot * 30;
+    let hour = Math.floor(total / 60);
+    const minute = total % 60;
+    const suffix = hour >= 12 ? 'PM' : 'AM';
+    let display = hour % 12;
+    if (display === 0) display = 12;
+    return `${display}:${String(minute).padStart(2,'0')} ${suffix}`;
   }
-  function fmtDayHeader(iso){
-    if (!iso) return 'Outside month';
-    const d = new Date(`${iso}T12:00:00`);
-    return d.toLocaleDateString([], { weekday:'short', month:'short', day:'numeric' });
+  function slotIndex(label){
+    const match = String(label || '').trim().match(/^(\d{1,2}):(\d{2})\s*([AP]M)$/i);
+    if (!match) return -1;
+    let hour = parseInt(match[1], 10) % 12;
+    const minute = parseInt(match[2], 10);
+    if (match[3].toUpperCase() === 'PM') hour += 12;
+    return Math.floor((hour * 60 + minute) / 30);
   }
-  function escapeHtml(s){
-    return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  function bandClass(slot){
+    const hour = (slot * 30) / 60;
+    if (hour < 7) return 'overnight';
+    if (hour < 14) return 'daytime';
+    if (hour < 19) return 'afternoon';
+    return 'primetime';
   }
+  function holeKey(iso, timeLabel){ return `hole__${iso}__${timeLabel.replace(/[^0-9APM]/gi,'').toUpperCase()}`; }
 
   function parseNotePayload(raw) {
     const text = String(raw ?? '');
@@ -89,50 +110,12 @@
     const stamp = lastSyncTs ? ` · ${new Date(lastSyncTs).toLocaleTimeString([], {hour:'numeric', minute:'2-digit'})}` : '';
     setStatus(useSupabase ? 'live' : 'local', `${prefix}${stamp}`);
   }
-  function showWarning(text) {
-    if (!shareWarningEl) return;
-    shareWarningEl.innerHTML = text;
-    shareWarningEl.hidden = false;
-  }
+  function showWarning(text) { if (shareWarningEl) { shareWarningEl.innerHTML = text; shareWarningEl.hidden = false; } }
   function hideWarning(){ if (shareWarningEl) shareWarningEl.hidden = true; }
 
   function shouldSuppressSeasonStart(timeText) {
-    const match = String(timeText || '').trim().match(/^(\d{1,2}):(\d{2})\s*([AP]M)$/i);
-    if (!match) return false;
-    let hour = parseInt(match[1], 10) % 12;
-    const minute = parseInt(match[2], 10);
-    if (match[3].toUpperCase() === 'PM') hour += 12;
-    const total = hour * 60 + minute;
-    return total >= 120 && total <= 420;
-  }
-
-  function suppressOvernightSeasonStarts() {
-    document.querySelectorAll('.season-start[data-time]').forEach((el) => {
-      if (shouldSuppressSeasonStart(el.getAttribute('data-time'))) {
-        el.classList.remove('season-start');
-        el.dataset.seasonSuppressed = '1';
-      }
-    });
-  }
-
-  function sanitizeOutsideMonth() {
-    const targetMonth = /^\d{4}-\d{2}$/.test(SCHEDULE_SLUG) ? SCHEDULE_SLUG : '';
-    if (!targetMonth) return;
-    document.querySelectorAll('th.outside').forEach((th) => { th.innerHTML = ' '; });
-    document.querySelectorAll('tr[data-date]').forEach((tr) => {
-      const d = tr.getAttribute('data-date') || '';
-      if (d && !d.startsWith(targetMonth)) tr.remove();
-    });
-    document.querySelectorAll('td.program[data-date]').forEach((td) => {
-      const d = td.getAttribute('data-date') || '';
-      if (d && !d.startsWith(targetMonth)) {
-        const rowspan = td.getAttribute('rowspan') || '1';
-        td.className = 'outside-empty';
-        td.setAttribute('rowspan', rowspan);
-        td.textContent = '';
-        [...td.attributes].forEach((attr) => { if (attr.name.startsWith('data-')) td.removeAttribute(attr.name); });
-      }
-    });
+    const slot = slotIndex(timeText);
+    return slot >= 4 && slot <= 14; // 2:00 AM through 7:00 AM
   }
 
   function setCategoryBoxes(selectedCategory) {
@@ -146,138 +129,117 @@
     return chosen?.dataset.category || '';
   }
 
-  function metaForKey(key) {
-    const el = document.querySelector(`td.program[data-key="${key}"], tr[data-key="${key}"]`);
-    if (!el) return { title: 'Program note', when: '' };
-    const title = el.getAttribute('data-title') || el.querySelector('.title')?.textContent?.trim() || 'Program note';
-    const day = el.getAttribute('data-day') || '';
-    const date = el.getAttribute('data-date') || '';
-    const time = el.getAttribute('data-time') || '';
-    return { title, when: [day, date, time].filter(Boolean).join(' | ') };
+  function ensureEditorHome() {
+    if (editorHome) return editorHome;
+    editorHome = document.createElement('div');
+    editorHome.id = 'note-editor-home';
+    editorHome.hidden = true;
+    document.body.appendChild(editorHome);
+    return editorHome;
   }
 
-  function openNoteModal(key) {
-    activeEditKey = key;
-    panelOpen = true;
-    const meta = metaForKey(key);
-    const rec = decodedRecord(recordFor(key));
-    q('note-panel-title').textContent = `Edit: ${meta.title}`;
-    q('note-panel-meta').textContent = meta.when;
-    const area = q('note-textarea');
-    if (area) {
-      area.value = rec.noteText;
-      area.setAttribute('spellcheck', 'false');
-      area.setAttribute('autocomplete', 'off');
-      area.setAttribute('autocorrect', 'off');
-      area.setAttribute('autocapitalize', 'off');
-    }
-    setCategoryBoxes(rec.category);
-    q('note-panel')?.classList.remove('hidden');
-    window.setTimeout(() => area?.focus(), 20);
+  function createCellHtml(rec) {
+    const categoryClass = '';
+    const episodeHtml = rec.episode ? `<div class="episode">${escapeHtml(rec.episode)}</div>` : '';
+    return `<td class="program ${rec.band}${rec.isHole ? ' hole' : ''}${rec.seasonStart ? ' season-start' : ''}" rowspan="${rec.rowspan}" data-date="${rec.date}" data-day="${escapeHtml(rec.day)}" data-duration="${rec.duration}m" data-episode="${escapeHtml(rec.episode || '')}" data-key="${escapeHtml(rec.key)}" data-time="${escapeHtml(rec.time)}" data-title="${escapeHtml(rec.title)}" data-kind="${rec.isHole ? 'hole' : 'program'}"><div class="title-row"><button class="note-btn${categoryClass}" data-key="${escapeHtml(rec.key)}" type="button">Note</button><span class="title">${escapeHtml(rec.title)}</span><input aria-label="Highlight ${escapeHtml(rec.title)}" class="markbox" data-key="${escapeHtml(rec.key)}" type="checkbox"/></div>${episodeHtml}<div class="duration">${rec.duration}m</div><div class="note-peek" hidden></div></td>`;
   }
 
-  function closeNoteModal() {
-    activeEditKey = null;
-    panelOpen = false;
-    q('note-panel')?.classList.add('hidden');
+  function captureWeekRecords(section) {
+    const table = section.querySelector('table.grid');
+    if (!table) return null;
+    const rawCells = [...table.querySelectorAll('td[data-key]')];
+    if (!rawCells.length) return null;
+    const records = rawCells.map((cell) => {
+      const duration = Math.max(30, minutesFromDuration(cell.dataset.duration || '') || (parseInt(cell.getAttribute('rowspan') || '1', 10) * 30));
+      const slot = slotIndex(cell.dataset.time || '');
+      return {
+        key: cell.dataset.key,
+        date: cell.dataset.date,
+        day: cell.dataset.day || weekdayLabel(cell.dataset.date || ''),
+        time: cell.dataset.time,
+        slot,
+        duration,
+        rowspan: Math.max(1, Math.round(duration / 30)),
+        title: cell.dataset.title || cell.querySelector('.title')?.textContent?.trim() || 'Program',
+        episode: cell.dataset.episode || '',
+        isHole: cell.classList.contains('hole') || (cell.dataset.kind === 'hole') || /schedule hole/i.test(cell.dataset.title || ''),
+        band: ['overnight','daytime','afternoon','primetime'].find((c) => cell.classList.contains(c)) || bandClass(slot),
+        seasonStart: cell.classList.contains('season-start') && !shouldSuppressSeasonStart(cell.dataset.time || ''),
+      };
+    }).filter((rec) => rec.date && rec.slot >= 0);
+    if (!records.length) return null;
+    const dates = [...new Set(records.map((r) => r.date))].sort();
+    const weekStart = weekStartSunday(dates[0]);
+    return { table, records, weekStart };
   }
 
-  function ensureAutoSeedMarks() {
-    const seeded = [];
-    document.querySelectorAll('.season-start[data-key]').forEach((el) => {
-      const key = el.getAttribute('data-key');
-      if (!key || marks[key]) return;
-      const timeText = el.getAttribute('data-time') || '';
-      if (shouldSuppressSeasonStart(timeText)) return;
-      marks[key] = { entry_key: key, is_marked: true, note: encodeNotePayload('', 'newseries'), updated_by: null, updated_at: null, auto_seeded: true };
-      seeded.push(key);
-    });
-    if (seeded.length) saveLocalMarks();
-    return seeded;
-  }
-
-  function addRightTimeRail() {
-    document.querySelectorAll('table.grid').forEach((table) => {
-      const headRow = table.querySelector('thead tr');
-      if (headRow && !headRow.querySelector('th.time-right')) {
-        const th = document.createElement('th');
-        th.className = 'time time-right';
-        th.textContent = 'Time';
-        headRow.appendChild(th);
-      }
-      table.querySelectorAll('tbody tr').forEach((tr) => {
-        if (tr.querySelector('td.time-right-cell')) return;
-        const firstTime = tr.querySelector('td.time');
-        if (!firstTime) return;
-        const td = document.createElement('td');
-        td.className = 'time time-right-cell';
-        td.textContent = firstTime.textContent;
-        tr.appendChild(td);
+  function normalizeWeekTables() {
+    document.querySelectorAll('.week').forEach((section, idx) => {
+      const data = captureWeekRecords(section);
+      if (!data) return;
+      const { table, records, weekStart } = data;
+      const weekDates = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
+      const slotMaps = Object.fromEntries(weekDates.map((iso) => [iso, new Array(SLOT_COUNT).fill(null)]));
+      records.forEach((rec) => {
+        const span = Math.max(1, rec.rowspan);
+        for (let step = 0; step < span && rec.slot + step < SLOT_COUNT; step += 1) {
+          slotMaps[rec.date][rec.slot + step] = step === 0 ? rec : { continuation: true, key: rec.key };
+        }
       });
-    });
-  }
-
-  function ensureDailySummaries() {
-    document.querySelectorAll('section.week').forEach((section) => {
-      let wrap = section.querySelector('.week-summaries');
-      if (!wrap) {
-        wrap = document.createElement('div');
-        wrap.className = 'week-summaries';
-        const heads = section.querySelectorAll('table.grid thead th:not(.time):not(.time-right)');
-        heads.forEach((th) => {
-          const dateText = th.querySelector('.date-line')?.textContent?.trim() || '';
-          const iso = toDateIso(dateText);
-          const card = document.createElement('div');
-          card.className = 'day-summary' + (!iso ? ' outside-day' : '');
-          card.dataset.date = iso;
-          card.innerHTML = `<h3>${fmtDayHeader(iso)}</h3><div class="sum-body"><div class="sum-empty">Nothing checked</div></div>`;
-          wrap.appendChild(card);
+      const targetMonth = SCHEDULE_SLUG;
+      let html = '<thead><tr><th class="time">Time</th>';
+      weekDates.forEach((iso) => {
+        if (monthSlug(iso) !== targetMonth) html += '<th class="outside-month-head"></th>';
+        else html += `<th>${escapeHtml(weekdayLabel(iso))}<br/><span class="date-line">${escapeHtml(headerDateLabel(iso))}</span></th>`;
+      });
+      html += '<th class="time-right">Time</th></tr></thead><tbody>';
+      const outsideRendered = new Set();
+      for (let slot = 0; slot < SLOT_COUNT; slot += 1) {
+        html += `<tr><td class="time">${slotLabel(slot)}</td>`;
+        weekDates.forEach((iso) => {
+          if (monthSlug(iso) !== targetMonth) {
+            if (!outsideRendered.has(iso)) {
+              html += '<td class="outside-empty" rowspan="48"></td>';
+              outsideRendered.add(iso);
+            }
+            return;
+          }
+          const item = slotMaps[iso][slot];
+          if (item && item.continuation) return;
+          if (item) {
+            html += createCellHtml(item);
+            return;
+          }
+          const hole = {
+            key: holeKey(iso, slotLabel(slot)),
+            date: iso,
+            day: weekdayLabel(iso),
+            time: slotLabel(slot),
+            slot,
+            duration: 30,
+            rowspan: 1,
+            title: 'SCHEDULE HOLE',
+            episode: '',
+            isHole: true,
+            band: bandClass(slot),
+            seasonStart: false,
+          };
+          html += createCellHtml(hole);
         });
-        const anchor = section.querySelector('.controls.export-controls.bottom-export');
-        if (anchor) section.insertBefore(wrap, anchor); else section.appendChild(wrap);
+        html += `<td class="time time-right-cell">${slotLabel(slot)}</td></tr>`;
       }
-    });
-  }
-
-  function renderDailySummaries() {
-    document.querySelectorAll('.week-summaries .day-summary').forEach((card) => {
-      const iso = card.dataset.date || '';
-      const body = card.querySelector('.sum-body');
-      if (!body) return;
-      if (!iso) { body.innerHTML = '<div class="sum-empty">Outside month</div>'; return; }
-      const items = [];
-      document.querySelectorAll(`td.program[data-date="${iso}"][data-key], tr[data-date="${iso}"][data-key]`).forEach((el) => {
-        const key = el.getAttribute('data-key');
-        const rec = decodedRecord(recordFor(key));
-        if (!rec.is_marked) return;
-        const title = el.getAttribute('data-title') || el.querySelector('.title')?.textContent?.trim() || 'Program';
-        const time = el.getAttribute('data-time') || '';
-        items.push({ time, title, note: rec.noteText, category: rec.category });
+      html += '</tbody><tfoot><tr class="summary-row"><td class="time summary-spacer"></td>';
+      weekDates.forEach((iso) => {
+        if (monthSlug(iso) !== targetMonth) html += '<td class="summary-cell outside-summary"></td>';
+        else html += `<td class="summary-cell" data-summary-date="${iso}"><div class="sum-empty">Nothing checked</div></td>`;
       });
-      items.sort((a,b)=>a.time.localeCompare(b.time));
-      if (!items.length) {
-        body.innerHTML = '<div class="sum-empty">Nothing checked</div>';
-      } else {
-        body.innerHTML = '<ul>' + items.map((item) => `<li class="${item.category ? 'sum-'+item.category : ''}"><span class="sum-time">${escapeHtml(item.time)}</span> ${escapeHtml(item.title)}${item.note ? `<span class="sum-note">${escapeHtml(item.note)}</span>` : '<span class="sum-note">No note</span>'}</li>`).join('') + '</ul>';
-      }
+      html += '<td class="time summary-spacer"></td></tr></tfoot>';
+      table.innerHTML = html;
+      section.querySelectorAll('.week-summaries').forEach((el) => el.remove());
+      section.dataset.weekStart = weekStart;
+      const h2 = section.querySelector('h2');
+      if (h2) h2.textContent = `Week ${idx + 1}`;
     });
-  }
-
-  function ensureNoteButtons() {
-    if (noteButtonsInjected) return;
-    document.querySelectorAll('.title-row').forEach((row) => {
-      if (row.querySelector('.note-btn')) return;
-      const box = row.querySelector('.markbox');
-      const key = box?.dataset.key || row.closest('[data-key]')?.getAttribute('data-key');
-      if (!key) return;
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'note-btn';
-      btn.dataset.key = key;
-      btn.textContent = 'Note';
-      if (box) row.insertBefore(btn, box); else row.appendChild(btn);
-    });
-    noteButtonsInjected = true;
   }
 
   function buildDomIndex() {
@@ -287,33 +249,10 @@
       if (!index.has(key)) index.set(key, { entries: [], boxes: [], buttons: [] });
       index.get(key)[bucket].push(el);
     };
-    document.querySelectorAll('td.program[data-key], tr[data-key]').forEach((el) => add(el.getAttribute('data-key'), 'entries', el));
+    document.querySelectorAll('td[data-key], tr[data-key]').forEach((el) => add(el.getAttribute('data-key'), 'entries', el));
     document.querySelectorAll('input.markbox[data-key]').forEach((el) => add(el.dataset.key, 'boxes', el));
     document.querySelectorAll('.note-btn[data-key]').forEach((el) => add(el.dataset.key, 'buttons', el));
     domIndex = index;
-  }
-
-  function updateNoteIndicatorForEntry(el, note) {
-    if (!el) return;
-    let peek = el.querySelector(':scope > .note-peek');
-    if (!peek && el.matches('tr')) peek = el.querySelector('.note-peek');
-    if (!note) {
-      if (peek) peek.hidden = true;
-      return;
-    }
-    if (!peek) {
-      peek = document.createElement('div');
-      peek.className = el.matches('tr') ? 'note-peek note-peek-inline' : 'note-peek';
-      if (el.matches('tr')) {
-        const holder = el.querySelector('.title-cell') || el.querySelector('td:nth-child(4)') || el.lastElementChild;
-        if (!holder) return;
-        holder.appendChild(peek);
-      } else {
-        el.appendChild(peek);
-      }
-    }
-    peek.hidden = false;
-    peek.textContent = `Note: ${notePeek(note)}`;
   }
 
   function setCategoryClass(el, category) {
@@ -322,34 +261,69 @@
     if (category) el.classList.add(`cat-${category}`);
   }
 
+  function updateNoteIndicatorForEntry(el, note) {
+    if (!el) return;
+    let peek = el.querySelector(':scope > .note-peek');
+    if (!peek) peek = el.querySelector('.note-peek');
+    if (!note) {
+      if (peek) peek.hidden = true;
+      return;
+    }
+    if (!peek) {
+      peek = document.createElement('div');
+      peek.className = 'note-peek';
+      el.appendChild(peek);
+    }
+    peek.hidden = false;
+    peek.textContent = `Note: ${notePeek(note)}`;
+  }
+
   function renderEntryState(key) {
     const rec = decodedRecord(recordFor(key));
-    const marked = rec.is_marked;
-    const note = rec.noteText;
-    const category = rec.category;
     const refs = domIndex?.get(key) || { entries: [], boxes: [], buttons: [] };
     refs.entries.forEach((el) => {
-      el.classList.toggle('marked', marked);
-      el.classList.toggle('has-note', !!note);
-      setCategoryClass(el, category);
-      updateNoteIndicatorForEntry(el, note);
+      el.classList.toggle('marked', rec.is_marked);
+      el.classList.toggle('has-note', !!rec.noteText);
+      setCategoryClass(el, rec.category);
+      updateNoteIndicatorForEntry(el, rec.noteText);
     });
-    refs.boxes.forEach((box) => {
-      box.checked = marked;
-    });
+    refs.boxes.forEach((box) => { box.checked = rec.is_marked; });
     refs.buttons.forEach((btn) => {
-      btn.classList.toggle('has-note', !!note);
-      btn.classList.toggle('is-marked', marked);
-      setCategoryClass(btn, category);
-      btn.textContent = note ? 'Note*' : 'Note';
+      btn.classList.toggle('has-note', !!rec.noteText);
+      btn.classList.toggle('is-marked', rec.is_marked);
+      setCategoryClass(btn, rec.category);
+      btn.textContent = rec.noteText ? 'Note*' : 'Note';
+    });
+  }
+
+  function renderDailySummaries() {
+    document.querySelectorAll('.summary-cell[data-summary-date]').forEach((cell) => {
+      const iso = cell.dataset.summaryDate;
+      const items = [];
+      document.querySelectorAll(`td[data-date="${iso}"][data-key]`).forEach((el) => {
+        const key = el.dataset.key;
+        const rec = decodedRecord(recordFor(key));
+        if (!rec.is_marked) return;
+        items.push({
+          time: el.dataset.time || '',
+          title: el.dataset.title || 'Program',
+          note: rec.noteText,
+          category: rec.category,
+        });
+      });
+      items.sort((a, b) => slotIndex(a.time) - slotIndex(b.time));
+      if (!items.length) {
+        cell.innerHTML = '<div class="sum-empty">Nothing checked</div>';
+        return;
+      }
+      cell.innerHTML = '<ul>' + items.map((item) => `<li class="${item.category ? 'sum-' + item.category : ''}"><span class="sum-time">${escapeHtml(item.time)}</span><span class="sum-title">${escapeHtml(item.title)}</span><span class="sum-note">${escapeHtml(item.note || '')}</span></li>`).join('') + '</ul>';
     });
   }
 
   function applyMarks(keysToRender) {
-    ensureNoteButtons();
     if (!domIndex) buildDomIndex();
-    const keys = keysToRender ? Array.from(keysToRender) : Object.keys(marks || {});
-    if (keys.length) keys.forEach((key) => renderEntryState(key));
+    const keys = keysToRender ? Array.from(keysToRender) : Array.from(domIndex.keys());
+    keys.forEach((key) => renderEntryState(key));
     renderDailySummaries();
   }
 
@@ -357,23 +331,22 @@
     try {
       const parsed = JSON.parse(storageGet(LOCAL_STORAGE_KEY, '{}') || '{}');
       return parsed && typeof parsed === 'object' ? parsed : {};
-    } catch (e) {
-      return {};
-    }
+    } catch (e) { return {}; }
   }
   function saveLocalMarks() { storageSet(LOCAL_STORAGE_KEY, JSON.stringify(marks)); }
 
+  function upsertRecord(key, patch) {
+    const current = recordFor(key) || { entry_key: key, is_marked: false, note: '' };
+    marks[key] = { ...current, ...patch, entry_key: key, updated_by: getEditorName() || null, updated_at: new Date().toISOString() };
+  }
+
   async function persistRecord(key) {
     saveLocalMarks();
-    if (!useSupabase || !supabase) {
-      stampStatus('Local mode');
-      return;
-    }
+    if (!useSupabase || !supabase) { stampStatus('Local mode'); return; }
     const rec = recordFor(key);
     try {
       if (!rec) {
-        const { error } = await supabase.from(TABLE_NAME).delete()
-          .eq('project_scope', PROJECT_SCOPE).eq('channel_slug', CHANNEL_SLUG).eq('schedule_slug', SCHEDULE_SLUG).eq('entry_key', key);
+        const { error } = await supabase.from(TABLE_NAME).delete().eq('project_scope', PROJECT_SCOPE).eq('channel_slug', CHANNEL_SLUG).eq('schedule_slug', SCHEDULE_SLUG).eq('entry_key', key);
         if (error) throw error;
       } else {
         const payload = {
@@ -397,25 +370,38 @@
     }
   }
 
+  function ensureAutoSeedMarks() {
+    const seeded = [];
+    document.querySelectorAll('.season-start[data-key]').forEach((el) => {
+      const key = el.getAttribute('data-key');
+      if (!key || marks[key]) return;
+      const timeText = el.getAttribute('data-time') || '';
+      if (shouldSuppressSeasonStart(timeText)) return;
+      marks[key] = { entry_key: key, is_marked: true, note: encodeNotePayload('', 'newseries'), updated_by: null, updated_at: null, auto_seeded: true };
+      seeded.push(key);
+    });
+    if (seeded.length) saveLocalMarks();
+    return seeded;
+  }
+
   async function loadSharedMarks() {
-    if (!useSupabase || !supabase || panelOpen) return;
+    if (!useSupabase || !supabase || editorOpen) return;
     try {
       const { data, error } = await supabase.from(TABLE_NAME)
         .select('entry_key,is_marked,note,updated_at,updated_by')
         .eq('project_scope', PROJECT_SCOPE).eq('channel_slug', CHANNEL_SLUG).eq('schedule_slug', SCHEDULE_SLUG);
       if (error) throw error;
       const next = {};
-      const changedKeys = new Set();
+      const changed = new Set();
       for (const row of (data || [])) {
         next[row.entry_key] = row;
         const prev = marks[row.entry_key];
-        if (!prev || prev.is_marked !== row.is_marked || prev.note !== row.note) changedKeys.add(row.entry_key);
+        if (!prev || prev.is_marked !== row.is_marked || prev.note !== row.note) changed.add(row.entry_key);
       }
-      Object.keys(marks).forEach((key) => { if (!(key in next)) changedKeys.add(key); });
+      Object.keys(marks).forEach((key) => { if (!(key in next)) changed.add(key); });
       marks = next;
-      ensureAutoSeedMarks().forEach((key) => changedKeys.add(key));
-      if (changedKeys.size) applyMarks(changedKeys);
-      else renderDailySummaries();
+      ensureAutoSeedMarks().forEach((key) => changed.add(key));
+      applyMarks(changed.size ? changed : undefined);
       lastSyncTs = new Date().toISOString();
       stampStatus('Shared live');
     } catch (error) {
@@ -449,33 +435,65 @@
     if (!useSupabase) return;
     if (pollTimer) window.clearInterval(pollTimer);
     pollTimer = window.setInterval(() => {
-      if (document.visibilityState === 'visible' && !panelOpen) loadSharedMarks();
+      if (document.visibilityState === 'visible' && !editorOpen) loadSharedMarks();
     }, 30000);
     document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'visible' && !panelOpen) loadSharedMarks();
+      if (document.visibilityState === 'visible' && !editorOpen) loadSharedMarks();
     });
   }
 
-  function upsertRecord(key, patch) {
-    const current = recordFor(key) || { entry_key: key, is_marked: false, note: '' };
-    const next = { ...current, ...patch, entry_key: key, updated_by: getEditorName() || null, updated_at: new Date().toISOString() };
-    marks[key] = next;
+  function closeNoteEditor() {
+    const panel = q('note-panel');
+    if (!panel) return;
+    panel.classList.add('hidden');
+    ensureEditorHome().appendChild(panel);
+    if (activeHost) activeHost.classList.remove('editor-open');
+    activeHost = null;
+    activeEditKey = null;
+    editorOpen = false;
   }
 
-  async function saveNoteFromModal() {
+  function openNoteEditor(key) {
+    const panel = q('note-panel');
+    if (!panel) return;
+    const host = (domIndex?.get(key)?.entries || [])[0];
+    if (!host) return;
+    if (activeHost && activeHost !== host) activeHost.classList.remove('editor-open');
+    activeEditKey = key;
+    activeHost = host;
+    editorOpen = true;
+    host.classList.add('editor-open');
+    host.appendChild(panel);
+    panel.classList.remove('hidden');
+    q('note-panel-title').textContent = host.dataset.title || 'Edit note';
+    q('note-panel-meta').textContent = `${host.dataset.day || ''} | ${host.dataset.date || ''} | ${host.dataset.time || ''}`;
+    const rec = decodedRecord(recordFor(key));
+    const area = q('note-textarea');
+    if (area) {
+      area.value = rec.noteText;
+      area.setAttribute('spellcheck', 'false');
+      area.setAttribute('autocomplete', 'off');
+      area.setAttribute('autocorrect', 'off');
+      area.setAttribute('autocapitalize', 'off');
+      window.setTimeout(() => area.focus(), 20);
+    }
+    setCategoryBoxes(rec.category);
+  }
+
+  async function saveNoteFromEditor() {
     if (!activeEditKey) return;
     const key = activeEditKey;
     const noteText = cleanNote(q('note-textarea')?.value || '');
     const category = getSelectedCategory();
     const currentMarked = !!recordFor(key)?.is_marked;
-    upsertRecord(key, { note: encodeNotePayload(noteText, category), is_marked: currentMarked || !!category || !!noteText });
+    upsertRecord(key, { note: encodeNotePayload(noteText, category), is_marked: currentMarked || !!noteText || !!category });
     renderEntryState(key);
     renderDailySummaries();
     await persistRecord(key);
-    closeNoteModal();
+    closeNoteEditor();
   }
 
-  async function clearNoteFromModal() {
+  async function clearNoteFromEditor() {
     if (!activeEditKey) return;
     const key = activeEditKey;
     const currentMarked = !!recordFor(key)?.is_marked;
@@ -483,7 +501,27 @@
     renderEntryState(key);
     renderDailySummaries();
     await persistRecord(key);
-    closeNoteModal();
+    closeNoteEditor();
+  }
+
+  function toggleSeasonOnly() {
+    document.body.classList.toggle('season-only');
+    const on = document.body.classList.contains('season-only');
+    document.querySelectorAll('td[data-key]:not(.season-start)').forEach((el) => {
+      el.style.opacity = on ? '0.45' : '';
+    });
+  }
+
+  function clearMarks() {
+    const next = {};
+    Object.entries(marks).forEach(([key, rec]) => {
+      const payload = parseNotePayload(rec.note);
+      if (payload.text || payload.category) next[key] = { ...rec, is_marked: false };
+    });
+    marks = next;
+    applyMarks();
+    saveLocalMarks();
+    if (useSupabase) Object.keys(next).forEach((key) => { persistRecord(key); });
   }
 
   function wireDelegates() {
@@ -492,8 +530,13 @@
       if (noteBtn?.dataset.key) {
         event.preventDefault();
         event.stopPropagation();
-        openNoteModal(noteBtn.dataset.key);
+        if (activeEditKey === noteBtn.dataset.key && !q('note-panel')?.classList.contains('hidden')) closeNoteEditor();
+        else openNoteEditor(noteBtn.dataset.key);
+        return;
       }
+      if (event.target.closest('#note-save-btn')) { event.preventDefault(); saveNoteFromEditor(); return; }
+      if (event.target.closest('#note-clear-btn')) { event.preventDefault(); clearNoteFromEditor(); return; }
+      if (event.target.closest('#note-close-btn')) { event.preventDefault(); closeNoteEditor(); return; }
     });
 
     document.addEventListener('change', async (event) => {
@@ -516,59 +559,28 @@
     });
   }
 
-  function clearMarks() {
-    const next = {};
-    Object.entries(marks).forEach(([key, rec]) => {
-      const payload = parseNotePayload(rec.note);
-      if (payload.text || payload.category) next[key] = { ...rec, is_marked: false };
-    });
-    marks = next;
-    applyMarks();
-    saveLocalMarks();
-    if (useSupabase) Object.keys(next).forEach((key) => { persistRecord(key); });
-  }
-
-  function toggleSeasonOnly() {
-    document.body.classList.toggle('season-only');
-    const on = document.body.classList.contains('season-only');
-    document.querySelectorAll('td.program:not(.season-start), table.companion tr:not(.season-start)[data-key]').forEach((el) => {
-      el.style.opacity = on ? '0.45' : '';
-    });
-  }
-
   async function init() {
-    try { sanitizeOutsideMonth(); } catch (e) { console.error('sanitizeOutsideMonth failed', e); }
-    try { suppressOvernightSeasonStarts(); } catch (e) { console.error('suppressOvernightSeasonStarts failed', e); }
-    try { marks = loadLocalMarks(); } catch (e) { console.error('loadLocalMarks failed', e); }
-    try {
-      if (editorEl) {
-        editorEl.value = storageGet(LOCAL_EDITOR_KEY, '');
-        editorEl.addEventListener('change', () => storageSet(LOCAL_EDITOR_KEY, editorEl.value || ''));
-      }
-    } catch (e) { console.error('editor init failed', e); }
-    try {
-      addRightTimeRail();
-      ensureDailySummaries();
-      ensureNoteButtons();
-      buildDomIndex();
-      ensureAutoSeedMarks();
-      applyMarks();
-    } catch (e) { console.error('initial render failed', e); }
-    try { wireDelegates(); } catch (e) { console.error('wireDelegates failed', e); }
-    q('note-save-btn')?.addEventListener('click', saveNoteFromModal);
-    q('note-clear-btn')?.addEventListener('click', clearNoteFromModal);
-    q('note-close-btn')?.addEventListener('click', closeNoteModal);
+    ensureEditorHome();
+    normalizeWeekTables();
+    marks = loadLocalMarks();
+    if (editorEl) {
+      editorEl.value = storageGet(LOCAL_EDITOR_KEY, '');
+      editorEl.addEventListener('change', () => storageSet(LOCAL_EDITOR_KEY, editorEl.value || ''));
+    }
+    buildDomIndex();
+    ensureAutoSeedMarks();
+    applyMarks();
+    wireDelegates();
     refreshBtn?.addEventListener('click', () => loadSharedMarks());
     clearBtn?.addEventListener('click', clearMarks);
     seasonBtn?.addEventListener('click', toggleSeasonOnly);
     const connected = await connectSupabase();
     if (connected) {
       await loadSharedMarks();
-      ensureAutoSeedMarks();
       applyMarks();
       startPolling();
     }
-    window.openNoteModal = openNoteModal;
+    window.openNoteEditor = openNoteEditor;
   }
 
   init().catch((e) => console.error('schedule init failed', e));
