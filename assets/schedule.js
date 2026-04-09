@@ -261,6 +261,18 @@
     if (category) el.classList.add(`cat-${category}`);
   }
 
+  function previewActiveCategory(category) {
+    if (!activeEditKey || !domIndex) return;
+    const refs = domIndex.get(activeEditKey) || { entries: [], buttons: [] };
+    refs.entries.forEach((el) => setCategoryClass(el, category));
+    refs.buttons.forEach((btn) => setCategoryClass(btn, category));
+  }
+
+  function restoreActiveCategoryPreview() {
+    if (!activeEditKey) return;
+    renderEntryState(activeEditKey);
+  }
+
   function updateNoteIndicatorForEntry(el, note) {
     if (!el) return;
     let peek = el.querySelector(':scope > .note-peek');
@@ -443,6 +455,7 @@
   }
 
   function closeNoteEditor() {
+    if (activeEditKey) restoreActiveCategoryPreview();
     const panel = q('note-panel');
     if (!panel) return;
     panel.classList.add('hidden');
@@ -478,6 +491,7 @@
       window.setTimeout(() => area.focus(), 20);
     }
     setCategoryBoxes(rec.category);
+    previewActiveCategory(rec.category);
   }
 
   async function saveNoteFromEditor() {
@@ -551,10 +565,13 @@
         return;
       }
       const catbox = event.target.closest('.catbox[data-category]');
-      if (catbox && catbox.checked) {
-        document.querySelectorAll('.catbox[data-category]').forEach((other) => {
-          if (other !== catbox) other.checked = false;
-        });
+      if (catbox) {
+        if (catbox.checked) {
+          document.querySelectorAll('.catbox[data-category]').forEach((other) => {
+            if (other !== catbox) other.checked = false;
+          });
+        }
+        previewActiveCategory(getSelectedCategory());
       }
     });
   }

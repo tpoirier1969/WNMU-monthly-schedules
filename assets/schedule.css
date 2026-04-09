@@ -291,7 +291,7 @@ td.program.hole .episode{display:none}
 }
 
 
-/* v13.19 verified fixes: note band, category colors, tighter print */
+/* v13.20 verified fixes: note band, category colors, tighter print */
 .summary-row td{background:#eef3f8 !important;border-top:3px solid #7f93ab !important}
 .summary-spacer{background:#dde6f0 !important}
 .summary-cell{background:#eef3f8 !important;padding:6px 5px 7px 5px;min-height:72px}
@@ -312,3 +312,45 @@ td[data-key].cat-newseries, tr[data-key].cat-newseries, .day-summary li.sum-news
 .note-btn.cat-newseries{border-color:#8a5a00 !important;color:#6e4900 !important;background:#fff7e8 !important}
 @page{size:letter landscape;margin:.28in}
 @media print{html,body{font-size:9px !important;zoom:1 !important} h1{font-size:16px !important;margin:0 0 4px 0 !important} .legend{gap:6px !important;margin:4px 0 6px 0 !important} .legend .chip{font-size:9px !important;padding:1px 4px !important} .report-meta{font-size:9px !important;margin:0 0 4px 0 !important} .week{margin:0 0 6px 0 !important;break-inside:avoid-page} .week>h2{font-size:12px !important;margin:2px 0 !important;padding:0 !important} table.grid{table-layout:fixed;width:100% !important} table.grid th,table.grid td{padding:2px 3px !important;font-size:8.6px !important;line-height:1.05 !important} table.grid td.time.time-right-cell,table.grid th.time,table.grid th.time-right{width:40px !important;min-width:40px !important;font-size:8px !important} .title-row{gap:3px !important} .note-peek{display:none !important} .episode,.duration{font-size:7.8px !important;margin-top:1px !important} .summary-cell{padding:3px !important;min-height:0 !important} .summary-cell::before{font-size:8px !important;margin-bottom:2px !important;padding-bottom:1px !important} .summary-cell li{margin:0 0 2px 0 !important;padding:2px 3px !important;font-size:8px !important;line-height:1.05 !important} .summary-cell .sum-time,.summary-cell .sum-title,.summary-cell .sum-note{font-size:8px !important;line-height:1.05 !important} }
+
+
+/* v13.20 category preview + stronger fills + denser print */
+body{--cat-fundraiser-fill:#e6f4ea;--cat-fundraiser-stroke:#2f8f46;--cat-local-fill:#e7f0ff;--cat-local-stroke:#2f69d9;--cat-newseries-fill:#fff1dc;--cat-newseries-stroke:#a56600;--cat-oneoff-fill:#fff4df;--cat-oneoff-stroke:#c57a00;--cat-highlight-fill:#e2f7fb;--cat-highlight-stroke:#007c91}
+td[data-key].cat-fundraiser, tr[data-key].cat-fundraiser{background:var(--cat-fundraiser-fill) !important; box-shadow:inset 0 0 0 2px var(--cat-fundraiser-stroke) !important;}
+td[data-key].cat-local, tr[data-key].cat-local{background:var(--cat-local-fill) !important; box-shadow:inset 0 0 0 2px var(--cat-local-stroke) !important;}
+td[data-key].cat-newseries, tr[data-key].cat-newseries{background:var(--cat-newseries-fill) !important; box-shadow:inset 0 0 0 2px var(--cat-newseries-stroke) !important;}
+td[data-key].cat-oneoff, tr[data-key].cat-oneoff{background:var(--cat-oneoff-fill) !important; box-shadow:inset 0 0 0 2px var(--cat-oneoff-stroke) !important;}
+td[data-key].cat-highlight, tr[data-key].cat-highlight{background:var(--cat-highlight-fill) !important; box-shadow:inset 0 0 0 2px var(--cat-highlight-stroke) !important;}
+td[data-key].cat-fundraiser.marked, tr[data-key].cat-fundraiser.marked{outline-color:var(--cat-fundraiser-stroke) !important;}
+td[data-key].cat-local.marked, tr[data-key].cat-local.marked{outline-color:var(--cat-local-stroke) !important;}
+td[data-key].cat-newseries.marked, tr[data-key].cat-newseries.marked{outline-color:var(--cat-newseries-stroke) !important;}
+td[data-key].cat-oneoff.marked, tr[data-key].cat-oneoff.marked{outline-color:var(--cat-oneoff-stroke) !important;}
+td[data-key].cat-highlight.marked, tr[data-key].cat-highlight.marked{outline-color:var(--cat-highlight-stroke) !important;}
+.note-btn.cat-fundraiser{border-color:var(--cat-fundraiser-stroke) !important;color:#1e5a2f !important;background:var(--cat-fundraiser-fill) !important;}
+.note-btn.cat-local{border-color:var(--cat-local-stroke) !important;color:#214d9d !important;background:var(--cat-local-fill) !important;}
+.note-btn.cat-newseries{border-color:var(--cat-newseries-stroke) !important;color:#7a4d00 !important;background:var(--cat-newseries-fill) !important;}
+.note-btn.cat-oneoff{border-color:var(--cat-oneoff-stroke) !important;color:#8a5200 !important;background:var(--cat-oneoff-fill) !important;}
+.note-btn.cat-highlight{border-color:var(--cat-highlight-stroke) !important;color:#005f6f !important;background:var(--cat-highlight-fill) !important;}
+.summary-cell li.sum-fundraiser,.day-summary li.sum-fundraiser{background:var(--cat-fundraiser-fill) !important;border-left-color:var(--cat-fundraiser-stroke) !important;}
+.summary-cell li.sum-local,.day-summary li.sum-local{background:var(--cat-local-fill) !important;border-left-color:var(--cat-local-stroke) !important;}
+.summary-cell li.sum-newseries,.day-summary li.sum-newseries{background:var(--cat-newseries-fill) !important;border-left-color:var(--cat-newseries-stroke) !important;}
+.summary-cell li.sum-oneoff,.day-summary li.sum-oneoff{background:var(--cat-oneoff-fill) !important;border-left-color:var(--cat-oneoff-stroke) !important;}
+.summary-cell li.sum-highlight,.day-summary li.sum-highlight{background:var(--cat-highlight-fill) !important;border-left-color:var(--cat-highlight-stroke) !important;}
+.category-wrap label{padding:4px 8px;border:1px solid #d4dce6;border-radius:999px}
+.category-wrap label:has(input.catbox[data-category="fundraiser"]){background:#eef8f0;border-color:#b8d8c0}
+.category-wrap label:has(input.catbox[data-category="local"]){background:#eef4ff;border-color:#bfd0ff}
+.category-wrap label:has(input.catbox[data-category="newseries"]){background:#fff7e8;border-color:#ead5ad}
+.category-wrap label:has(input.catbox[data-category="oneoff"]){background:#fff7e8;border-color:#efcf95}
+.category-wrap label:has(input.catbox[data-category="highlight"]){background:#ebfbff;border-color:#b9e8f0}
+.category-wrap label:has(input.catbox:checked){box-shadow:inset 0 0 0 2px #3d6fb6;font-weight:700}
+@media print{
+  .report-meta{max-width:none !important}
+  .week{margin:0 0 4px 0 !important}
+  table.grid th,table.grid td{padding:1px 2px !important;font-size:8.1px !important;line-height:1.0 !important}
+  table.grid td.time.time-right-cell,table.grid th.time,table.grid th.time-right{width:34px !important;min-width:34px !important;font-size:7.7px !important}
+  .episode,.duration{font-size:7.2px !important}
+  .summary-row td{border-top-width:1px !important}
+  .summary-cell{padding:2px !important}
+  .summary-cell::before{font-size:7px !important}
+  .summary-cell li{padding:1px 2px !important;margin:0 0 1px 0 !important}
+}
