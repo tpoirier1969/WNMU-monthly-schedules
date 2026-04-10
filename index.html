@@ -7,13 +7,13 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <title>WNMU1HD May 2026 Weekly Grids</title>
-  <link rel="stylesheet" href="styles.v1.0.2.css?v=1.0.2">
+  <link rel="stylesheet" href="styles.v1.0.4.css?v=1.0.4">
 </head>
 <body>
   <header class="topbar">
     <div>
       <h1>WNMU1HD May 2026</h1>
-      <p class="sub">30-minute slot rebuild • weekly grids only • external JSON • clean-room repo</p>
+      <p class="sub">30-minute slot rebuild • weekly grids with right-click markup • external JSON • clean-room repo</p>
     </div>
     <div class="flagbar">
       <span class="flag" id="versionFlag">version</span>
@@ -26,12 +26,39 @@
     <section class="panel weeks-panel">
       <div class="panel-head">
         <h2>Week grids</h2>
-        <p>Rendered from JSON only. No baked schedule HTML.</p>
+        <p><strong>Right-click any program cell</strong> to tag it as New Series, Highlight, One Off, or Monthly topic. Episode numbers ending in <strong>01</strong> start with <strong>New Series</strong> checked automatically.</p>
       </div>
       <div id="weekGrids" class="week-grids"></div>
     </section>
+
+    <section class="panel month-panel">
+      <div class="panel-head">
+        <h2>Month checkbox rollup</h2>
+        <p>Programs with at least one checked tag are listed here with day, time, length, episode, and checkbox info.</p>
+      </div>
+      <div id="monthRollup" class="month-rollup"></div>
+    </section>
   </main>
 
-  <script src="app.v1.0.2.js?v=1.0.2" defer></script>
+  <aside id="contextMenu" class="context-menu hidden" aria-hidden="true">
+    <div class="context-menu-head">
+      <div>
+        <h3 id="menuTitle">Program markup</h3>
+        <div id="menuMeta" class="context-menu-meta"></div>
+      </div>
+      <button type="button" id="closeMenuBtn" class="menu-close" aria-label="Close">×</button>
+    </div>
+    <form id="contextMenuForm" class="context-menu-form">
+      <label class="check-row check-new-series"><input type="checkbox" name="newSeries"> <span>New Series</span></label>
+      <label class="check-row check-highlight"><input type="checkbox" name="highlight"> <span>Highlight</span></label>
+      <label class="check-row check-one-off"><input type="checkbox" name="oneOff"> <span>One Off</span></label>
+      <label class="check-row check-monthly-topic"><input type="checkbox" name="monthlyTopic"> <span>Monthly topic</span></label>
+    </form>
+    <div class="context-menu-actions">
+      <button type="button" id="clearMarksBtn" class="btn ghost">Clear all for this program</button>
+    </div>
+  </aside>
+
+  <script src="app.v1.0.4.js?v=1.0.4" defer></script>
 </body>
 </html>

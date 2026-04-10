@@ -1,4 +1,4 @@
-WNMU1HD May 2026 clean-room repo v1.0.0
+WNMU1HD May 2026 clean-room repo v1.0.4
 
 expectedDayCount: 31
 actualDayCount: 31
