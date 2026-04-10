@@ -1,0 +1,42 @@
+WNMU1HD May 2026 rebuild verification
+Version: rebuild-v1
+
+Checks:
+- All 31 May dates present: True
+- Every day has continuous coverage: True
+- Slot calendar: 30-minute slots
+- External data file: True
+- Baked schedule HTML: False
+
+Daily coverage:
+- 2026-05-01 Friday: 37 airings, 48/48 slots, first 00:00, last end 00:00, continuous=True
+- 2026-05-02 Saturday: 33 airings, 48/48 slots, first 00:00, last end 00:00, continuous=True
+- 2026-05-03 Sunday: 35 airings, 48/48 slots, first 00:00, last end 00:00, continuous=True
+- 2026-05-04 Monday: 35 airings, 48/48 slots, first 00:00, last end 00:00, continuous=True
+- 2026-05-05 Tuesday: 35 airings, 48/48 slots, first 00:00, last end 00:00, continuous=True
+- 2026-05-06 Wednesday: 36 airings, 48/48 slots, first 00:00, last end 00:00, continuous=True
+- 2026-05-07 Thursday: 39 airings, 48/48 slots, first 00:00, last end 00:00, continuous=True
+- 2026-05-08 Friday: 37 airings, 48/48 slots, first 00:00, last end 00:00, continuous=True
+- 2026-05-09 Saturday: 37 airings, 48/48 slots, first 00:00, last end 00:00, continuous=True
+- 2026-05-10 Sunday: 34 airings, 48/48 slots, first 00:00, last end 00:00, continuous=True
+- 2026-05-11 Monday: 35 airings, 48/48 slots, first 00:00, last end 00:00, continuous=True
+- 2026-05-12 Tuesday: 37 airings, 48/48 slots, first 00:00, last end 00:00, continuous=True
+- 2026-05-13 Wednesday: 36 airings, 48/48 slots, first 00:00, last end 00:00, continuous=True
+- 2026-05-14 Thursday: 38 airings, 48/48 slots, first 00:00, last end 00:00, continuous=True
+- 2026-05-15 Friday: 36 airings, 48/48 slots, first 00:00, last end 00:00, continuous=True
+- 2026-05-16 Saturday: 36 airings, 48/48 slots, first 00:00, last end 00:00, continuous=True
+- 2026-05-17 Sunday: 32 airings, 48/48 slots, first 00:00, last end 00:00, continuous=True
+- 2026-05-18 Monday: 36 airings, 48/48 slots, first 00:00, last end 00:00, continuous=True
+- 2026-05-19 Tuesday: 36 airings, 48/48 slots, first 00:00, last end 00:00, continuous=True
+- 2026-05-20 Wednesday: 36 airings, 48/48 slots, first 00:00, last end 00:00, continuous=True
+- 2026-05-21 Thursday: 38 airings, 48/48 slots, first 00:00, last end 00:00, continuous=True
+- 2026-05-22 Friday: 38 airings, 48/48 slots, first 00:00, last end 00:00, continuous=True
+- 2026-05-23 Saturday: 37 airings, 48/48 slots, first 00:00, last end 00:00, continuous=True
+- 2026-05-24 Sunday: 34 airings, 48/48 slots, first 00:00, last end 00:00, continuous=True
+- 2026-05-25 Monday: 36 airings, 48/48 slots, first 00:00, last end 00:00, continuous=True
+- 2026-05-26 Tuesday: 35 airings, 48/48 slots, first 00:00, last end 00:00, continuous=True
+- 2026-05-27 Wednesday: 36 airings, 48/48 slots, first 00:00, last end 00:00, continuous=True
+- 2026-05-28 Thursday: 38 airings, 48/48 slots, first 00:00, last end 00:00, continuous=True
+- 2026-05-29 Friday: 37 airings, 48/48 slots, first 00:00, last end 00:00, continuous=True
+- 2026-05-30 Saturday: 35 airings, 48/48 slots, first 00:00, last end 00:00, continuous=True
+- 2026-05-31 Sunday: 33 airings, 48/48 slots, first 00:00, last end 00:00, continuous=True

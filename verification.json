@@ -1,0 +1,358 @@
+{
+  "version": "rebuild-v1",
+  "checks": {
+    "all31MayDatesPresent": true,
+    "everyDayHasContinuousCoverage": true,
+    "slotCalendar": "30-minute slots",
+    "bakedScheduleHtml": false,
+    "externalDataFile": true
+  },
+  "dailyCoverage": [
+    {
+      "date": "2026-05-01",
+      "day": "Friday",
+      "airings": 37,
+      "coveredSlots": 48,
+      "totalSlots": 48,
+      "continuous": true,
+      "firstStart": "00:00",
+      "lastEnd": "00:00",
+      "gaps": []
+    },
+    {
+      "date": "2026-05-02",
+      "day": "Saturday",
+      "airings": 33,
+      "coveredSlots": 48,
+      "totalSlots": 48,
+      "continuous": true,
+      "firstStart": "00:00",
+      "lastEnd": "00:00",
+      "gaps": []
+    },
+    {
+      "date": "2026-05-03",
+      "day": "Sunday",
+      "airings": 35,
+      "coveredSlots": 48,
+      "totalSlots": 48,
+      "continuous": true,
+      "firstStart": "00:00",
+      "lastEnd": "00:00",
+      "gaps": []
+    },
+    {
+      "date": "2026-05-04",
+      "day": "Monday",
+      "airings": 35,
+      "coveredSlots": 48,
+      "totalSlots": 48,
+      "continuous": true,
+      "firstStart": "00:00",
+      "lastEnd": "00:00",
+      "gaps": []
+    },
+    {
+      "date": "2026-05-05",
+      "day": "Tuesday",
+      "airings": 35,
+      "coveredSlots": 48,
+      "totalSlots": 48,
+      "continuous": true,
+      "firstStart": "00:00",
+      "lastEnd": "00:00",
+      "gaps": []
+    },
+    {
+      "date": "2026-05-06",
+      "day": "Wednesday",
+      "airings": 36,
+      "coveredSlots": 48,
+      "totalSlots": 48,
+      "continuous": true,
+      "firstStart": "00:00",
+      "lastEnd": "00:00",
+      "gaps": []
+    },
+    {
+      "date": "2026-05-07",
+      "day": "Thursday",
+      "airings": 39,
+      "coveredSlots": 48,
+      "totalSlots": 48,
+      "continuous": true,
+      "firstStart": "00:00",
+      "lastEnd": "00:00",
+      "gaps": []
+    },
+    {
+      "date": "2026-05-08",
+      "day": "Friday",
+      "airings": 37,
+      "coveredSlots": 48,
+      "totalSlots": 48,
+      "continuous": true,
+      "firstStart": "00:00",
+      "lastEnd": "00:00",
+      "gaps": []
+    },
+    {
+      "date": "2026-05-09",
+      "day": "Saturday",
+      "airings": 37,
+      "coveredSlots": 48,
+      "totalSlots": 48,
+      "continuous": true,
+      "firstStart": "00:00",
+      "lastEnd": "00:00",
+      "gaps": []
+    },
+    {
+      "date": "2026-05-10",
+      "day": "Sunday",
+      "airings": 34,
+      "coveredSlots": 48,
+      "totalSlots": 48,
+      "continuous": true,
+      "firstStart": "00:00",
+      "lastEnd": "00:00",
+      "gaps": []
+    },
+    {
+      "date": "2026-05-11",
+      "day": "Monday",
+      "airings": 35,
+      "coveredSlots": 48,
+      "totalSlots": 48,
+      "continuous": true,
+      "firstStart": "00:00",
+      "lastEnd": "00:00",
+      "gaps": []
+    },
+    {
+      "date": "2026-05-12",
+      "day": "Tuesday",
+      "airings": 37,
+      "coveredSlots": 48,
+      "totalSlots": 48,
+      "continuous": true,
+      "firstStart": "00:00",
+      "lastEnd": "00:00",
+      "gaps": []
+    },
+    {
+      "date": "2026-05-13",
+      "day": "Wednesday",
+      "airings": 36,
+      "coveredSlots": 48,
+      "totalSlots": 48,
+      "continuous": true,
+      "firstStart": "00:00",
+      "lastEnd": "00:00",
+      "gaps": []
+    },
+    {
+      "date": "2026-05-14",
+      "day": "Thursday",
+      "airings": 38,
+      "coveredSlots": 48,
+      "totalSlots": 48,
+      "continuous": true,
+      "firstStart": "00:00",
+      "lastEnd": "00:00",
+      "gaps": []
+    },
+    {
+      "date": "2026-05-15",
+      "day": "Friday",
+      "airings": 36,
+      "coveredSlots": 48,
+      "totalSlots": 48,
+      "continuous": true,
+      "firstStart": "00:00",
+      "lastEnd": "00:00",
+      "gaps": []
+    },
+    {
+      "date": "2026-05-16",
+      "day": "Saturday",
+      "airings": 36,
+      "coveredSlots": 48,
+      "totalSlots": 48,
+      "continuous": true,
+      "firstStart": "00:00",
+      "lastEnd": "00:00",
+      "gaps": []
+    },
+    {
+      "date": "2026-05-17",
+      "day": "Sunday",
+      "airings": 32,
+      "coveredSlots": 48,
+      "totalSlots": 48,
+      "continuous": true,
+      "firstStart": "00:00",
+      "lastEnd": "00:00",
+      "gaps": []
+    },
+    {
+      "date": "2026-05-18",
+      "day": "Monday",
+      "airings": 36,
+      "coveredSlots": 48,
+      "totalSlots": 48,
+      "continuous": true,
+      "firstStart": "00:00",
+      "lastEnd": "00:00",
+      "gaps": []
+    },
+    {
+      "date": "2026-05-19",
+      "day": "Tuesday",
+      "airings": 36,
+      "coveredSlots": 48,
+      "totalSlots": 48,
+      "continuous": true,
+      "firstStart": "00:00",
+      "lastEnd": "00:00",
+      "gaps": []
+    },
+    {
+      "date": "2026-05-20",
+      "day": "Wednesday",
+      "airings": 36,
+      "coveredSlots": 48,
+      "totalSlots": 48,
+      "continuous": true,
+      "firstStart": "00:00",
+      "lastEnd": "00:00",
+      "gaps": []
+    },
+    {
+      "date": "2026-05-21",
+      "day": "Thursday",
+      "airings": 38,
+      "coveredSlots": 48,
+      "totalSlots": 48,
+      "continuous": true,
+      "firstStart": "00:00",
+      "lastEnd": "00:00",
+      "gaps": []
+    },
+    {
+      "date": "2026-05-22",
+      "day": "Friday",
+      "airings": 38,
+      "coveredSlots": 48,
+      "totalSlots": 48,
+      "continuous": true,
+      "firstStart": "00:00",
+      "lastEnd": "00:00",
+      "gaps": []
+    },
+    {
+      "date": "2026-05-23",
+      "day": "Saturday",
+      "airings": 37,
+      "coveredSlots": 48,
+      "totalSlots": 48,
+      "continuous": true,
+      "firstStart": "00:00",
+      "lastEnd": "00:00",
+      "gaps": []
+    },
+    {
+      "date": "2026-05-24",
+      "day": "Sunday",
+      "airings": 34,
+      "coveredSlots": 48,
+      "totalSlots": 48,
+      "continuous": true,
+      "firstStart": "00:00",
+      "lastEnd": "00:00",
+      "gaps": []
+    },
+    {
+      "date": "2026-05-25",
+      "day": "Monday",
+      "airings": 36,
+      "coveredSlots": 48,
+      "totalSlots": 48,
+      "continuous": true,
+      "firstStart": "00:00",
+      "lastEnd": "00:00",
+      "gaps": []
+    },
+    {
+      "date": "2026-05-26",
+      "day": "Tuesday",
+      "airings": 35,
+      "coveredSlots": 48,
+      "totalSlots": 48,
+      "continuous": true,
+      "firstStart": "00:00",
+      "lastEnd": "00:00",
+      "gaps": []
+    },
+    {
+      "date": "2026-05-27",
+      "day": "Wednesday",
+      "airings": 36,
+      "coveredSlots": 48,
+      "totalSlots": 48,
+      "continuous": true,
+      "firstStart": "00:00",
+      "lastEnd": "00:00",
+      "gaps": []
+    },
+    {
+      "date": "2026-05-28",
+      "day": "Thursday",
+      "airings": 38,
+      "coveredSlots": 48,
+      "totalSlots": 48,
+      "continuous": true,
+      "firstStart": "00:00",
+      "lastEnd": "00:00",
+      "gaps": []
+    },
+    {
+      "date": "2026-05-29",
+      "day": "Friday",
+      "airings": 37,
+      "coveredSlots": 48,
+      "totalSlots": 48,
+      "continuous": true,
+      "firstStart": "00:00",
+      "lastEnd": "00:00",
+      "gaps": []
+    },
+    {
+      "date": "2026-05-30",
+      "day": "Saturday",
+      "airings": 35,
+      "coveredSlots": 48,
+      "totalSlots": 48,
+      "continuous": true,
+      "firstStart": "00:00",
+      "lastEnd": "00:00",
+      "gaps": []
+    },
+    {
+      "date": "2026-05-31",
+      "day": "Sunday",
+      "airings": 33,
+      "coveredSlots": 48,
+      "totalSlots": 48,
+      "continuous": true,
+      "firstStart": "00:00",
+      "lastEnd": "00:00",
+      "gaps": []
+    }
+  ],
+  "notes": [
+    "Rendered from external JSON data file.",
+    "Durations inferred from each day's next start time in the companion schedule.",
+    "Rebuild verified for continuous coverage across all May dates."
+  ]
+}

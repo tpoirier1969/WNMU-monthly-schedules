@@ -1,44 +1,61 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>WNMU Monthly Shareboard</title>
-<link rel="icon" type="image/svg+xml" href="assets/icon-month.svg">
-<style>
-:root{--ink:#1f1f1f;--blue:#203864;--line:#cfd8e3;--panel:#f7f9fc;--accent:#e8effa}
-body{font-family:Calibri,Arial,sans-serif;margin:0;background:#fff;color:var(--ink)}
-.wrap{max-width:980px;margin:0 auto;padding:24px}
-h1{margin:0 0 18px;color:var(--blue);display:flex;align-items:center;gap:12px;flex-wrap:wrap}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:18px}
-.card{border:1px solid var(--line);border-radius:16px;background:var(--panel);padding:18px;box-shadow:0 6px 18px rgba(0,0,0,.04)}
-.card h2{margin:0 0 8px;color:var(--blue)}
-.meta{font-size:13px;color:#5b6573;margin-bottom:14px}
-.actions{display:flex;gap:10px;flex-wrap:wrap}
-.btn{display:inline-block;padding:10px 14px;border-radius:10px;background:var(--accent);color:var(--blue);text-decoration:none;font-weight:700;border:1px solid #afc1df}
-.badge{display:inline-block;background:var(--blue);color:#fff;border-radius:999px;padding:3px 8px;font-size:12px;font-weight:700}
-</style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>WNMU1HD May 2026 Rebuild</title>
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-<div class="wrap">
-<h1><img src="assets/icon-month.svg" alt="Monthly calendar icon" style="width:56px;height:56px;flex:0 0 auto">WNMU Monthly Shareboard <span class="badge">v14.03-workflow-kit</span></h1>
-<div class="grid">
-  <section class="card">
-    <h2>WNMU1HD</h2>
-    <div class="meta">May 2026 shareboard</div>
-    <div class="actions"><a class="btn" href="channels/wnmu1hd/index.html">Open WNMU1HD</a></div>
-  </section>
-  <section class="card">
-    <h2>WNMU3PL</h2>
-    <div class="meta">May 2026 shareboard / report board</div>
-    <div class="actions"><a class="btn" href="channels/wnmu3pl/index.html">Open WNMU3PL</a></div>
-  </section>
-  <section class="card">
-    <h2>WNMU1HD automation engine</h2>
-    <div class="meta">External-data rebuild engine for May 2026</div>
-    <div class="actions"><a class="btn" href="channels/wnmu1hd_automation/index.html">Open automation scratch</a></div>
-  </section>
-</div>
-</div>
+  <header class="topbar">
+    <div>
+      <h1>WNMU1HD May 2026</h1>
+      <p class="sub">External-data rebuild • 30-minute slot calendar</p>
+    </div>
+    <div class="flags">
+      <span class="flag" id="versionFlag">version</span>
+      <span class="flag ok" id="coverageFlag">coverage</span>
+    </div>
+  </header>
+
+  <main class="layout">
+    <section class="month-panel">
+      <div class="month-header">
+        <h2>Month grid</h2>
+        <p>Click any day for the full schedule.</p>
+      </div>
+      <div id="monthGrid" class="month-grid" aria-live="polite"></div>
+    </section>
+
+    <aside class="day-panel">
+      <div class="day-header">
+        <h2 id="dayTitle">Select a day</h2>
+        <p id="dayMeta">Coverage summary will appear here.</p>
+      </div>
+      <div id="scheduleList" class="schedule-list"></div>
+    </aside>
+  </main>
+
+  <template id="dayCardTemplate">
+    <button class="day-card" type="button">
+      <div class="day-card-head">
+        <div class="date-line"></div>
+        <div class="slot-badge"></div>
+      </div>
+      <div class="peek-list"></div>
+    </button>
+  </template>
+
+  <template id="entryTemplate">
+    <article class="entry">
+      <div class="entry-time"></div>
+      <div class="entry-body">
+        <div class="entry-title"></div>
+        <div class="entry-meta"></div>
+      </div>
+    </article>
+  </template>
+
+  <script src="app.js" defer></script>
 </body>
 </html>
