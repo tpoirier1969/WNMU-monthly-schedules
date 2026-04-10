@@ -6,14 +6,14 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <title>WNMU1HD May 2026 Clean-Room Rebuild</title>
-  <link rel="stylesheet" href="styles.v1.0.1.css?v=1.0.1">
+  <title>WNMU1HD May 2026 Weekly Grids</title>
+  <link rel="stylesheet" href="styles.v1.0.2.css?v=1.0.2">
 </head>
 <body>
   <header class="topbar">
     <div>
       <h1>WNMU1HD May 2026</h1>
-      <p class="sub">30-minute slot rebuild • external JSON • clean-room repo</p>
+      <p class="sub">30-minute slot rebuild • weekly grids only • external JSON • clean-room repo</p>
     </div>
     <div class="flagbar">
       <span class="flag" id="versionFlag">version</span>
@@ -23,27 +23,6 @@
   </header>
 
   <main class="page">
-    <section class="panel summary-panel">
-      <div class="panel-head">
-        <h2>Month summary</h2>
-        <p>Click any day card or any program block in the week grids.</p>
-      </div>
-      <div id="summaryStats" class="summary-stats"></div>
-      <div id="monthGrid" class="month-grid" aria-live="polite"></div>
-    </section>
-
-    <section class="panel detail-panel">
-      <div class="panel-head sticky-head">
-        <h2 id="detailTitle">Day detail</h2>
-        <p id="detailMeta">Select a day to inspect all 48 half-hour slots.</p>
-      </div>
-      <div id="slotTimeline" class="slot-timeline"></div>
-      <div class="airings-wrap">
-        <h3>Airings</h3>
-        <div id="airingList" class="airing-list"></div>
-      </div>
-    </section>
-
     <section class="panel weeks-panel">
       <div class="panel-head">
         <h2>Week grids</h2>
@@ -53,27 +32,6 @@
     </section>
   </main>
 
-  <template id="dayCardTemplate">
-    <button class="day-card" type="button">
-      <div class="day-card-top">
-        <div class="day-card-date"></div>
-        <div class="day-card-coverage"></div>
-      </div>
-      <div class="day-card-count"></div>
-      <div class="day-card-preview"></div>
-    </button>
-  </template>
-
-  <template id="airingTemplate">
-    <article class="airing-item">
-      <div class="airing-time"></div>
-      <div class="airing-body">
-        <div class="airing-title"></div>
-        <div class="airing-meta"></div>
-      </div>
-    </article>
-  </template>
-
-  <script src="app.v1.0.1.js?v=1.0.1" defer></script>
+  <script src="app.v1.0.2.js?v=1.0.2" defer></script>
 </body>
 </html>

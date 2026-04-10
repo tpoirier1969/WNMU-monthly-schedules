@@ -1,0 +1,261 @@
+{
+  "version": "WNMU1HD May 2026 clean-room repo v1.0.0",
+  "checks": {
+    "expectedDayCount": 31,
+    "actualDayCount": 31,
+    "everyDayHas48CoveredSlots": true,
+    "anyMissingSlots": false,
+    "anyOverlapSlots": false,
+    "everyDayHasContinuousCoverage": true
+  },
+  "dailyCoverage": [
+    {
+      "date": "2026-05-01",
+      "coveredSlots": 48,
+      "missingSlots": [],
+      "overlapSlots": [],
+      "continuous": true,
+      "airings": 37
+    },
+    {
+      "date": "2026-05-02",
+      "coveredSlots": 48,
+      "missingSlots": [],
+      "overlapSlots": [],
+      "continuous": true,
+      "airings": 33
+    },
+    {
+      "date": "2026-05-03",
+      "coveredSlots": 48,
+      "missingSlots": [],
+      "overlapSlots": [],
+      "continuous": true,
+      "airings": 35
+    },
+    {
+      "date": "2026-05-04",
+      "coveredSlots": 48,
+      "missingSlots": [],
+      "overlapSlots": [],
+      "continuous": true,
+      "airings": 35
+    },
+    {
+      "date": "2026-05-05",
+      "coveredSlots": 48,
+      "missingSlots": [],
+      "overlapSlots": [],
+      "continuous": true,
+      "airings": 35
+    },
+    {
+      "date": "2026-05-06",
+      "coveredSlots": 48,
+      "missingSlots": [],
+      "overlapSlots": [],
+      "continuous": true,
+      "airings": 36
+    },
+    {
+      "date": "2026-05-07",
+      "coveredSlots": 48,
+      "missingSlots": [],
+      "overlapSlots": [],
+      "continuous": true,
+      "airings": 39
+    },
+    {
+      "date": "2026-05-08",
+      "coveredSlots": 48,
+      "missingSlots": [],
+      "overlapSlots": [],
+      "continuous": true,
+      "airings": 37
+    },
+    {
+      "date": "2026-05-09",
+      "coveredSlots": 48,
+      "missingSlots": [],
+      "overlapSlots": [],
+      "continuous": true,
+      "airings": 37
+    },
+    {
+      "date": "2026-05-10",
+      "coveredSlots": 48,
+      "missingSlots": [],
+      "overlapSlots": [],
+      "continuous": true,
+      "airings": 34
+    },
+    {
+      "date": "2026-05-11",
+      "coveredSlots": 48,
+      "missingSlots": [],
+      "overlapSlots": [],
+      "continuous": true,
+      "airings": 35
+    },
+    {
+      "date": "2026-05-12",
+      "coveredSlots": 48,
+      "missingSlots": [],
+      "overlapSlots": [],
+      "continuous": true,
+      "airings": 37
+    },
+    {
+      "date": "2026-05-13",
+      "coveredSlots": 48,
+      "missingSlots": [],
+      "overlapSlots": [],
+      "continuous": true,
+      "airings": 36
+    },
+    {
+      "date": "2026-05-14",
+      "coveredSlots": 48,
+      "missingSlots": [],
+      "overlapSlots": [],
+      "continuous": true,
+      "airings": 38
+    },
+    {
+      "date": "2026-05-15",
+      "coveredSlots": 48,
+      "missingSlots": [],
+      "overlapSlots": [],
+      "continuous": true,
+      "airings": 36
+    },
+    {
+      "date": "2026-05-16",
+      "coveredSlots": 48,
+      "missingSlots": [],
+      "overlapSlots": [],
+      "continuous": true,
+      "airings": 36
+    },
+    {
+      "date": "2026-05-17",
+      "coveredSlots": 48,
+      "missingSlots": [],
+      "overlapSlots": [],
+      "continuous": true,
+      "airings": 32
+    },
+    {
+      "date": "2026-05-18",
+      "coveredSlots": 48,
+      "missingSlots": [],
+      "overlapSlots": [],
+      "continuous": true,
+      "airings": 36
+    },
+    {
+      "date": "2026-05-19",
+      "coveredSlots": 48,
+      "missingSlots": [],
+      "overlapSlots": [],
+      "continuous": true,
+      "airings": 36
+    },
+    {
+      "date": "2026-05-20",
+      "coveredSlots": 48,
+      "missingSlots": [],
+      "overlapSlots": [],
+      "continuous": true,
+      "airings": 36
+    },
+    {
+      "date": "2026-05-21",
+      "coveredSlots": 48,
+      "missingSlots": [],
+      "overlapSlots": [],
+      "continuous": true,
+      "airings": 38
+    },
+    {
+      "date": "2026-05-22",
+      "coveredSlots": 48,
+      "missingSlots": [],
+      "overlapSlots": [],
+      "continuous": true,
+      "airings": 38
+    },
+    {
+      "date": "2026-05-23",
+      "coveredSlots": 48,
+      "missingSlots": [],
+      "overlapSlots": [],
+      "continuous": true,
+      "airings": 37
+    },
+    {
+      "date": "2026-05-24",
+      "coveredSlots": 48,
+      "missingSlots": [],
+      "overlapSlots": [],
+      "continuous": true,
+      "airings": 34
+    },
+    {
+      "date": "2026-05-25",
+      "coveredSlots": 48,
+      "missingSlots": [],
+      "overlapSlots": [],
+      "continuous": true,
+      "airings": 36
+    },
+    {
+      "date": "2026-05-26",
+      "coveredSlots": 48,
+      "missingSlots": [],
+      "overlapSlots": [],
+      "continuous": true,
+      "airings": 35
+    },
+    {
+      "date": "2026-05-27",
+      "coveredSlots": 48,
+      "missingSlots": [],
+      "overlapSlots": [],
+      "continuous": true,
+      "airings": 36
+    },
+    {
+      "date": "2026-05-28",
+      "coveredSlots": 48,
+      "missingSlots": [],
+      "overlapSlots": [],
+      "continuous": true,
+      "airings": 38
+    },
+    {
+      "date": "2026-05-29",
+      "coveredSlots": 48,
+      "missingSlots": [],
+      "overlapSlots": [],
+      "continuous": true,
+      "airings": 37
+    },
+    {
+      "date": "2026-05-30",
+      "coveredSlots": 48,
+      "missingSlots": [],
+      "overlapSlots": [],
+      "continuous": true,
+      "airings": 35
+    },
+    {
+      "date": "2026-05-31",
+      "coveredSlots": 48,
+      "missingSlots": [],
+      "overlapSlots": [],
+      "continuous": true,
+      "airings": 33
+    }
+  ]
+}
