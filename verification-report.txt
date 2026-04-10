@@ -1,42 +1,41 @@
-WNMU1HD May 2026 rebuild verification
-Version: rebuild-v1
+WNMU1HD May 2026 clean-room repo v1.0.0
 
-Checks:
-- All 31 May dates present: True
-- Every day has continuous coverage: True
-- Slot calendar: 30-minute slots
-- External data file: True
-- Baked schedule HTML: False
+expectedDayCount: 31
+actualDayCount: 31
+everyDayHas48CoveredSlots: True
+anyMissingSlots: False
+anyOverlapSlots: False
+everyDayHasContinuousCoverage: True
 
 Daily coverage:
-- 2026-05-01 Friday: 37 airings, 48/48 slots, first 00:00, last end 00:00, continuous=True
-- 2026-05-02 Saturday: 33 airings, 48/48 slots, first 00:00, last end 00:00, continuous=True
-- 2026-05-03 Sunday: 35 airings, 48/48 slots, first 00:00, last end 00:00, continuous=True
-- 2026-05-04 Monday: 35 airings, 48/48 slots, first 00:00, last end 00:00, continuous=True
-- 2026-05-05 Tuesday: 35 airings, 48/48 slots, first 00:00, last end 00:00, continuous=True
-- 2026-05-06 Wednesday: 36 airings, 48/48 slots, first 00:00, last end 00:00, continuous=True
-- 2026-05-07 Thursday: 39 airings, 48/48 slots, first 00:00, last end 00:00, continuous=True
-- 2026-05-08 Friday: 37 airings, 48/48 slots, first 00:00, last end 00:00, continuous=True
-- 2026-05-09 Saturday: 37 airings, 48/48 slots, first 00:00, last end 00:00, continuous=True
-- 2026-05-10 Sunday: 34 airings, 48/48 slots, first 00:00, last end 00:00, continuous=True
-- 2026-05-11 Monday: 35 airings, 48/48 slots, first 00:00, last end 00:00, continuous=True
-- 2026-05-12 Tuesday: 37 airings, 48/48 slots, first 00:00, last end 00:00, continuous=True
-- 2026-05-13 Wednesday: 36 airings, 48/48 slots, first 00:00, last end 00:00, continuous=True
-- 2026-05-14 Thursday: 38 airings, 48/48 slots, first 00:00, last end 00:00, continuous=True
-- 2026-05-15 Friday: 36 airings, 48/48 slots, first 00:00, last end 00:00, continuous=True
-- 2026-05-16 Saturday: 36 airings, 48/48 slots, first 00:00, last end 00:00, continuous=True
-- 2026-05-17 Sunday: 32 airings, 48/48 slots, first 00:00, last end 00:00, continuous=True
-- 2026-05-18 Monday: 36 airings, 48/48 slots, first 00:00, last end 00:00, continuous=True
-- 2026-05-19 Tuesday: 36 airings, 48/48 slots, first 00:00, last end 00:00, continuous=True
-- 2026-05-20 Wednesday: 36 airings, 48/48 slots, first 00:00, last end 00:00, continuous=True
-- 2026-05-21 Thursday: 38 airings, 48/48 slots, first 00:00, last end 00:00, continuous=True
-- 2026-05-22 Friday: 38 airings, 48/48 slots, first 00:00, last end 00:00, continuous=True
-- 2026-05-23 Saturday: 37 airings, 48/48 slots, first 00:00, last end 00:00, continuous=True
-- 2026-05-24 Sunday: 34 airings, 48/48 slots, first 00:00, last end 00:00, continuous=True
-- 2026-05-25 Monday: 36 airings, 48/48 slots, first 00:00, last end 00:00, continuous=True
-- 2026-05-26 Tuesday: 35 airings, 48/48 slots, first 00:00, last end 00:00, continuous=True
-- 2026-05-27 Wednesday: 36 airings, 48/48 slots, first 00:00, last end 00:00, continuous=True
-- 2026-05-28 Thursday: 38 airings, 48/48 slots, first 00:00, last end 00:00, continuous=True
-- 2026-05-29 Friday: 37 airings, 48/48 slots, first 00:00, last end 00:00, continuous=True
-- 2026-05-30 Saturday: 35 airings, 48/48 slots, first 00:00, last end 00:00, continuous=True
-- 2026-05-31 Sunday: 33 airings, 48/48 slots, first 00:00, last end 00:00, continuous=True
+2026-05-01 | airings=37 | covered=48/48 | missing=0 | overlaps=0 | continuous=True
+2026-05-02 | airings=33 | covered=48/48 | missing=0 | overlaps=0 | continuous=True
+2026-05-03 | airings=35 | covered=48/48 | missing=0 | overlaps=0 | continuous=True
+2026-05-04 | airings=35 | covered=48/48 | missing=0 | overlaps=0 | continuous=True
+2026-05-05 | airings=35 | covered=48/48 | missing=0 | overlaps=0 | continuous=True
+2026-05-06 | airings=36 | covered=48/48 | missing=0 | overlaps=0 | continuous=True
+2026-05-07 | airings=39 | covered=48/48 | missing=0 | overlaps=0 | continuous=True
+2026-05-08 | airings=37 | covered=48/48 | missing=0 | overlaps=0 | continuous=True
+2026-05-09 | airings=37 | covered=48/48 | missing=0 | overlaps=0 | continuous=True
+2026-05-10 | airings=34 | covered=48/48 | missing=0 | overlaps=0 | continuous=True
+2026-05-11 | airings=35 | covered=48/48 | missing=0 | overlaps=0 | continuous=True
+2026-05-12 | airings=37 | covered=48/48 | missing=0 | overlaps=0 | continuous=True
+2026-05-13 | airings=36 | covered=48/48 | missing=0 | overlaps=0 | continuous=True
+2026-05-14 | airings=38 | covered=48/48 | missing=0 | overlaps=0 | continuous=True
+2026-05-15 | airings=36 | covered=48/48 | missing=0 | overlaps=0 | continuous=True
+2026-05-16 | airings=36 | covered=48/48 | missing=0 | overlaps=0 | continuous=True
+2026-05-17 | airings=32 | covered=48/48 | missing=0 | overlaps=0 | continuous=True
+2026-05-18 | airings=36 | covered=48/48 | missing=0 | overlaps=0 | continuous=True
+2026-05-19 | airings=36 | covered=48/48 | missing=0 | overlaps=0 | continuous=True
+2026-05-20 | airings=36 | covered=48/48 | missing=0 | overlaps=0 | continuous=True
+2026-05-21 | airings=38 | covered=48/48 | missing=0 | overlaps=0 | continuous=True
+2026-05-22 | airings=38 | covered=48/48 | missing=0 | overlaps=0 | continuous=True
+2026-05-23 | airings=37 | covered=48/48 | missing=0 | overlaps=0 | continuous=True
+2026-05-24 | airings=34 | covered=48/48 | missing=0 | overlaps=0 | continuous=True
+2026-05-25 | airings=36 | covered=48/48 | missing=0 | overlaps=0 | continuous=True
+2026-05-26 | airings=35 | covered=48/48 | missing=0 | overlaps=0 | continuous=True
+2026-05-27 | airings=36 | covered=48/48 | missing=0 | overlaps=0 | continuous=True
+2026-05-28 | airings=38 | covered=48/48 | missing=0 | overlaps=0 | continuous=True
+2026-05-29 | airings=37 | covered=48/48 | missing=0 | overlaps=0 | continuous=True
+2026-05-30 | airings=35 | covered=48/48 | missing=0 | overlaps=0 | continuous=True
+2026-05-31 | airings=33 | covered=48/48 | missing=0 | overlaps=0 | continuous=True

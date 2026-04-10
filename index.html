@@ -3,55 +3,70 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>WNMU1HD May 2026 Rebuild</title>
+  <title>WNMU1HD May 2026 Clean-Room Rebuild</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <header class="topbar">
     <div>
       <h1>WNMU1HD May 2026</h1>
-      <p class="sub">External-data rebuild • 30-minute slot calendar</p>
+      <p class="sub">30-minute slot rebuild • external JSON • clean-room repo</p>
     </div>
-    <div class="flags">
+    <div class="flagbar">
       <span class="flag" id="versionFlag">version</span>
       <span class="flag ok" id="coverageFlag">coverage</span>
+      <span class="flag" id="daysFlag">days</span>
     </div>
   </header>
 
-  <main class="layout">
-    <section class="month-panel">
-      <div class="month-header">
-        <h2>Month grid</h2>
-        <p>Click any day for the full schedule.</p>
+  <main class="page">
+    <section class="panel summary-panel">
+      <div class="panel-head">
+        <h2>Month summary</h2>
+        <p>Click any day card or any program block in the week grids.</p>
       </div>
+      <div id="summaryStats" class="summary-stats"></div>
       <div id="monthGrid" class="month-grid" aria-live="polite"></div>
     </section>
 
-    <aside class="day-panel">
-      <div class="day-header">
-        <h2 id="dayTitle">Select a day</h2>
-        <p id="dayMeta">Coverage summary will appear here.</p>
+    <section class="panel detail-panel">
+      <div class="panel-head sticky-head">
+        <h2 id="detailTitle">Day detail</h2>
+        <p id="detailMeta">Select a day to inspect all 48 half-hour slots.</p>
       </div>
-      <div id="scheduleList" class="schedule-list"></div>
-    </aside>
+      <div id="slotTimeline" class="slot-timeline"></div>
+      <div class="airings-wrap">
+        <h3>Airings</h3>
+        <div id="airingList" class="airing-list"></div>
+      </div>
+    </section>
+
+    <section class="panel weeks-panel">
+      <div class="panel-head">
+        <h2>Week grids</h2>
+        <p>Rendered from JSON only. No baked schedule HTML.</p>
+      </div>
+      <div id="weekGrids" class="week-grids"></div>
+    </section>
   </main>
 
   <template id="dayCardTemplate">
     <button class="day-card" type="button">
-      <div class="day-card-head">
-        <div class="date-line"></div>
-        <div class="slot-badge"></div>
+      <div class="day-card-top">
+        <div class="day-card-date"></div>
+        <div class="day-card-coverage"></div>
       </div>
-      <div class="peek-list"></div>
+      <div class="day-card-count"></div>
+      <div class="day-card-preview"></div>
     </button>
   </template>
 
-  <template id="entryTemplate">
-    <article class="entry">
-      <div class="entry-time"></div>
-      <div class="entry-body">
-        <div class="entry-title"></div>
-        <div class="entry-meta"></div>
+  <template id="airingTemplate">
+    <article class="airing-item">
+      <div class="airing-time"></div>
+      <div class="airing-body">
+        <div class="airing-title"></div>
+        <div class="airing-meta"></div>
       </div>
     </article>
   </template>
