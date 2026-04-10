@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WNMU1HD Automation Scratch - May 2026</title>
+<link rel="icon" type="image/svg+xml" href="../../assets/icon-month.svg">
+<link rel="stylesheet" href="../../assets/month-automation.css">
+</head>
+<body>
+<div class="top-nav"><a href="../../index.html">← Channel selector</a><span class="top-nav-spacer"></span><a href="../wnmu1hd/index.html">Legacy 13.1 page</a></div>
+<div class="wrap">
+<h1><img class="page-icon" src="../../assets/icon-month.svg" alt="Monthly calendar icon">WNMU1HD automation scratch <span class="version-badge">v14.00-alpha</span></h1>
+<div class="status-box"><strong>This is the clean-architecture rebuild, not the finished month.</strong> The page reads a separate program table, expands it into 30-minute slots, and renders a blank-month skeleton. The seeded data in this package is real source data, but only a partial starter set.</div>
+<div class="controls">
+  <button id="export-pdf-btn" type="button">Export this page as PDF</button>
+  <span class="meta-chip" id="count-programs">0 programs</span>
+  <span class="meta-chip" id="count-slots">0 occupied slots</span>
+  <span class="meta-chip" id="count-errors">0 overlaps</span>
+</div>
+<div class="legend">
+  <span><span class="swatch"></span> populated program start</span>
+  <span><span class="swatch season"></span> season / series start flag</span>
+  <span><span class="swatch outside"></span> outside-month placeholder day</span>
+</div>
+<div id="month-root"></div>
+<section class="summary">
+  <h3>Automation notes</h3>
+  <p>This page expects a flat program lookup table in <code>data/wnmu1hd-2026-05-programs.js</code>. It does not parse schedule content out of HTML. That is the whole point of this rebuild.</p>
+  <div id="summary-errors"></div>
+</section>
+</div>
+<script src="../../data/wnmu1hd-2026-05-programs.js"></script>
+<script src="../../assets/month-automation.js"></script>
+</body>
+</html>

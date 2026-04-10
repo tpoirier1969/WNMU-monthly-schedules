@@ -1,0 +1,46 @@
+:root{
+  --ink:#1f1f1f;
+  --blue:#203864;
+  --line:#cfd8e3;
+  --panel:#f7f9fc;
+  --panel-2:#eef3f8;
+  --accent:#e8effa;
+  --outside:#f4f4f4;
+  --season:#fff6bf;
+  --time:#eef3f8;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:Calibri,Arial,sans-serif;color:var(--ink);background:#fff}
+.top-nav{display:flex;gap:12px;align-items:center;padding:12px 18px;border-bottom:1px solid var(--line);background:#fff;position:sticky;top:0;z-index:3}
+.top-nav a{color:var(--blue);text-decoration:none;font-weight:700}
+.top-nav-spacer{flex:1}
+.wrap{max-width:1600px;margin:0 auto;padding:18px}
+h1{margin:0 0 12px;color:var(--blue);display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.page-icon{width:44px;height:44px}
+.version-badge{display:inline-block;background:var(--blue);color:#fff;border-radius:999px;padding:4px 10px;font-size:12px;font-weight:700}
+.status-box{padding:12px 14px;border:1px solid #b7c7df;background:#f5f8fe;border-radius:12px;margin:0 0 16px 0}
+.status-box strong{color:var(--blue)}
+.controls{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin:0 0 16px 0}
+button{padding:10px 14px;border-radius:10px;border:1px solid #b5c6df;background:var(--accent);color:var(--blue);font-weight:700;cursor:pointer}
+.meta-chip{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border-radius:999px;background:var(--panel);border:1px solid var(--line);font-size:13px}
+.week{margin:0 0 22px 0}
+.week h2{margin:0 0 8px;color:var(--blue)}
+table.grid{border-collapse:collapse;width:100%;table-layout:fixed}
+table.grid th, table.grid td{border:1px solid var(--line);padding:6px 8px;vertical-align:top}
+table.grid th{background:#d9e2f3;color:var(--blue)}
+table.grid th.time, table.grid td.time, table.grid td.time-right-cell{width:72px;text-align:center;vertical-align:middle;background:var(--time);font-weight:700;color:var(--blue)}
+table.grid td.program{background:#fff}
+table.grid td.outside-empty, table.grid th.outside-month-head{background:var(--outside)}
+table.grid td.empty-slot{background:#fff}
+.cell-title{font-size:13px;line-height:1.15;font-weight:700}
+.cell-episode{font-size:12px;color:#44546a;margin-top:4px}
+.cell-duration{font-size:11px;color:#666;margin-top:4px}
+.cell-season{background:var(--season)}
+.legend{display:flex;gap:12px;flex-wrap:wrap;margin:0 0 14px 0;font-size:13px;color:#44546a}
+.legend .swatch{display:inline-block;width:18px;height:12px;border:1px solid #999;vertical-align:middle;margin-right:6px;background:#fff}
+.legend .swatch.outside{background:var(--outside)}
+.legend .swatch.season{background:var(--season)}
+.summary{margin:18px 0 0 0;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:var(--panel)}
+.summary h3{margin:0 0 8px;color:var(--blue)}
+.summary code{font-family:Consolas,monospace;background:#fff;padding:1px 4px;border-radius:4px}
+@media print{.top-nav,.controls{display:none}.wrap{max-width:none;padding:0.15in}.week{break-after:page}}
