@@ -6,65 +6,37 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <title>WNMU1HD May 2026 Weekly Grids</title>
-  <link rel="stylesheet" href="styles.v1.0.5.css?v=1.0.5">
+  <title>WNMU May 2026 Channels</title>
+  <style>
+    body{margin:0;font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:#f4f4f4;color:#111}
+    main{max-width:900px;margin:0 auto;padding:32px 20px 48px}
+    h1{margin:0 0 8px;font-size:32px}
+    p{margin:0 0 20px}
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:18px;margin-top:24px}
+    .card{background:#fff;border:1px solid #d8d8d8;border-radius:14px;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+    .card h2{margin:0 0 8px;font-size:22px}
+    .card p{margin:0 0 16px;color:#444}
+    .btn{display:inline-block;padding:10px 14px;border-radius:10px;background:#111;color:#fff;text-decoration:none;font-weight:600}
+    .small{margin-top:26px;font-size:13px;color:#666}
+  </style>
 </head>
 <body>
-  <header class="topbar">
-    <div>
-      <h1>WNMU1HD May 2026</h1>
-      <p class="sub">30-minute slot rebuild • weekly grids with right-click markup • external JSON • clean-room repo</p>
+  <main>
+    <h1>WNMU May 2026</h1>
+    <p>Current channel pages.</p>
+    <div class="grid">
+      <section class="card">
+        <h2>13.1 — WNMU1HD</h2>
+        <p>Main HD channel weekly grids and tagging page.</p>
+        <a class="btn" href="index131.html">Open 13.1</a>
+      </section>
+      <section class="card">
+        <h2>13.3 — WNMU3PL</h2>
+        <p>Secondary channel weekly grids with notes and whiteout.</p>
+        <a class="btn" href="index133.html">Open 13.3</a>
+      </section>
     </div>
-    <div class="flagbar">
-      <span class="flag" id="versionFlag">version</span>
-      <span class="flag ok" id="coverageFlag">coverage</span>
-      <span class="flag" id="daysFlag">days</span>
-    </div>
-  </header>
-
-  <main class="page">
-    <section class="panel weeks-panel">
-      <div class="panel-head">
-        <h2>Week grids</h2>
-        <p><strong>Right-click any program cell</strong> to tag it. New tags now include Fundraiser, Programmer's Choice, Holiday, Noteworthy, Educational, and Local. Episode numbers ending in <strong>01</strong> start as <strong>New Series</strong>; Sundays at <strong>7:00 PM</strong> start as <strong>Programmer's Choice</strong>; Saturdays at <strong>8:00 PM</strong> start as <strong>Educational</strong>.</p>
-      </div>
-      <div id="weekGrids" class="week-grids"></div>
-    </section>
-
-    <section class="panel month-panel">
-      <div class="panel-head">
-        <h2>Month checkbox rollup</h2>
-        <p>Programs with at least one checked tag are listed here with day, time, length, episode, and checkbox info.</p>
-      </div>
-      <div id="monthRollup" class="month-rollup"></div>
-    </section>
+    <div class="small">This landing page is intentionally simple for now.</div>
   </main>
-
-  <aside id="contextMenu" class="context-menu hidden" aria-hidden="true">
-    <div class="context-menu-head">
-      <div>
-        <h3 id="menuTitle">Program markup</h3>
-        <div id="menuMeta" class="context-menu-meta"></div>
-      </div>
-      <button type="button" id="closeMenuBtn" class="menu-close" aria-label="Close">×</button>
-    </div>
-    <form id="contextMenuForm" class="context-menu-form">
-      <label class="check-row check-new-series"><input type="checkbox" name="newSeries"> <span>New Series</span></label>
-      <label class="check-row check-highlight"><input type="checkbox" name="highlight"> <span>Highlight</span></label>
-      <label class="check-row check-one-off"><input type="checkbox" name="oneOff"> <span>One Off</span></label>
-      <label class="check-row check-monthly-topic"><input type="checkbox" name="monthlyTopic"> <span>Monthly topic</span></label>
-      <label class="check-row check-fundraiser"><input type="checkbox" name="fundraiser"> <span>Fundraiser</span></label>
-      <label class="check-row check-programmers-choice"><input type="checkbox" name="programmersChoice"> <span>Programmer&#39;s Choice</span></label>
-      <label class="check-row check-holiday"><input type="checkbox" name="holiday"> <span>Holiday</span></label>
-      <label class="check-row check-noteworthy"><input type="checkbox" name="noteworthy"> <span>Noteworthy</span></label>
-      <label class="check-row check-educational"><input type="checkbox" name="educational"> <span>Educational</span></label>
-      <label class="check-row check-local"><input type="checkbox" name="local"> <span>Local</span></label>
-    </form>
-    <div class="context-menu-actions">
-      <button type="button" id="clearMarksBtn" class="btn ghost">Clear all for this program</button>
-    </div>
-  </aside>
-
-  <script src="app.v1.0.5.js?v=1.0.5" defer></script>
 </body>
 </html>

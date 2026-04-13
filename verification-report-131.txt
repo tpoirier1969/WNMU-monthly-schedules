@@ -1,0 +1,41 @@
+WNMU1HD May 2026 clean-room repo v1.0.4
+
+expectedDayCount: 31
+actualDayCount: 31
+everyDayHas48CoveredSlots: True
+anyMissingSlots: False
+anyOverlapSlots: False
+everyDayHasContinuousCoverage: True
+
+Daily coverage:
+2026-05-01 | airings=37 | covered=48/48 | missing=0 | overlaps=0 | continuous=True
+2026-05-02 | airings=33 | covered=48/48 | missing=0 | overlaps=0 | continuous=True
+2026-05-03 | airings=35 | covered=48/48 | missing=0 | overlaps=0 | continuous=True
+2026-05-04 | airings=35 | covered=48/48 | missing=0 | overlaps=0 | continuous=True
+2026-05-05 | airings=35 | covered=48/48 | missing=0 | overlaps=0 | continuous=True
+2026-05-06 | airings=36 | covered=48/48 | missing=0 | overlaps=0 | continuous=True
+2026-05-07 | airings=39 | covered=48/48 | missing=0 | overlaps=0 | continuous=True
+2026-05-08 | airings=37 | covered=48/48 | missing=0 | overlaps=0 | continuous=True
+2026-05-09 | airings=37 | covered=48/48 | missing=0 | overlaps=0 | continuous=True
+2026-05-10 | airings=34 | covered=48/48 | missing=0 | overlaps=0 | continuous=True
+2026-05-11 | airings=35 | covered=48/48 | missing=0 | overlaps=0 | continuous=True
+2026-05-12 | airings=37 | covered=48/48 | missing=0 | overlaps=0 | continuous=True
+2026-05-13 | airings=36 | covered=48/48 | missing=0 | overlaps=0 | continuous=True
+2026-05-14 | airings=38 | covered=48/48 | missing=0 | overlaps=0 | continuous=True
+2026-05-15 | airings=36 | covered=48/48 | missing=0 | overlaps=0 | continuous=True
+2026-05-16 | airings=36 | covered=48/48 | missing=0 | overlaps=0 | continuous=True
+2026-05-17 | airings=32 | covered=48/48 | missing=0 | overlaps=0 | continuous=True
+2026-05-18 | airings=36 | covered=48/48 | missing=0 | overlaps=0 | continuous=True
+2026-05-19 | airings=36 | covered=48/48 | missing=0 | overlaps=0 | continuous=True
+2026-05-20 | airings=36 | covered=48/48 | missing=0 | overlaps=0 | continuous=True
+2026-05-21 | airings=38 | covered=48/48 | missing=0 | overlaps=0 | continuous=True
+2026-05-22 | airings=38 | covered=48/48 | missing=0 | overlaps=0 | continuous=True
+2026-05-23 | airings=37 | covered=48/48 | missing=0 | overlaps=0 | continuous=True
+2026-05-24 | airings=34 | covered=48/48 | missing=0 | overlaps=0 | continuous=True
+2026-05-25 | airings=36 | covered=48/48 | missing=0 | overlaps=0 | continuous=True
+2026-05-26 | airings=35 | covered=48/48 | missing=0 | overlaps=0 | continuous=True
+2026-05-27 | airings=36 | covered=48/48 | missing=0 | overlaps=0 | continuous=True
+2026-05-28 | airings=38 | covered=48/48 | missing=0 | overlaps=0 | continuous=True
+2026-05-29 | airings=37 | covered=48/48 | missing=0 | overlaps=0 | continuous=True
+2026-05-30 | airings=35 | covered=48/48 | missing=0 | overlaps=0 | continuous=True
+2026-05-31 | airings=33 | covered=48/48 | missing=0 | overlaps=0 | continuous=True
