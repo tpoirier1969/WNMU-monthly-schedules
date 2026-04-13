@@ -7,13 +7,13 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <title>WNMU1HD May 2026 Weekly Grids</title>
-  <link rel="stylesheet" href="styles.v1.0.5.css?v=1.0.5">
+  <link rel="stylesheet" href="styles.dual.v1.1.0.css?v=1.1.0">
 </head>
 <body>
   <header class="topbar">
     <div>
       <h1>WNMU1HD May 2026</h1>
-      <p class="sub">30-minute slot rebuild • weekly grids with right-click markup • external JSON • clean-room repo</p>
+      <p class="sub">30-minute slot rebuild • weekly grids with right-click markup and draw-rectangle notes • external JSON • clean-room repo</p>
     </div>
     <div class="flagbar">
       <span class="flag" id="versionFlag">version</span>
@@ -27,7 +27,7 @@
     <section class="panel weeks-panel">
       <div class="panel-head">
         <h2>Week grids</h2>
-        <p><strong>Right-click any program cell</strong> to tag it. New tags now include Fundraiser, Programmer's Choice, Holiday, Noteworthy, Educational, and Local. Episode numbers ending in <strong>01</strong> start as <strong>New Series</strong>; Sundays at <strong>7:00 PM</strong> start as <strong>Programmer's Choice</strong>; Saturdays at <strong>8:00 PM</strong> start as <strong>Educational</strong>.</p>
+        <p><strong>Right-click any program cell</strong> to tag it or draw a white rectangle with a note in it. New auto rules now include <strong>Michigan</strong>, extra <strong>Local</strong> windows, and updated <strong>Programmer's Choice</strong> defaults. New Series auto-tagging is suppressed overnight and on weekday daytime blocks you specified.</p>
       </div>
       <div id="weekGrids" class="week-grids"></div>
     </section>
@@ -35,7 +35,7 @@
     <section class="panel month-panel">
       <div class="panel-head">
         <h2>Month checkbox rollup</h2>
-        <p>Programs with at least one checked tag are listed here with day, time, length, episode, and checkbox info.</p>
+        <p>Programs with at least one checked tag or a rectangle note are listed here with day, time, length, episode, checkbox info, and box-note text when present.</p>
       </div>
       <div id="monthRollup" class="month-rollup"></div>
     </section>
@@ -60,12 +60,23 @@
       <label class="check-row check-noteworthy"><input type="checkbox" name="noteworthy"> <span>Noteworthy</span></label>
       <label class="check-row check-educational"><input type="checkbox" name="educational"> <span>Educational</span></label>
       <label class="check-row check-local"><input type="checkbox" name="local"> <span>Local</span></label>
+          <label class="check-row check-michigan"><input type="checkbox" name="michigan"> <span>Michigan</span></label>
+
+      <div class="rect-tools">
+        <div id="rectStatus" class="rect-status">No rectangle note on this program yet.</div>
+        <div class="rect-actions">
+          <button type="button" id="drawRectBtn" class="btn ghost">Draw rectangle / note</button>
+          <button type="button" id="clearRectBtn" class="btn ghost">Clear rectangle / note</button>
+        </div>
+      </div>
     </form>
     <div class="context-menu-actions">
-      <button type="button" id="clearMarksBtn" class="btn ghost">Clear all for this program</button>
+      <button type="button" id="clearMarksBtn" class="btn ghost">Clear tags and rectangle note</button>
     </div>
   </aside>
 
-  <script src="app.v1.0.5.js?v=1.0.5" defer></script>
+  <div id="drawHint" class="draw-hint hidden" aria-live="polite"></div>
+
+  <script src="app.131.v1.0.6.js?v=1.0.6" defer></script>
 </body>
 </html>

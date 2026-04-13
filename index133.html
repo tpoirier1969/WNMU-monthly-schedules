@@ -7,13 +7,13 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <title>WNMU3PL May 2026 Weekly Grids</title>
-  <link rel="stylesheet" href="styles.v1.0.0.css?v=1.0.0">
+  <link rel="stylesheet" href="styles.dual.v1.1.0.css?v=1.1.0">
 </head>
 <body>
   <header class="topbar">
     <div>
       <h1>WNMU3PL / 13.3 — May 2026</h1>
-      <p class="sub">Separate sibling build • weekly grids • right-click markup • notes • whiteout • external JSON</p>
+      <p class="sub">Separate sibling build • weekly grids • right-click markup • draw-rectangle notes • external JSON</p>
     </div>
     <div class="flagbar">
       <span class="flag" id="versionFlag">version</span>
@@ -27,7 +27,7 @@
     <section class="panel weeks-panel">
       <div class="panel-head">
         <h2>Week grids</h2>
-        <p><strong>Right-click any program cell</strong> to tag it, write a note, or white it out. Default rules: episode numbers ending in <strong>01</strong> start as <strong>New Series</strong>; Sundays at <strong>7:00 PM</strong> start as <strong>Programmer's Choice</strong>; Saturdays at <strong>8:00 PM</strong> start as <strong>Educational</strong>.</p>
+        <p><strong>Right-click any program cell</strong> to tag it or draw a white rectangle with a note in it. 13.3 now has an <strong>Arts</strong> tag and your new daytime auto-select suppression windows.</p>
       </div>
       <div id="weekGrids" class="week-grids"></div>
     </section>
@@ -35,7 +35,7 @@
     <section class="panel month-panel">
       <div class="panel-head">
         <h2>Month checkbox rollup</h2>
-        <p>Programs with at least one checked tag are listed here with day, time, length, episode, and note text when present.</p>
+        <p>Programs with at least one checked tag or a rectangle note are listed here with day, time, length, episode, checkbox info, and box-note text when present.</p>
       </div>
       <div id="monthRollup" class="month-rollup"></div>
     </section>
@@ -61,19 +61,24 @@
       <label class="check-row check-noteworthy"><input type="checkbox" name="noteworthy"> <span>Noteworthy</span></label>
       <label class="check-row check-educational"><input type="checkbox" name="educational"> <span>Educational</span></label>
       <label class="check-row check-local"><input type="checkbox" name="local"> <span>Local</span></label>
-      <label class="check-row check-whiteout note-controls-row"><input type="checkbox" name="whiteout"> <span>Whiteout this cell</span></label>
+      <label class="check-row check-arts"><input type="checkbox" name="arts"> <span>Arts</span></label>
 
-      <div class="note-wrap">
-        <label for="noteField" class="note-label">Note</label>
-        <textarea id="noteField" name="note" rows="3" placeholder="Type a note for this program..."></textarea>
+      <div class="rect-tools">
+        <div id="rectStatus" class="rect-status">No rectangle note on this program yet.</div>
+        <div class="rect-actions">
+          <button type="button" id="drawRectBtn" class="btn ghost">Draw rectangle / note</button>
+          <button type="button" id="clearRectBtn" class="btn ghost">Clear rectangle / note</button>
+        </div>
       </div>
     </form>
 
     <div class="context-menu-actions">
-      <button type="button" id="clearMarksBtn" class="btn ghost">Clear tags, note, and whiteout</button>
+      <button type="button" id="clearMarksBtn" class="btn ghost">Clear tags and rectangle note</button>
     </div>
   </aside>
 
-  <script src="app.v1.0.0.js?v=1.0.0" defer></script>
+  <div id="drawHint" class="draw-hint hidden" aria-live="polite"></div>
+
+  <script src="app.133.v1.0.1.js?v=1.0.1" defer></script>
 </body>
 </html>
