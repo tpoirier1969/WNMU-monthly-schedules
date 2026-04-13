@@ -7,27 +7,28 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <title>WNMU3PL May 2026 Weekly Grids</title>
-  <link rel="stylesheet" href="styles.dual.v1.1.0.css?v=1.1.0">
+  <link rel="stylesheet" href="styles.dual.v1.1.1.css?v=1.1.1">
 </head>
 <body>
   <header class="topbar">
     <div>
       <h1>WNMU3PL / 13.3 — May 2026</h1>
-      <p class="sub">Separate sibling build • weekly grids • right-click markup • draw-rectangle notes • external JSON</p>
+      <p class="sub">Separate sibling build • weekly grids • right-click markup • box notes • external JSON</p>
     </div>
     <div class="flagbar">
       <span class="flag" id="versionFlag">version</span>
       <span class="flag ok" id="coverageFlag">coverage</span>
       <span class="flag" id="daysFlag">days</span>
     </div>
-    <div style="padding:0 1rem 1rem;font:14px system-ui,sans-serif"><a href="index.html">Home</a> · <a href="index131.html">Go to 13.1</a></div>
+    <div style="padding:0 1rem 1rem;font:14px system-ui,sans-serif"><a href="index.html">Home</a> · <a href="index131.html">Go to 13.1</a>  <button type="button" id="exportPdfBtn" class="btn export-btn">Export PDF</button>
+    </div>
   </header>
 
   <main class="page">
     <section class="panel weeks-panel">
       <div class="panel-head">
         <h2>Week grids</h2>
-        <p><strong>Right-click any program cell</strong> to tag it or draw a white rectangle with a note in it. 13.3 now has an <strong>Arts</strong> tag and your new daytime auto-select suppression windows.</p>
+        <p><strong>Right-click any program cell</strong> to tag it or drop a white note box directly onto that program. 13.3 now has an <strong>Arts</strong> tag and your new daytime auto-select suppression windows.</p>
       </div>
       <div id="weekGrids" class="week-grids"></div>
     </section>
@@ -66,7 +67,7 @@
       <div class="rect-tools">
         <div id="rectStatus" class="rect-status">No rectangle note on this program yet.</div>
         <div class="rect-actions">
-          <button type="button" id="drawRectBtn" class="btn ghost">Draw rectangle / note</button>
+          <button type="button" id="drawRectBtn" class="btn ghost">Add box note</button>
           <button type="button" id="clearRectBtn" class="btn ghost">Clear rectangle / note</button>
         </div>
       </div>
@@ -79,6 +80,6 @@
 
   <div id="drawHint" class="draw-hint hidden" aria-live="polite"></div>
 
-  <script src="app.133.v1.0.1.js?v=1.0.1" defer></script>
+  <script src="app.133.v1.1.1.js?v=1.1.1" defer></script>
 </body>
 </html>
