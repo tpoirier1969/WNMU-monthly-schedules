@@ -26,16 +26,6 @@
   }
 
   .panel-head {
-    padding: 0 0 2px !important;
-    border-bottom: 0 !important;
-  }
-
-  .panel-head h2 {
-    font-size: 9px !important;
-    margin: 0 !important;
-  }
-
-  .panel-head p {
     display: none !important;
   }
 
