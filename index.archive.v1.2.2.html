@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <title>WNMU May 2026 Archives</title>
+  <style>
+    body{margin:0;font:15px/1.35 system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:#f4f6fa;color:#111}
+    main{max-width:1200px;margin:0 auto;padding:28px 18px 40px}
+    h1{margin:0 0 8px;font-size:30px}
+    .sub{margin:0 0 16px;color:#444}
+    .version-flag{display:inline-block;margin:0 0 18px;padding:6px 12px;border:1px solid #c8d3e2;border-radius:999px;background:#fff;font-size:13px;color:#17345f;font-weight:700}
+    .current-shell{background:#fff;border:1px solid #d8dce3;border-radius:14px;padding:16px;box-shadow:0 1px 4px rgba(0,0,0,.05);margin-bottom:20px}
+    .current-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+    .current-card{background:#fff;border:1px solid #d8dce3;border-radius:14px;padding:18px}
+    .current-card h2{margin:0 0 8px;font-size:22px;color:#17345f}
+    .current-card p{margin:0 0 14px;color:#444}
+    .big-btn{display:inline-flex;align-items:center;justify-content:center;min-width:170px;padding:12px 18px;border-radius:12px;border:1px solid #17345f;background:#17345f;color:#fff;text-decoration:none;font-weight:700}
+    .archive-shell{background:#fff;border:1px solid #d8dce3;border-radius:14px;padding:16px;box-shadow:0 1px 4px rgba(0,0,0,.05)}
+    .archive-shell h2{margin:0 0 8px;font-size:22px;color:#17345f}
+    .archive-shell p{margin:0 0 14px;color:#444}
+    .archive-two-col{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+    .archive-column h3{margin:0 0 10px;font-size:18px;color:#17345f}
+    .archive-compact-list{list-style:none;margin:0;padding:0;border:1px solid #d9e0ea;border-radius:10px;overflow:hidden;background:#fff}
+    .archive-compact-list li{display:block;padding:7px 10px;border-top:1px solid #e6ebf2;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .archive-compact-list li:first-child{border-top:0}
+    .archive-compact-list a{color:#17345f;text-decoration:none;font-weight:600;margin-right:8px}
+    .archive-date{color:#666;margin-right:8px}
+    .archive-note-inline{color:#777}
+    .archive-empty-inline{color:#777;font-style:italic}
+    .archive-error{background:#fff3f3;border:1px solid #e3b6b6;border-radius:10px;padding:12px;color:#8a1f1f}
+    @media (max-width:900px){.archive-two-col,.current-grid{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+  <main>
+    <h1>WNMU May 2026</h1>
+    <div class="sub">Current month first. Archive below.</div>
+    <div class="version-flag">Landing page v1.2.2</div>
+
+    <section class="current-shell">
+      <div class="current-grid">
+        <section class="current-card">
+          <h2>13.1 — WNMU1HD</h2>
+          <p>Main HD channel weekly grids and tagging page.</p>
+          <a class="big-btn" href="index131.v1.2.0.html">Open 13.1</a>
+        </section>
+        <section class="current-card">
+          <h2>13.3 — WNMU3PL</h2>
+          <p>Secondary channel weekly grids with tags and box notes.</p>
+          <a class="big-btn" href="index133.v1.2.0.html">Open 13.3</a>
+        </section>
+      </div>
+    </section>
+
+    <section class="archive-shell">
+      <h2>Archived snapshots</h2>
+      <p>Compact archive list by channel.</p>
+      <div id="archiveList"><div class="archive-empty-inline">Loading archive list…</div></div>
+    </section>
+  </main>
+  <script src="config.js"></script>
+  <script>
+    (function(){
+      function esc(t){return String(t??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\"/g,'&quot;').replace(/'/g,'&#39;');}
+      async function load(){
+        const cfg=window.WNMU_SHAREBOARD_SUPABASE;
+        const host=document.getElementById('archiveList');
+        if(!cfg?.url||!cfg?.anonKey){host.innerHTML='<div class="archive-error">config.js is missing or invalid.</div>';return;}
+        try{
+          const res=await fetch(cfg.url+'/rest/v1/wnmu_monthly_archives?select=id,channel_code,archive_name,archive_note,created_at&order=created_at.desc&limit=500',{headers:{apikey:cfg.anonKey,Authorization:'Bearer '+cfg.anonKey},cache:'no-store'});
+          if(!res.ok) throw new Error('Supabase read failed ('+res.status+')');
+          const rows=await res.json();
+          const groups={'13.1':[],'13.3':[]};
+          (Array.isArray(rows)?rows:[]).forEach(r=>{if(groups[r.channel_code]) groups[r.channel_code].push(r);});
+          function group(title,code){const page=code==='13.3'?'index133.v1.2.0.html':'index131.v1.2.0.html'; const items=groups[code].map(r=>'<li><a href="'+page+'?archive='+encodeURIComponent(r.id)+'">'+esc(r.archive_name||'Untitled archive')+'</a><span class="archive-date">Last changed: '+esc(new Date(r.created_at).toLocaleString())+'</span><span class="archive-note-inline">'+(r.archive_note?' — '+esc(r.archive_note):'')+'</span></li>').join(''); return '<section class="archive-column"><h3>'+title+'</h3><ul class="archive-compact-list">'+(items||'<li class="archive-empty-inline">No archives yet.</li>')+'</ul></section>'; }
+          host.innerHTML='<div class="archive-two-col">'+group('Archived 13.1 — WNMU1HD','13.1')+group('Archived 13.3 — WNMU3PL','13.3')+'</div>';
+        }catch(err){host.innerHTML='<div class="archive-error">'+esc(err.message||String(err))+'</div>';console.error(err);}
+      }
+      document.addEventListener('DOMContentLoaded',load);
+    })();
+  </script>
+</body>
+</html>
