@@ -40,19 +40,19 @@
   <main>
     <h1>WNMU May 2026</h1>
     <div class="sub">Current month first. Archive below.</div>
-    <div class="version-flag">Landing page v1.2.3 speed pass</div>
+    <div class="version-flag">Landing page v1.3.1 speed pass</div>
 
     <section class="current-shell">
       <div class="current-grid">
         <section class="current-card">
           <h2>13.1 — WNMU1HD</h2>
           <p>Main HD channel weekly grids and tagging page.</p>
-          <a class="big-btn" href="index131.v1.2.0.html">Open 13.1</a>
+          <a class="big-btn" href="index131.v1.3.1.html">Open 13.1</a>
         </section>
         <section class="current-card">
           <h2>13.3 — WNMU3PL</h2>
           <p>Secondary channel weekly grids with tags and box notes.</p>
-          <a class="big-btn" href="index133.v1.2.0.html">Open 13.3</a>
+          <a class="big-btn" href="index133.v1.3.1.html">Open 13.3</a>
         </section>
       </div>
     </section>
@@ -76,7 +76,7 @@
       function renderGroups(rows){
         const groups={'13.1':[],'13.3':[]};
         (Array.isArray(rows)?rows:[]).forEach(r=>{if(groups[r.channel_code]) groups[r.channel_code].push(r);});
-        function group(title,code){const page=code==='13.3'?'index133.v1.2.0.html':'index131.v1.2.0.html'; const items=groups[code].map(r=>'<li><a href="'+page+'?archive='+encodeURIComponent(r.id)+'">'+esc(r.archive_name||'Untitled archive')+'</a><span class="archive-date">Last changed: '+esc(new Date(r.created_at).toLocaleString())+'</span><span class="archive-note-inline">'+(r.archive_note?' — '+esc(r.archive_note):'')+'</span></li>').join(''); return '<section class="archive-column"><h3>'+title+'</h3><ul class="archive-compact-list">'+(items||'<li class="archive-empty-inline">No archives yet.</li>')+'</ul></section>'; }
+        function group(title,code){const page=code==='13.3'?'index133.v1.3.1.html':'index131.v1.3.1.html'; const items=groups[code].map(r=>'<li><a href="'+page+'?archive='+encodeURIComponent(r.id)+'">'+esc(r.archive_name||'Untitled archive')+'</a><span class="archive-date">Last changed: '+esc(new Date(r.created_at).toLocaleString())+'</span><span class="archive-note-inline">'+(r.archive_note?' — '+esc(r.archive_note):'')+'</span></li>').join(''); return '<section class="archive-column"><h3>'+title+'</h3><ul class="archive-compact-list">'+(items||'<li class="archive-empty-inline">No archives yet.</li>')+'</ul></section>'; }
         return '<div class="archive-two-col">'+group('Archived 13.1 — WNMU1HD','13.1')+group('Archived 13.3 — WNMU3PL','13.3')+'</div>';
       }
       async function fetchRows(){
