@@ -1,0 +1,40 @@
+{
+  "version": "v1.4.1",
+  "current": {
+    "13.1": "2026-05",
+    "13.3": "2026-05"
+  },
+  "channels": {
+    "13.1": {
+      "label": "WNMU1HD",
+      "months": {
+        "2026-05": {
+          "label": "May 2026",
+          "pageTitle": "WNMU1HD May 2026",
+          "scheduleFile": "schedule-data.v1.0.5.json",
+          "verificationFile": "verification.v1.0.5.json",
+          "storageKey": "wnmu1hd-2026-05-marks-v1.4.1"
+        },
+        "2026-06": {
+          "label": "June 2026",
+          "pageTitle": "WNMU1HD June 2026",
+          "scheduleFile": "data/generated/wnmu1hd-2026-06-schedule.json",
+          "verificationFile": "data/generated/wnmu1hd-2026-06-verification.json",
+          "storageKey": "wnmu1hd-2026-06-marks-v1.4.1"
+        }
+      }
+    },
+    "13.3": {
+      "label": "WNMU3PL",
+      "months": {
+        "2026-05": {
+          "label": "May 2026",
+          "pageTitle": "WNMU3PL May 2026",
+          "scheduleFile": "schedule-data.v1.0.0.json",
+          "verificationFile": "verification.v1.0.0.json",
+          "storageKey": "wnmu3pl-2026-05-marks-v1.4.1"
+        }
+      }
+    }
+  }
+}
