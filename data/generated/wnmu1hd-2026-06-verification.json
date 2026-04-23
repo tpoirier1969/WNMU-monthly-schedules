@@ -1,0 +1,253 @@
+{
+  "version": "WNMU1HD 2026-06 imported",
+  "checks": {
+    "expectedDayCount": 30,
+    "actualDayCount": 30,
+    "everyDayHas48CoveredSlots": true,
+    "anyMissingSlots": false,
+    "anyOverlapSlots": false,
+    "everyDayHasContinuousCoverage": true
+  },
+  "dailyCoverage": [
+    {
+      "date": "2026-06-01",
+      "coveredSlots": 48,
+      "missingSlots": [],
+      "overlapSlots": [],
+      "continuous": true,
+      "airings": 34
+    },
+    {
+      "date": "2026-06-02",
+      "coveredSlots": 48,
+      "missingSlots": [],
+      "overlapSlots": [],
+      "continuous": true,
+      "airings": 34
+    },
+    {
+      "date": "2026-06-03",
+      "coveredSlots": 48,
+      "missingSlots": [],
+      "overlapSlots": [],
+      "continuous": true,
+      "airings": 35
+    },
+    {
+      "date": "2026-06-04",
+      "coveredSlots": 48,
+      "missingSlots": [],
+      "overlapSlots": [],
+      "continuous": true,
+      "airings": 35
+    },
+    {
+      "date": "2026-06-05",
+      "coveredSlots": 48,
+      "missingSlots": [],
+      "overlapSlots": [],
+      "continuous": true,
+      "airings": 35
+    },
+    {
+      "date": "2026-06-06",
+      "coveredSlots": 48,
+      "missingSlots": [],
+      "overlapSlots": [],
+      "continuous": true,
+      "airings": 33
+    },
+    {
+      "date": "2026-06-07",
+      "coveredSlots": 48,
+      "missingSlots": [],
+      "overlapSlots": [],
+      "continuous": true,
+      "airings": 32
+    },
+    {
+      "date": "2026-06-08",
+      "coveredSlots": 48,
+      "missingSlots": [],
+      "overlapSlots": [],
+      "continuous": true,
+      "airings": 35
+    },
+    {
+      "date": "2026-06-09",
+      "coveredSlots": 48,
+      "missingSlots": [],
+      "overlapSlots": [],
+      "continuous": true,
+      "airings": 36
+    },
+    {
+      "date": "2026-06-10",
+      "coveredSlots": 48,
+      "missingSlots": [],
+      "overlapSlots": [],
+      "continuous": true,
+      "airings": 36
+    },
+    {
+      "date": "2026-06-11",
+      "coveredSlots": 48,
+      "missingSlots": [],
+      "overlapSlots": [],
+      "continuous": true,
+      "airings": 36
+    },
+    {
+      "date": "2026-06-12",
+      "coveredSlots": 48,
+      "missingSlots": [],
+      "overlapSlots": [],
+      "continuous": true,
+      "airings": 37
+    },
+    {
+      "date": "2026-06-13",
+      "coveredSlots": 48,
+      "missingSlots": [],
+      "overlapSlots": [],
+      "continuous": true,
+      "airings": 35
+    },
+    {
+      "date": "2026-06-14",
+      "coveredSlots": 48,
+      "missingSlots": [],
+      "overlapSlots": [],
+      "continuous": true,
+      "airings": 33
+    },
+    {
+      "date": "2026-06-15",
+      "coveredSlots": 48,
+      "missingSlots": [],
+      "overlapSlots": [],
+      "continuous": true,
+      "airings": 34
+    },
+    {
+      "date": "2026-06-16",
+      "coveredSlots": 48,
+      "missingSlots": [],
+      "overlapSlots": [],
+      "continuous": true,
+      "airings": 37
+    },
+    {
+      "date": "2026-06-17",
+      "coveredSlots": 48,
+      "missingSlots": [],
+      "overlapSlots": [],
+      "continuous": true,
+      "airings": 36
+    },
+    {
+      "date": "2026-06-18",
+      "coveredSlots": 48,
+      "missingSlots": [],
+      "overlapSlots": [],
+      "continuous": true,
+      "airings": 36
+    },
+    {
+      "date": "2026-06-19",
+      "coveredSlots": 48,
+      "missingSlots": [],
+      "overlapSlots": [],
+      "continuous": true,
+      "airings": 37
+    },
+    {
+      "date": "2026-06-20",
+      "coveredSlots": 48,
+      "missingSlots": [],
+      "overlapSlots": [],
+      "continuous": true,
+      "airings": 35
+    },
+    {
+      "date": "2026-06-21",
+      "coveredSlots": 48,
+      "missingSlots": [],
+      "overlapSlots": [],
+      "continuous": true,
+      "airings": 34
+    },
+    {
+      "date": "2026-06-22",
+      "coveredSlots": 48,
+      "missingSlots": [],
+      "overlapSlots": [],
+      "continuous": true,
+      "airings": 35
+    },
+    {
+      "date": "2026-06-23",
+      "coveredSlots": 48,
+      "missingSlots": [],
+      "overlapSlots": [],
+      "continuous": true,
+      "airings": 34
+    },
+    {
+      "date": "2026-06-24",
+      "coveredSlots": 48,
+      "missingSlots": [],
+      "overlapSlots": [],
+      "continuous": true,
+      "airings": 36
+    },
+    {
+      "date": "2026-06-25",
+      "coveredSlots": 48,
+      "missingSlots": [],
+      "overlapSlots": [],
+      "continuous": true,
+      "airings": 37
+    },
+    {
+      "date": "2026-06-26",
+      "coveredSlots": 48,
+      "missingSlots": [],
+      "overlapSlots": [],
+      "continuous": true,
+      "airings": 36
+    },
+    {
+      "date": "2026-06-27",
+      "coveredSlots": 48,
+      "missingSlots": [],
+      "overlapSlots": [],
+      "continuous": true,
+      "airings": 35
+    },
+    {
+      "date": "2026-06-28",
+      "coveredSlots": 48,
+      "missingSlots": [],
+      "overlapSlots": [],
+      "continuous": true,
+      "airings": 35
+    },
+    {
+      "date": "2026-06-29",
+      "coveredSlots": 48,
+      "missingSlots": [],
+      "overlapSlots": [],
+      "continuous": true,
+      "airings": 36
+    },
+    {
+      "date": "2026-06-30",
+      "coveredSlots": 48,
+      "missingSlots": [],
+      "overlapSlots": [],
+      "continuous": true,
+      "airings": 36
+    }
+  ]
+}
