@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <title>WNMU Month Builder</title>
+  <link rel="stylesheet" href="assets/month-builder.v1.4.0.css?v=1.4.0">
+</head>
+<body>
+  <main class="wrap">
+    <div class="topline"><a href="index.archive.v1.4.1.html">← Home</a></div>
+    <h1>WNMU month builder <span class="badge">v1.4.1</span></h1>
+    <p class="lede">This is a separate import tool. Drop in one or both weekly-grid PDFs, build a new month package, and download a full site zip with the month registry updated. Older months stay in place; only the current pointer moves.</p>
+
+    <section class="panel">
+      <h2>Reports</h2>
+      <div class="grid">
+        <label class="dropzone">
+          <span class="label">13.1 / WNMU1HD PDF</span>
+          <input id="pdf131" type="file" accept="application/pdf">
+          <span class="hint">One weekly-grid PDF for the main HD channel.</span>
+        </label>
+        <label class="dropzone">
+          <span class="label">13.3 / WNMU3PL PDF</span>
+          <input id="pdf133" type="file" accept="application/pdf">
+          <span class="hint">One weekly-grid PDF for the secondary channel.</span>
+        </label>
+      </div>
+      <div class="actions">
+        <button id="parseBtn" type="button">Parse selected reports</button>
+        <button id="buildBtn" type="button" disabled>Download updated site package</button>
+      </div>
+      <div id="statusBox" class="status">Waiting for PDFs.</div>
+    </section>
+
+    <section class="panel">
+      <h2>Detected output</h2>
+      <div id="summaryGrid" class="summary-grid">
+        <div class="summary-card"><h3>13.1</h3><div id="summary131" class="summary-body">No PDF loaded yet.</div></div>
+        <div class="summary-card"><h3>13.3</h3><div id="summary133" class="summary-body">No PDF loaded yet.</div></div>
+      </div>
+    </section>
+
+    <section class="panel smallprint">
+      <h2>What this builder changes</h2>
+      <ul>
+        <li>Adds a new month schedule JSON and verification JSON for each imported channel.</li>
+        <li>Updates the month registry so the imported month becomes the current default for that channel.</li>
+        <li>Keeps older months in the registry so you can still open them with a month link.</li>
+        <li>Builds a full site zip without touching your May data.</li>
+      </ul>
+    </section>
+  </main>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script>window.pdfjsLib && (window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js');</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <script src="month-builder.v1.4.1.js?v=1.4.1"></script>
+</body>
+</html>
