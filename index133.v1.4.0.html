@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <title>WNMU3PL current schedule</title>
+  <link rel="stylesheet" href="styles.dual.v1.1.2.css?v=1.1.2">
+  <link rel="stylesheet" href="print-layout-fix.v1.1.3.css?v=1.1.3" media="print">
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <h1 id="pageHeading">WNMU3PL current schedule</h1>
+      <p class="sub" id="pageSub">Loading the selected month from the month registry…</p>
+      <div id="monthNav" style="padding:0 1rem 1rem;font:14px system-ui,sans-serif;color:#ddd"></div>
+    </div>
+    <div class="flagbar">
+      <span class="flag" id="versionFlag">version</span>
+      <span class="flag ok" id="coverageFlag">coverage</span>
+      <span class="flag" id="daysFlag">days</span>
+    </div>
+    <div style="padding:0 1rem 1rem;font:14px system-ui,sans-serif">
+      <a href="index.html">Home</a> ·
+      <a id="otherChannelLink" href="index131.v1.4.0.html">Go to 13.1</a> ·
+      <a href="month-builder.v1.4.0.html">Month builder</a>
+      <button type="button" id="exportPdfBtn" class="btn export-btn">Export PDF</button>
+    </div>
+  </header>
+
+  <div id="archiveBanner" class="panel hidden" style="margin:1rem auto;max-width:1500px"></div>
+
+  <main class="page">
+    <section class="panel weeks-panel">
+      <div class="panel-head">
+        <h2>Week grids</h2>
+        <p><strong>Right-click any program cell</strong> to tag it or drop a white note box directly onto that program. This page now resolves the selected month from a separate registry, so older months can stay intact while the current pointer moves forward.</p>
+      </div>
+      <div id="weekGrids" class="week-grids"></div>
+    </section>
+
+    <section class="panel month-panel">
+      <div class="panel-head">
+        <h2>Month checkbox rollup</h2>
+        <p>Programs with at least one checked tag or a rectangle note are listed here with day, time, length, episode, checkbox info, and box-note text when present.</p>
+      </div>
+      <div id="monthRollup" class="month-rollup"></div>
+    </section>
+  </main>
+
+  <aside id="contextMenu" class="context-menu hidden" aria-hidden="true">
+    <div class="context-menu-head">
+      <div>
+        <h3 id="menuTitle">Program markup</h3>
+        <div id="menuMeta" class="context-menu-meta"></div>
+      </div>
+      <button type="button" id="closeMenuBtn" class="menu-close" aria-label="Close">×</button>
+    </div>
+    <form id="contextMenuForm" class="context-menu-form">
+      <label class="check-row check-new-series"><input type="checkbox" name="newSeries"> <span>New Series</span></label>
+      <label class="check-row check-highlight"><input type="checkbox" name="highlight"> <span>Highlight</span></label>
+      <label class="check-row check-one-off"><input type="checkbox" name="oneOff"> <span>One Off</span></label>
+      <label class="check-row check-monthly-topic"><input type="checkbox" name="monthlyTopic"> <span>Monthly topic</span></label>
+      <label class="check-row check-fundraiser"><input type="checkbox" name="fundraiser"> <span>Fundraiser</span></label>
+      <label class="check-row check-programmers-choice"><input type="checkbox" name="programmersChoice"> <span>Programmer's Choice</span></label>
+      <label class="check-row check-holiday"><input type="checkbox" name="holiday"> <span>Holiday</span></label>
+      <label class="check-row check-noteworthy"><input type="checkbox" name="noteworthy"> <span>Noteworthy</span></label>
+      <label class="check-row check-educational"><input type="checkbox" name="educational"> <span>Educational</span></label>
+      <label class="check-row check-local"><input type="checkbox" name="local"> <span>Local</span></label>
+      <label class="check-row check-arts"><input type="checkbox" name="arts"> <span>Arts</span></label>
+
+      <div class="rect-tools">
+        <div id="rectStatus" class="rect-status">No rectangle note on this program yet.</div>
+        <div class="rect-actions">
+          <button type="button" id="drawRectBtn" class="btn ghost">Add box note</button>
+          <button type="button" id="clearRectBtn" class="btn ghost">Clear rectangle / note</button>
+        </div>
+      </div>
+    </form>
+    <div class="context-menu-actions">
+      <button type="button" id="clearMarksBtn" class="btn ghost">Clear tags and rectangle note</button>
+    </div>
+  </aside>
+
+  <div id="drawHint" class="draw-hint hidden" aria-live="polite"></div>
+
+  <script src="app.131.v1.4.0.js?v=1.4.0"></script>
+  <script src="wnmu-current-loader.v1.4.0.js?v=1.4.0"></script>
+</body>
+</html>
