@@ -8,45 +8,101 @@
   <meta http-equiv="Expires" content="0">
   <title>WNMU schedules</title>
   <style>
-    body{margin:0;font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:#f4f4f4;color:#111}
-    main{max-width:980px;margin:0 auto;padding:32px 20px 48px}
-    h1{margin:0 0 8px;font-size:32px}
-    p{margin:0 0 20px}
-    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:18px;margin-top:24px}
-    .card{background:#fff;border:1px solid #d8d8d8;border-radius:14px;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
-    .card h2{margin:0 0 8px;font-size:22px}
-    .card p{margin:0 0 16px;color:#444}
-    .btn{display:inline-block;padding:10px 14px;border-radius:10px;background:#111;color:#fff;text-decoration:none;font-weight:600}
-    .small{margin-top:26px;font-size:13px;color:#666}
+    body{margin:0;font:15px/1.35 system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:#f4f6fa;color:#111}
+    main{max-width:1250px;margin:0 auto;padding:28px 18px 40px}
+    h1{margin:0 0 8px;font-size:30px}
+    .sub{margin:0 0 16px;color:#444}
+    .version-flag{display:inline-block;margin:0 0 18px;padding:6px 12px;border:1px solid #c8d3e2;border-radius:999px;background:#fff;font-size:13px;color:#17345f;font-weight:700}
+    .top-actions{display:flex;gap:10px;flex-wrap:wrap;margin:0 0 20px}
+    .primary-btn,.small-btn{display:inline-flex;align-items:center;justify-content:center;padding:10px 14px;border-radius:10px;text-decoration:none;font-weight:700}
+    .primary-btn{background:#17345f;border:1px solid #17345f;color:#fff}
+    .small-btn{background:#fff;border:1px solid #17345f;color:#17345f}
+    .channels-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+    .channel-card{background:#fff;border:1px solid #d8dce3;border-radius:14px;padding:18px;box-shadow:0 1px 4px rgba(0,0,0,.05)}
+    .channel-card h2{margin:0 0 8px;font-size:22px;color:#17345f}
+    .channel-card p{margin:0 0 14px;color:#444}
+    .months-title{margin:18px 0 8px;font-size:16px;color:#17345f}
+    .months-list{list-style:none;margin:0;padding:0;border:1px solid #d9e0ea;border-radius:10px;overflow:hidden;background:#fff}
+    .months-list li{display:block;padding:9px 12px;border-top:1px solid #e6ebf2;font-size:14px}
+    .months-list li:first-child{border-top:0}
+    .months-list a{color:#17345f;text-decoration:none;font-weight:700;margin-right:8px}
+    .month-note{color:#666}
+    .empty-inline{color:#777;font-style:italic}
+    .status{margin:0 0 10px;font-size:12px;color:#667}
+    .error{background:#fff3f3;border:1px solid #e3b6b6;border-radius:10px;padding:12px;color:#8a1f1f}
+    @media (max-width:900px){.channels-grid{grid-template-columns:1fr}}
   </style>
 </head>
 <body>
   <main>
     <h1>WNMU schedules</h1>
-    <p>Current pages, month history, and builder entry points live here. Older months should remain accessible instead of getting lost when current moves forward.</p>
-    <div class="grid">
-      <section class="card">
-        <h2>13.1 — WNMU1HD</h2>
-        <p>Main HD channel weekly grids and tagging page.</p>
-        <a class="btn" href="index131.v1.4.1.html">Open current 13.1</a>
-      </section>
-      <section class="card">
-        <h2>13.3 — WNMU3PL</h2>
-        <p>Secondary channel weekly grids with tags and draw-rectangle notes.</p>
-        <a class="btn" href="index133.v1.4.1.html">Open current 13.3</a>
-      </section>
-      <section class="card">
-        <h2>Month builder</h2>
-        <p>Separate PDF import tool that adds a new month package and updates the current month pointer without overwriting older months.</p>
-        <a class="btn" href="month-builder.v1.4.1.html">Open month builder</a>
-      </section>
-          <section class="card">
-        <h2>Archive / history</h2>
-        <p>Open older registered months and Supabase archive snapshots.</p>
-        <a class="btn" href="index.archive.v1.4.1.html">Open archive / history</a>
-      </section>
+    <div class="sub">Open either channel and jump directly into any imported month.</div>
+    <div class="version-flag">Landing page v1.4.2 • 2-channel imported months view</div>
+
+    <div class="top-actions">
+      <a class="primary-btn" href="month-builder.v1.4.1.html">Import months</a>
     </div>
-    <div class="small">Current build flag: v1.4.1 archive restore + month history + standalone PDF month builder.</div>
+
+    <div id="monthsStatus" class="status">Loading imported months…</div>
+    <div id="channelsGrid" class="channels-grid">
+      <div class="channel-card"><div class="empty-inline">Loading channel months…</div></div>
+      <div class="channel-card"><div class="empty-inline">Loading channel months…</div></div>
+    </div>
   </main>
+  <script>
+    (function(){
+      function esc(t){return String(t??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\"/g,'&quot;').replace(/'/g,'&#39;');}
+      function monthLabel(monthKey){
+        const [y,m]=String(monthKey).split('-').map(Number);
+        return new Date(y,(m||1)-1,1).toLocaleDateString('en-US',{month:'long',year:'numeric'});
+      }
+      function buildCard(title, blurb, page, months, currentMonth){
+        const rows = months.map(([key,meta])=>{
+          const flags=[];
+          if(currentMonth===key) flags.push('current');
+          const suffix = flags.length ? ` <span class="month-note">(${flags.join(', ')})</span>` : '';
+          return `<li><a href="${page}?month=${encodeURIComponent(key)}">${esc(meta.label||monthLabel(key))}</a>${suffix}</li>`;
+        }).join('');
+        return `
+          <section class="channel-card">
+            <h2>${esc(title)}</h2>
+            <p>${esc(blurb)}</p>
+            <div class="months-title">Imported months</div>
+            <ul class="months-list">${rows || '<li class="empty-inline">No imported months yet.</li>'}</ul>
+          </section>
+        `;
+      }
+      async function fetchRegistry(){
+        const candidates=['data/month-registry.v1.4.1.json','data/month-registry.v.1.4.1.json','data/month-registry.v1.4.0.json','data/month-registry.v.1.4.0.json'];
+        let lastErr=null;
+        for(const path of candidates){
+          try{
+            const res=await fetch(path+'?cachebust='+Date.now(),{cache:'no-store'});
+            if(!res.ok) throw new Error('Could not load '+path+' ('+res.status+')');
+            return await res.json();
+          }catch(err){ lastErr=err; }
+        }
+        throw lastErr||new Error('Imported month list could not be loaded.');
+      }
+      async function start(){
+        const status=document.getElementById('monthsStatus');
+        const host=document.getElementById('channelsGrid');
+        try{
+          const registry=await fetchRegistry();
+          const months131=Object.entries((registry.channels?.['13.1']?.months)||{}).sort((a,b)=>b[0].localeCompare(a[0]));
+          const months133=Object.entries((registry.channels?.['13.3']?.months)||{}).sort((a,b)=>b[0].localeCompare(a[0]));
+          host.innerHTML =
+            buildCard('13.1 — WNMU1HD','Main HD channel weekly grids and tagging page.','index131.v1.4.1.html',months131,registry.current?.['13.1']) +
+            buildCard('13.3 — WNMU3PL','Secondary channel weekly grids with tags and box notes.','index133.v1.4.1.html',months133,registry.current?.['13.3']);
+          status.textContent='Imported months loaded.';
+        }catch(err){
+          console.error(err);
+          status.textContent='Imported month list failed to load.';
+          host.innerHTML='<div class="error">'+esc(err.message||String(err))+'</div>';
+        }
+      }
+      if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',start); else start();
+    })();
+  </script>
 </body>
 </html>

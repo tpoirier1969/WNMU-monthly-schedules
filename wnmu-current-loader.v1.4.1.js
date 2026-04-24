@@ -1,6 +1,4 @@
-
 (function () {
-  const REGISTRY_CANDIDATES = [];
   const CONFIG = window.WNMU_MONTHLY_PAGE_CONFIG;
   if (!CONFIG) return;
 
@@ -24,7 +22,7 @@
     const months = Object.entries((registry.channels?.[channelCode]?.months) || {})
       .sort((a, b) => b[0].localeCompare(a[0]));
     if (!months.length) {
-      host.textContent = 'No months are registered for this channel yet.';
+      host.textContent = 'No imported months are available for this channel yet.';
       return;
     }
     host.innerHTML = months.map(([monthKey, meta]) => {
@@ -46,46 +44,45 @@
     const otherLabel = otherCode === '13.1' ? '13.1' : '13.3';
     const months = registry.channels?.[otherCode]?.months || {};
     const otherMonth = months[selectedMonth] ? selectedMonth : (registry.current?.[otherCode] || Object.keys(months).sort().slice(-1)[0] || '');
-    link.href = `${otherCode === '13.1' ? 'index131.v1.4.0.html' : 'index133.v1.4.0.html'}${otherMonth ? `?month=${encodeURIComponent(otherMonth)}` : ''}`;
+    link.href = `${otherCode === '13.1' ? 'index131.v1.4.1.html' : 'index133.v1.4.1.html'}${otherMonth ? `?month=${encodeURIComponent(otherMonth)}` : ''}`;
     link.textContent = `Go to ${otherLabel}`;
   }
 
-
-async function loadRegistry() {
-  const unique = [];
-  const primary = CONFIG.registryFile || 'data/month-registry.v1.4.1.json';
-  const alternates = [
-    primary,
-    primary.replace('.v1.4.1.', '.v.1.4.1.'),
-    primary.replace('.v1.4.1', '.v.1.4.1'),
-    'data/month-registry.v1.4.1.json',
-    'data/month-registry.v.1.4.1.json',
-    'data/month-registry.v1.4.0.json',
-    'data/month-registry.v.1.4.0.json'
-  ];
-  for (const item of alternates) {
-    if (item && !unique.includes(item)) unique.push(item);
-  }
-  let lastErr = null;
-  for (const candidate of unique) {
-    try {
-      const res = await fetch(`${candidate}?v=${encodeURIComponent(CONFIG.loaderVersion || CONFIG.buildVersion || 'v1')}`, { cache: 'no-store' });
-      if (!res.ok) throw new Error(`Could not load ${candidate} (${res.status})`);
-      const registry = await res.json();
-      return { registry, path: candidate };
-    } catch (err) {
-      lastErr = err;
+  async function loadRegistry() {
+    const unique = [];
+    const primary = CONFIG.registryFile || 'data/month-registry.v1.4.1.json';
+    const alternates = [
+      primary,
+      primary.replace('.v1.4.1.', '.v.1.4.1.'),
+      primary.replace('.v1.4.1', '.v.1.4.1'),
+      'data/month-registry.v1.4.1.json',
+      'data/month-registry.v.1.4.1.json',
+      'data/month-registry.v1.4.0.json',
+      'data/month-registry.v.1.4.0.json'
+    ];
+    for (const item of alternates) {
+      if (item && !unique.includes(item)) unique.push(item);
     }
+    let lastErr = null;
+    for (const candidate of unique) {
+      try {
+        const res = await fetch(`${candidate}?v=1.4.2`, { cache: 'no-store' });
+        if (!res.ok) throw new Error(`Could not load ${candidate} (${res.status})`);
+        const registry = await res.json();
+        return { registry, path: candidate };
+      } catch (err) {
+        lastErr = err;
+      }
+    }
+    throw lastErr || new Error('Imported month list could not be loaded.');
   }
-  throw lastErr || new Error('Month registry could not be loaded.');
-}
 
-async function boot() {
+  async function boot() {
     try {
       const { registry } = await loadRegistry();
       const selectedMonth = new URLSearchParams(window.location.search).get('month') || registry.current?.[CONFIG.channelCode];
       const monthMeta = registry.channels?.[CONFIG.channelCode]?.months?.[selectedMonth];
-      if (!selectedMonth || !monthMeta) throw new Error(`No registered month was found for ${CONFIG.channelLabel}.`);
+      if (!selectedMonth || !monthMeta) throw new Error(`No imported month was found for ${CONFIG.channelLabel}.`);
       CONFIG.scheduleFile = monthMeta.scheduleFile;
       CONFIG.verificationFile = monthMeta.verificationFile;
       CONFIG.storageKey = monthMeta.storageKey || `${CONFIG.channelLabel.toLowerCase()}-${selectedMonth}-marks`;
@@ -94,19 +91,19 @@ async function boot() {
       const heading = monthMeta.pageTitle || `${CONFIG.channelLabel} ${monthMeta.label || monthLabel(selectedMonth)}`;
       document.title = `${heading} Weekly Grids`;
       setText('pageHeading', heading);
-      setText('pageSub', `${monthMeta.label || monthLabel(selectedMonth)} • current pages now resolve through a separate month registry so older months remain intact.`);
+      setText('pageSub', `${monthMeta.label || monthLabel(selectedMonth)} • selected from the imported month list so older months remain intact.`);
       renderMonthNav(registry, CONFIG.channelCode, selectedMonth);
       renderAltChannelLink(registry, selectedMonth);
 
       const script = document.createElement('script');
-      script.src = `${CONFIG.sharedRendererFile}?loader=${encodeURIComponent(CONFIG.loaderVersion || CONFIG.buildVersion || 'v1')}`;
+      script.src = `${CONFIG.sharedRendererFile}?loader=1.4.2`;
       script.defer = true;
       document.body.appendChild(script);
     } catch (err) {
       console.error(err);
       setText('pageHeading', `${CONFIG.channelLabel} current schedule`);
       const sub = document.getElementById('pageSub');
-      if (sub) sub.textContent = `Month-registry load failed: ${err.message}`;
+      if (sub) sub.textContent = `Imported-month load failed: ${err.message}`;
       const flag = document.getElementById('versionFlag');
       if (flag) flag.textContent = 'registry error';
       const coverage = document.getElementById('coverageFlag');
