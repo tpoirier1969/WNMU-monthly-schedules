@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <title>WNMU seed existing months to Supabase</title>
+  <style>
+    body{margin:0;font:15px/1.4 system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:#f4f6fa;color:#111}.wrap{max-width:1050px;margin:0 auto;padding:28px 18px 48px}h1{margin:0 0 8px;font-size:30px}.sub{color:#4b5870;margin:0 0 18px}.panel{background:#fff;border:1px solid #d8dce3;border-radius:14px;padding:18px;margin:16px 0;box-shadow:0 1px 4px rgba(0,0,0,.05)}.actions{display:flex;gap:10px;flex-wrap:wrap;margin:14px 0}button,a.btn{border:0;border-radius:10px;background:#17345f;color:#fff;font-weight:800;padding:10px 14px;text-decoration:none;cursor:pointer}button.secondary{background:#fff;color:#17345f;border:1px solid #17345f}button:disabled{opacity:.55;cursor:not-allowed}.badge{display:inline-block;padding:5px 10px;border:1px solid #c8d3e2;border-radius:999px;background:#fff;color:#17345f;font-weight:800;font-size:13px}.log{white-space:pre-wrap;background:#0e1726;color:#d9e8ff;border-radius:10px;padding:14px;min-height:220px;font:13px/1.45 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}.ok{color:#0a7d31}.bad{color:#b42318}.warn{background:#fff9e8;border:1px solid #e0cc88;border-radius:10px;padding:12px;color:#6d4b00;margin:12px 0}.topline a{color:#17345f;font-weight:700;text-decoration:none}
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <div class="topline"><a href="index.html?v=1.4.6">← Home</a></div>
+    <h1>Seed existing WNMU months to Supabase <span class="badge">v1.4.6</span></h1>
+    <p class="sub">This one-time utility copies the bundled fallback months into the app-specific Supabase imported-month tables. It does not touch notes, rectangle notes, archives, or legacy shared-mark rows.</p>
+
+    <section class="panel">
+      <h2>What will be seeded</h2>
+      <div class="warn">Expected bundled months: 13.1 May 2026, 13.1 June 2026, and 13.3 May 2026. Current pointers will match the fallback registry: 13.1 → June 2026, 13.3 → May 2026.</div>
+      <div class="actions">
+        <button id="seedBtn" type="button">Seed/repair bundled months in Supabase</button>
+        <button id="verifyBtn" class="secondary" type="button">Verify Supabase rows</button>
+        <a class="btn" href="month-builder.v1.4.1.html?v=1.4.6">Go to month builder</a>
+      </div>
+      <div id="status" class="log">Waiting.</div>
+    </section>
+  </main>
+
+  <script src="config.js"></script>
+  <script>
+  (function(){
+    const BUILD_VERSION = 'v1.4.6-seed';
+    const TABLES = {
+      importedMonths: 'wnmu_monthly_schedules_imported_months',
+      currentMonths: 'wnmu_monthly_schedules_current_months'
+    };
+    const CHANNEL_PREFIX = { '13.1': 'wnmu1hd', '13.3': 'wnmu3pl' };
+    const CHANNEL_LABEL = { '13.1': 'WNMU1HD', '13.3': 'WNMU3PL' };
+    const status = document.getElementById('status');
+    function log(msg){ status.textContent += `\n${msg}`; status.scrollTop = status.scrollHeight; }
+    function reset(msg){ status.textContent = msg || ''; }
+    function getCfg(){ return window.WNMU_SHAREBOARD_SUPABASE; }
+    function ensureCfg(){ const cfg=getCfg(); if(!cfg?.url || !cfg?.anonKey) throw new Error('config.js is missing Supabase credentials.'); return cfg; }
+    async function restSelect(path){ const cfg=ensureCfg(); const res=await fetch(`${cfg.url}${path}`,{headers:{apikey:cfg.anonKey,Authorization:`Bearer ${cfg.anonKey}`},cache:'no-store'}); if(!res.ok){throw new Error(`Supabase read failed ${res.status}: ${await res.text()}`);} return res.json(); }
+    async function restUpsert(table, rows, conflictCols){ const cfg=ensureCfg(); const path=`/rest/v1/${table}?on_conflict=${encodeURIComponent(conflictCols)}`; const res=await fetch(`${cfg.url}${path}`,{method:'POST',headers:{apikey:cfg.anonKey,Authorization:`Bearer ${cfg.anonKey}`,'Content-Type':'application/json',Prefer:'resolution=merge-duplicates,return=representation'},body:JSON.stringify(rows)}); if(!res.ok){throw new Error(`Supabase write failed ${res.status}: ${await res.text()}`);} return res.json(); }
+    async function fetchJson(path){ const res=await fetch(`${path}?cachebust=${Date.now()}`,{cache:'no-store'}); if(!res.ok) throw new Error(`Could not load ${path} (${res.status})`); return res.json(); }
+    async function fetchRegistry(){ const candidates=['data/month-registry.v1.4.1.json','data/month-registry.v.1.4.1.json','data/month-registry.v1.4.0.json','data/month-registry.v.1.4.0.json']; let last=null; for(const path of candidates){ try{return await fetchJson(path);}catch(err){last=err;} } throw last || new Error('Could not load bundled registry.'); }
+    function monthLabel(monthKey){ const [y,m]=String(monthKey).split('-').map(Number); return new Date(y,(m||1)-1,1).toLocaleDateString('en-US',{month:'long',year:'numeric'}); }
+    function dateWeekday(dateStr){ const d=new Date(`${dateStr}T00:00:00`); return Number.isNaN(d.getTime())?'':d.toLocaleDateString('en-US',{weekday:'long'}); }
+    function normalizeSchedule(schedule){
+      if(!schedule || typeof schedule !== 'object') return schedule;
+      (schedule.days||[]).forEach(day=>{ const dayName=day.dayName||day.day||dateWeekday(day.date); day.dayName=dayName; day.day=day.day||dayName; (day.entries||[]).forEach(entry=>{ const entryDay=entry.dayName||entry.day||dayName||dateWeekday(entry.date); entry.dayName=entryDay; entry.day=entry.day||entryDay; }); });
+      (schedule.weeks||[]).forEach(week => (week||[]).forEach(day => { const dayName=day.dayName||day.day||dateWeekday(day.date); day.dayName=dayName; day.day=day.day||dayName; }));
+      return schedule;
+    }
+    function normalizeVerification(verification){ if(!verification || typeof verification !== 'object') return {}; (verification.dailyCoverage||[]).forEach(day=>{ const dayName=day.dayName||day.day||dateWeekday(day.date); day.dayName=dayName; day.day=day.day||dayName; }); return verification; }
+    function statsFor(schedule, verification){ const days=schedule?.days||[]; return { day_count: days.length, week_count: (schedule?.weeks||[]).length, entry_count: days.reduce((n,d)=>n+(d.entries||[]).length,0), every_day_covered: !!verification?.checks?.everyDayHas48CoveredSlots, seeded_at: new Date().toISOString() }; }
+    async function seed(){
+      reset('Starting bundled-month seed…');
+      document.getElementById('seedBtn').disabled=true;
+      try{
+        const registry = await fetchRegistry();
+        log('Loaded bundled month registry.');
+        const importRows = [];
+        for(const [channelCode, channel] of Object.entries(registry.channels || {})){
+          for(const [monthKey, meta] of Object.entries(channel.months || {})){
+            log(`Loading ${channelCode} ${monthKey}: ${meta.scheduleFile}`);
+            const schedule = normalizeSchedule(await fetchJson(meta.scheduleFile));
+            const verification = normalizeVerification(await fetchJson(meta.verificationFile));
+            importRows.push({
+              channel_code: channelCode,
+              channel_label: channel.label || CHANNEL_LABEL[channelCode] || channelCode,
+              month_key: monthKey,
+              label: meta.label || monthLabel(monthKey),
+              page_title: meta.pageTitle || `${channel.label || CHANNEL_LABEL[channelCode] || channelCode} ${monthLabel(monthKey)}`,
+              build_version: BUILD_VERSION,
+              import_method: 'bundled-fallback-seed',
+              source_file_name: meta.scheduleFile,
+              storage_key: meta.storageKey || `${CHANNEL_PREFIX[channelCode] || channelCode}-${monthKey}-marks-v1.4.6`,
+              schedule_json: schedule,
+              verification_json: verification,
+              stats_json: statsFor(schedule, verification),
+              updated_at: new Date().toISOString()
+            });
+          }
+        }
+        if(!importRows.length) throw new Error('No bundled months found in registry.');
+        log(`Writing ${importRows.length} imported-month rows to Supabase…`);
+        await restUpsert(TABLES.importedMonths, importRows, 'channel_code,month_key');
+        const currentRows = Object.entries(registry.current || {}).map(([channel_code, month_key]) => ({ channel_code, month_key, updated_at: new Date().toISOString() }));
+        log(`Writing ${currentRows.length} current-month pointers…`);
+        await restUpsert(TABLES.currentMonths, currentRows, 'channel_code');
+        log('Done. Bundled months are now in Supabase.');
+        await verify();
+      }catch(err){ console.error(err); log(`ERROR: ${err.message || String(err)}`); }
+      finally{ document.getElementById('seedBtn').disabled=false; }
+    }
+    async function verify(){
+      log('Verifying Supabase imported-month rows…');
+      const rows = await restSelect(`/rest/v1/${TABLES.importedMonths}?select=channel_code,month_key,label,page_title,published_at,updated_at&order=channel_code.asc,month_key.asc`);
+      const current = await restSelect(`/rest/v1/${TABLES.currentMonths}?select=channel_code,month_key&order=channel_code.asc`);
+      log('Imported months:');
+      rows.forEach(row => log(`  ${row.channel_code} ${row.month_key} — ${row.label}`));
+      log('Current pointers:');
+      current.forEach(row => log(`  ${row.channel_code} → ${row.month_key}`));
+    }
+    document.getElementById('seedBtn').addEventListener('click', seed);
+    document.getElementById('verifyBtn').addEventListener('click', async()=>{ reset('Manual verify…'); try{ await verify(); }catch(err){ log(`ERROR: ${err.message || String(err)}`); } });
+  })();
+  </script>
+</body>
+</html>
