@@ -11,23 +11,14 @@
 </head>
 <body>
   <main class="wrap">
-    <div class="topline"><a href="index.html?v=1.4.6">← Home</a></div>
-    <h1>WNMU month builder <span class="badge">v1.4.6 live publish</span></h1>
-    <p class="lede">Drop in one or both weekly-grid PDFs, parse them locally in your browser, then publish the imported month directly to the app-specific Supabase tables. Notes, tags, and rectangle notes are not modified by this import tool.</p>
-
+    <div class="topline"><a href="index.html?v=1.4.7">← Home</a></div>
+    <h1>WNMU month builder <span class="badge">v1.4.7 full-month parser guard</span></h1>
+    <p class="lede">Drop in one or both weekly-grid PDFs, parse them locally in your browser, then publish the imported month directly to the app-specific Supabase tables. This version parses pages week-by-week and blocks partial-month publishes. Notes, tags, and rectangle notes are not modified by this import tool.</p>
     <section class="panel">
       <h2>Reports</h2>
       <div class="grid">
-        <label class="dropzone">
-          <span class="label">13.1 / WNMU1HD PDF</span>
-          <input id="pdf131" type="file" accept="application/pdf">
-          <span class="hint">One weekly-grid PDF for the main HD channel.</span>
-        </label>
-        <label class="dropzone">
-          <span class="label">13.3 / WNMU3PL PDF</span>
-          <input id="pdf133" type="file" accept="application/pdf">
-          <span class="hint">One weekly-grid PDF for the secondary channel.</span>
-        </label>
+        <label class="dropzone"><span class="label">13.1 / WNMU1HD PDF</span><input id="pdf131" type="file" accept="application/pdf"><span class="hint">One weekly-grid PDF for the main HD channel.</span></label>
+        <label class="dropzone"><span class="label">13.3 / WNMU3PL PDF</span><input id="pdf133" type="file" accept="application/pdf"><span class="hint">One weekly-grid PDF for the secondary channel.</span></label>
       </div>
       <div class="actions">
         <button id="parseBtn" type="button">Parse selected reports</button>
@@ -36,7 +27,6 @@
       </div>
       <div id="statusBox" class="status">Waiting for PDFs.</div>
     </section>
-
     <section class="panel">
       <h2>Detected output</h2>
       <div id="summaryGrid" class="summary-grid">
@@ -44,21 +34,19 @@
         <div class="summary-card"><h3>13.3</h3><div id="summary133" class="summary-body">No PDF loaded yet.</div></div>
       </div>
     </section>
-
     <section class="panel smallprint">
       <h2>What this builder changes</h2>
       <ul>
         <li>Writes imported month schedule and verification JSON directly to Supabase.</li>
         <li>Marks the imported month current only for the channel you publish.</li>
-        <li>Does not delete older imported months.</li>
+        <li>Blocks publish when coverage is incomplete, so a one-week parse cannot overwrite the live month.</li>
         <li>Does not touch existing notes, tags, rectangle notes, archives, or backups.</li>
       </ul>
     </section>
   </main>
-
   <script src="config.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script>window.pdfjsLib && (window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js');</script>
-  <script src="month-builder-publish.v1.4.6.js?v=1.4.6"></script>
+  <script src="month-builder-publish.v1.4.7.js?v=1.4.7"></script>
 </body>
 </html>
