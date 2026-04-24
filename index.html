@@ -38,7 +38,7 @@
   <main>
     <h1>WNMU schedules</h1>
     <div class="sub">Open either channel and jump directly into any imported month.</div>
-    <div class="version-flag">Landing page v1.4.3 • Supabase imported months with shared-mark safety</div>
+    <div class="version-flag">Landing page v1.4.3b • Supabase imported months with shared-mark safety</div>
 
     <div class="top-actions">
       <a class="primary-btn" href="month-builder.v1.4.1.html?v=143">Import months</a>
@@ -144,7 +144,7 @@
         const currentRows = Object.entries(registry.current || {}).map(([channel_code, month_key]) => ({ channel_code, month_key }));
         renderFromRows(rows, currentRows, 'bundled fallback registry');
         const status=document.getElementById('monthsStatus');
-        status.innerHTML = `<div class="warn">Supabase imported-months table was not available, so this page is showing the bundled fallback registry. Run the new SQL and publish an imported month to switch to the live workflow.</div>${status.textContent}`;
+        status.innerHTML = `<div class="warn">No imported months have been published to Supabase yet, so this page is showing the bundled fallback registry. Publish an imported month to switch this channel to the live workflow.</div>${status.textContent}`;
       }
       async function start(){
         const status=document.getElementById('monthsStatus');
