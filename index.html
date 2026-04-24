@@ -28,8 +28,9 @@
     .months-list a{color:#17345f;text-decoration:none;font-weight:700;margin-right:8px}
     .month-note{color:#666}
     .empty-inline{color:#777;font-style:italic}
-    .status{margin:0 0 10px;font-size:12px;color:#667}
+    .status{margin:0 0 10px;font-size:12px;color:#667;white-space:pre-wrap}
     .error{background:#fff3f3;border:1px solid #e3b6b6;border-radius:10px;padding:12px;color:#8a1f1f}
+    .warn{background:#fff9e8;border:1px solid #e0cc88;border-radius:10px;padding:12px;color:#6d4b00;margin-bottom:14px}
     @media (max-width:900px){.channels-grid{grid-template-columns:1fr}}
   </style>
 </head>
@@ -37,7 +38,7 @@
   <main>
     <h1>WNMU schedules</h1>
     <div class="sub">Open either channel and jump directly into any imported month.</div>
-    <div class="version-flag">Landing page v1.4.2 • 2-channel imported months view</div>
+    <div class="version-flag">Landing page v1.4.2 • Supabase imported months with bundled fallback</div>
 
     <div class="top-actions">
       <a class="primary-btn" href="month-builder.v1.4.1.html">Import months</a>
@@ -49,28 +50,75 @@
       <div class="channel-card"><div class="empty-inline">Loading channel months…</div></div>
     </div>
   </main>
+
+  <script src="config.js"></script>
   <script>
     (function(){
+      const TABLES = {
+        importedMonths: 'wnmu_monthly_schedules_imported_months',
+        currentMonths: 'wnmu_monthly_schedules_current_months'
+      };
+      const PAGES = { '13.1': 'index131.v1.4.1.html', '13.3': 'index133.v1.4.1.html' };
+      const CHANNEL_INFO = {
+        '13.1': { title: '13.1 — WNMU1HD', blurb: 'Main HD channel weekly grids and tagging page.' },
+        '13.3': { title: '13.3 — WNMU3PL', blurb: 'Secondary channel weekly grids with tags and box notes.' }
+      };
       function esc(t){return String(t??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\"/g,'&quot;').replace(/'/g,'&#39;');}
       function monthLabel(monthKey){
         const [y,m]=String(monthKey).split('-').map(Number);
         return new Date(y,(m||1)-1,1).toLocaleDateString('en-US',{month:'long',year:'numeric'});
       }
-      function buildCard(title, blurb, page, months, currentMonth){
-        const rows = months.map(([key,meta])=>{
+      function getCfg(){ return window.WNMU_SHAREBOARD_SUPABASE; }
+      function ensureCfg(){
+        const cfg = getCfg();
+        if(!cfg?.url || !cfg?.anonKey) throw new Error('config.js is missing Supabase credentials.');
+        return cfg;
+      }
+      async function restSelect(pathAndQuery){
+        const cfg = ensureCfg();
+        const res = await fetch(`${cfg.url}${pathAndQuery}`, {
+          headers: { apikey: cfg.anonKey, Authorization: `Bearer ${cfg.anonKey}` },
+          cache: 'no-store'
+        });
+        if(!res.ok){
+          const txt = await res.text().catch(()=>'');
+          throw new Error(`Supabase read failed (${res.status}) ${txt}`.trim());
+        }
+        return res.json();
+      }
+      function buildCard(code, months, currentMonth){
+        const info = CHANNEL_INFO[code];
+        const rows = months.map(row => {
           const flags=[];
-          if(currentMonth===key) flags.push('current');
+          if(currentMonth===row.month_key) flags.push('current');
           const suffix = flags.length ? ` <span class="month-note">(${flags.join(', ')})</span>` : '';
-          return `<li><a href="${page}?month=${encodeURIComponent(key)}">${esc(meta.label||monthLabel(key))}</a>${suffix}</li>`;
+          return `<li><a href="${PAGES[code]}?month=${encodeURIComponent(row.month_key)}">${esc(row.label||monthLabel(row.month_key))}</a>${suffix}</li>`;
         }).join('');
         return `
           <section class="channel-card">
-            <h2>${esc(title)}</h2>
-            <p>${esc(blurb)}</p>
+            <h2>${esc(info.title)}</h2>
+            <p>${esc(info.blurb)}</p>
             <div class="months-title">Imported months</div>
             <ul class="months-list">${rows || '<li class="empty-inline">No imported months yet.</li>'}</ul>
           </section>
         `;
+      }
+      function renderFromRows(rows, currentRows, sourceLabel){
+        const host=document.getElementById('channelsGrid');
+        const status=document.getElementById('monthsStatus');
+        const current = {};
+        (currentRows || []).forEach(row => { current[row.channel_code] = row.month_key; });
+        const byChannel = { '13.1': [], '13.3': [] };
+        (rows || []).forEach(row => { if(byChannel[row.channel_code]) byChannel[row.channel_code].push(row); });
+        Object.keys(byChannel).forEach(code => byChannel[code].sort((a,b)=>b.month_key.localeCompare(a.month_key)));
+        host.innerHTML = buildCard('13.1', byChannel['13.1'], current['13.1']) + buildCard('13.3', byChannel['13.3'], current['13.3']);
+        status.textContent = `Imported months loaded from ${sourceLabel}.`;
+      }
+      async function loadSupabase(){
+        const monthsSelect='channel_code,channel_label,month_key,label,page_title,storage_key,published_at,updated_at';
+        const rows = await restSelect(`/rest/v1/${TABLES.importedMonths}?select=${monthsSelect}&order=month_key.desc&limit=500`);
+        const currentRows = await restSelect(`/rest/v1/${TABLES.currentMonths}?select=channel_code,month_key`);
+        renderFromRows(rows, currentRows, 'Supabase');
       }
       async function fetchRegistry(){
         const candidates=['data/month-registry.v1.4.1.json','data/month-registry.v.1.4.1.json','data/month-registry.v1.4.0.json','data/month-registry.v.1.4.0.json'];
@@ -84,21 +132,33 @@
         }
         throw lastErr||new Error('Imported month list could not be loaded.');
       }
+      async function loadBundledFallback(){
+        const registry=await fetchRegistry();
+        const rows=[];
+        Object.entries(registry.channels || {}).forEach(([code, channel]) => {
+          Object.entries(channel.months || {}).forEach(([monthKey, meta]) => {
+            rows.push({ channel_code: code, channel_label: channel.label, month_key: monthKey, label: meta.label, page_title: meta.pageTitle, storage_key: meta.storageKey });
+          });
+        });
+        const currentRows = Object.entries(registry.current || {}).map(([channel_code, month_key]) => ({ channel_code, month_key }));
+        renderFromRows(rows, currentRows, 'bundled fallback registry');
+        const status=document.getElementById('monthsStatus');
+        status.innerHTML = `<div class="warn">Supabase imported-months table was not available, so this page is showing the bundled fallback registry. Run the new SQL and publish an imported month to switch to the live workflow.</div>${status.textContent}`;
+      }
       async function start(){
         const status=document.getElementById('monthsStatus');
         const host=document.getElementById('channelsGrid');
         try{
-          const registry=await fetchRegistry();
-          const months131=Object.entries((registry.channels?.['13.1']?.months)||{}).sort((a,b)=>b[0].localeCompare(a[0]));
-          const months133=Object.entries((registry.channels?.['13.3']?.months)||{}).sort((a,b)=>b[0].localeCompare(a[0]));
-          host.innerHTML =
-            buildCard('13.1 — WNMU1HD','Main HD channel weekly grids and tagging page.','index131.v1.4.1.html',months131,registry.current?.['13.1']) +
-            buildCard('13.3 — WNMU3PL','Secondary channel weekly grids with tags and box notes.','index133.v1.4.1.html',months133,registry.current?.['13.3']);
-          status.textContent='Imported months loaded.';
+          await loadSupabase();
         }catch(err){
-          console.error(err);
-          status.textContent='Imported month list failed to load.';
-          host.innerHTML='<div class="error">'+esc(err.message||String(err))+'</div>';
+          console.warn('Supabase imported-month home load failed; falling back to bundled registry.', err);
+          try{
+            await loadBundledFallback();
+          }catch(fallbackErr){
+            console.error(fallbackErr);
+            status.textContent='Imported month list failed to load.';
+            host.innerHTML='<div class="error">'+esc(fallbackErr.message||String(fallbackErr))+'</div>';
+          }
         }
       }
       if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',start); else start();
