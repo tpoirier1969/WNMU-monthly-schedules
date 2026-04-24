@@ -11,9 +11,9 @@
 </head>
 <body>
   <main class="wrap">
-    <div class="topline"><a href="index.html?v=1.4.12">← Home</a></div>
-    <h1>WNMU month builder <span class="badge">v1.4.12 duration-token parser</span></h1>
-    <p class="lede">Drop in one or both weekly-grid PDFs, parse them locally in your browser, then publish the imported month directly to the app-specific Supabase tables. This version reads 00:30:00 / 01:00:00 values as program durations, so true 60-minute programs stay merged while 30-minute programs followed by holes stay 30 minutes. Notes, tags, and rectangle notes are not modified by this import tool.</p>
+    <div class="topline"><a href="index.html?v=1.4.13">← Home</a></div>
+    <h1>WNMU month builder <span class="badge">v1.4.13 hybrid duration parser</span></h1>
+    <p class="lede">Drop in one or both weekly-grid PDFs, parse them locally in your browser, then publish the imported month directly to the app-specific Supabase tables. This version reads 00:30:00 / 01:00:00 values as program durations when available, and falls back to inferred duration only when the PDF duration token is missing. Inferred durations are reported for review. Notes, tags, and rectangle notes are not modified by this import tool.</p>
     <section class="panel">
       <h2>Reports</h2>
       <div class="grid">
@@ -47,6 +47,6 @@
   <script src="config.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script>window.pdfjsLib && (window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js');</script>
-  <script src="month-builder-publish.v1.4.12.js?v=1.4.12"></script>
+  <script src="month-builder-publish.v1.4.13.js?v=1.4.13"></script>
 </body>
 </html>
