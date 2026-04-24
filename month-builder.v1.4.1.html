@@ -11,9 +11,9 @@
 </head>
 <body>
   <main class="wrap">
-    <div class="topline"><a href="index.html?v=1.4.14">← Home</a></div>
-    <h1>WNMU month builder <span class="badge">v1.4.14 global duration alignment</span></h1>
-    <p class="lede">Drop in one or both weekly-grid PDFs, parse them locally in your browser, then publish the imported month directly to the app-specific Supabase tables. This version reads all 00:30:00 / 01:00:00 duration values across each row and aligns them to parsed program cells, reducing inferred durations and exposing real holes more accurately. Notes, tags, and rectangle notes are not modified by this import tool.</p>
+    <div class="topline"><a href="index.html?v=1.4.15">← Home</a></div>
+    <h1>WNMU month builder <span class="badge">v1.4.15 duration/start-pair parser</span></h1>
+    <p class="lede">Drop in one or both weekly-grid PDFs, parse them locally in your browser, then publish the imported month directly to the app-specific Supabase tables. This version reads ProTrack duration/start-time pairs such as 00:28:46 09:30:00, uses the first value as duration, and uses the second value to confirm the row time. Notes, tags, and rectangle notes are not modified by this import tool.</p>
     <section class="panel">
       <h2>Reports</h2>
       <div class="grid">
@@ -47,6 +47,6 @@
   <script src="config.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script>window.pdfjsLib && (window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js');</script>
-  <script src="month-builder-publish.v1.4.14.js?v=1.4.14"></script>
+  <script src="month-builder-publish.v1.4.15.js?v=1.4.15"></script>
 </body>
 </html>
