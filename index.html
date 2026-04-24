@@ -30,7 +30,7 @@
     .empty-inline{color:#777;font-style:italic}
     .status{margin:0 0 10px;font-size:12px;color:#667;white-space:pre-wrap}
     .error{background:#fff3f3;border:1px solid #e3b6b6;border-radius:10px;padding:12px;color:#8a1f1f}
-    .warn{background:#fff9e8;border:1px solid #e0cc88;border-radius:10px;padding:12px;color:#6d4b00;margin-bottom:14px}
+    .info{background:#eef5ff;border:1px solid #b8cbe6;border-radius:10px;padding:12px;color:#17345f;margin-bottom:14px}
     @media (max-width:900px){.channels-grid{grid-template-columns:1fr}}
   </style>
 </head>
@@ -38,10 +38,10 @@
   <main>
     <h1>WNMU schedules</h1>
     <div class="sub">Open either channel and jump directly into any imported month.</div>
-    <div class="version-flag">Landing page v1.4.3b • Supabase imported months with shared-mark safety</div>
+    <div class="version-flag">Landing page v1.4.5 • Supabase live months with bundled fallback</div>
 
     <div class="top-actions">
-      <a class="primary-btn" href="month-builder.v1.4.1.html?v=143">Import months</a>
+      <a class="primary-btn" href="month-builder.v1.4.1.html?v=1.4.5">Import months</a>
     </div>
 
     <div id="monthsStatus" class="status">Loading imported months…</div>
@@ -54,6 +54,7 @@
   <script src="config.js"></script>
   <script>
     (function(){
+      const CACHE_BUSTER = '1.4.5';
       const TABLES = {
         importedMonths: 'wnmu_monthly_schedules_imported_months',
         currentMonths: 'wnmu_monthly_schedules_current_months'
@@ -67,6 +68,9 @@
       function monthLabel(monthKey){
         const [y,m]=String(monthKey).split('-').map(Number);
         return new Date(y,(m||1)-1,1).toLocaleDateString('en-US',{month:'long',year:'numeric'});
+      }
+      function monthHref(code, monthKey) {
+        return `${PAGES[code]}?month=${encodeURIComponent(monthKey)}&v=${encodeURIComponent(CACHE_BUSTER)}`;
       }
       function getCfg(){ return window.WNMU_SHAREBOARD_SUPABASE; }
       function ensureCfg(){
@@ -92,7 +96,7 @@
           const flags=[];
           if(currentMonth===row.month_key) flags.push('current');
           const suffix = flags.length ? ` <span class="month-note">(${flags.join(', ')})</span>` : '';
-          return `<li><a href="${PAGES[code]}?month=${encodeURIComponent(row.month_key)}">${esc(row.label||monthLabel(row.month_key))}</a>${suffix}</li>`;
+          return `<li><a href="${monthHref(code, row.month_key)}">${esc(row.label||monthLabel(row.month_key))}</a>${suffix}</li>`;
         }).join('');
         return `
           <section class="channel-card">
@@ -144,7 +148,7 @@
         const currentRows = Object.entries(registry.current || {}).map(([channel_code, month_key]) => ({ channel_code, month_key }));
         renderFromRows(rows, currentRows, 'bundled fallback registry');
         const status=document.getElementById('monthsStatus');
-        status.innerHTML = `<div class="warn">No imported months have been published to Supabase yet, so this page is showing the bundled fallback registry. Publish an imported month to switch this channel to the live workflow.</div>${status.textContent}`;
+        status.innerHTML = `<div class="info">Live Supabase imported-month rows are empty, so this page is showing the bundled fallback registry. That is expected until you publish a month from the month builder.</div>${status.textContent}`;
       }
       async function start(){
         const status=document.getElementById('monthsStatus');
