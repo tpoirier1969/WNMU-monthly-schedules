@@ -89,7 +89,7 @@
   <script src="app.133.v1.4.1.js?v=1.4.4"></script>
   <script src="wnmu-satellite-feed.v1.4.24.js?v=1.4.24"></script>
   <script src="wnmu-lite-checkboxes.v1.4.22.js?v=1.4.22"></script>
-  <script src="wnmu-blank-slot-menu.v1.4.26.js?v=1.4.26"></script>
+  <script src="wnmu-blank-slot-menu.v1.4.28.js?v=1.4.28"></script>
   <script src="config.js"></script>
   <script>
 (function () {
@@ -122,17 +122,12 @@
     if (cache.has(key)) return cache.get(key);
 
     const cfg = window.WNMU_SHAREBOARD_SUPABASE || {};
-    if (!cfg.url || !cfg.anonKey) {
-      throw new Error('config.js is missing Supabase credentials.');
-    }
+    if (!cfg.url || !cfg.anonKey) throw new Error('config.js is missing Supabase credentials.');
 
     const select = 'channel_code,month_key,schedule_json,verification_json,updated_at';
     const url = `${cfg.url}/rest/v1/${TABLE}?select=${select}&channel_code=eq.${encodeURIComponent(channelCode)}&month_key=eq.${encodeURIComponent(monthKey)}&limit=1`;
     const res = await originalFetch(url, {
-      headers: {
-        apikey: cfg.anonKey,
-        Authorization: `Bearer ${cfg.anonKey}`
-      },
+      headers: { apikey: cfg.anonKey, Authorization: `Bearer ${cfg.anonKey}` },
       cache: 'no-store'
     });
 
@@ -142,10 +137,7 @@
     }
 
     const rows = await res.json();
-    if (!Array.isArray(rows) || !rows.length) {
-      throw new Error(`No Supabase imported month row found for ${channelCode} ${monthKey}.`);
-    }
-
+    if (!Array.isArray(rows) || !rows.length) throw new Error(`No Supabase imported month row found for ${channelCode} ${monthKey}.`);
     cache.set(key, rows[0]);
     return rows[0];
   }
@@ -156,25 +148,11 @@
 
     try {
       const row = await readRow(parsed.channelCode, parsed.monthKey);
-      const body = parsed.kind === 'verification'
-        ? (row.verification_json || {})
-        : (row.schedule_json || {});
-      return new Response(JSON.stringify(body), {
-        status: 200,
-        headers: {
-          'Content-Type': 'application/json',
-          'X-WNMU-Source': VERSION
-        }
-      });
+      const body = parsed.kind === 'verification' ? (row.verification_json || {}) : (row.schedule_json || {});
+      return new Response(JSON.stringify(body), { status: 200, headers: { 'Content-Type': 'application/json', 'X-WNMU-Source': VERSION } });
     } catch (err) {
       console.error(`${VERSION}: failed`, parsed, err);
-      return new Response(JSON.stringify({ error: err.message || String(err) }), {
-        status: 500,
-        headers: {
-          'Content-Type': 'application/json',
-          'X-WNMU-Source': VERSION
-        }
-      });
+      return new Response(JSON.stringify({ error: err.message || String(err) }), { status: 500, headers: { 'Content-Type': 'application/json', 'X-WNMU-Source': VERSION } });
     }
   };
 
@@ -185,6 +163,6 @@
   <script src="archive-tools.v1.4.1.js?v=1.4.1" defer></script>
   <script src="wnmu-postload-fixes.v1.4.2.js?v=1.4.4" defer></script>
   <script src="wnmu-manual-note-boxes.v1.4.17.js?v=1.4.17" defer></script>
-  <script src="wnmu-version-flag.v1.4.27.js?v=1.4.27" defer></script>
+  <script src="wnmu-version-flag.v1.4.28.js?v=1.4.28" defer></script>
 </body>
 </html>
