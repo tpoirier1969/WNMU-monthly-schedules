@@ -88,7 +88,96 @@
 
   <script src="app.133.v1.4.1.js?v=1.4.4"></script>
   <script src="config.js"></script>
-  <script src="wnmu-supabase-json-fetch-shim.v1.4.18.js?v=1.4.18"></script>
+  <script>
+(function () {
+  const VERSION = 'v1.4.18b-inline-supabase-json-fetch-shim';
+  const TABLE = 'wnmu_monthly_schedules_imported_months';
+  const originalFetch = window.fetch.bind(window);
+  const cache = new Map();
+
+  function parsePath(input) {
+    let urlText = '';
+    if (typeof input === 'string') urlText = input;
+    else if (input && typeof input.url === 'string') urlText = input.url;
+    else return null;
+
+    const decoded = decodeURIComponent(String(urlText));
+    const match = decoded.match(/supabase-imported-months\/(13\.1|13\.3)\/(\d{4}-\d{2})\/(schedule|verification)-/);
+    if (match) return { channelCode: match[1], monthKey: match[2], kind: match[3] };
+
+    try {
+      const path = decodeURIComponent(new URL(urlText, window.location.href).pathname);
+      const pathMatch = path.match(/supabase-imported-months\/(13\.1|13\.3)\/(\d{4}-\d{2})\/(schedule|verification)-/);
+      if (pathMatch) return { channelCode: pathMatch[1], monthKey: pathMatch[2], kind: pathMatch[3] };
+    } catch {}
+
+    return null;
+  }
+
+  async function readRow(channelCode, monthKey) {
+    const key = `${channelCode}::${monthKey}`;
+    if (cache.has(key)) return cache.get(key);
+
+    const cfg = window.WNMU_SHAREBOARD_SUPABASE || {};
+    if (!cfg.url || !cfg.anonKey) {
+      throw new Error('config.js is missing Supabase credentials.');
+    }
+
+    const select = 'channel_code,month_key,schedule_json,verification_json,updated_at';
+    const url = `${cfg.url}/rest/v1/${TABLE}?select=${select}&channel_code=eq.${encodeURIComponent(channelCode)}&month_key=eq.${encodeURIComponent(monthKey)}&limit=1`;
+    const res = await originalFetch(url, {
+      headers: {
+        apikey: cfg.anonKey,
+        Authorization: `Bearer ${cfg.anonKey}`
+      },
+      cache: 'no-store'
+    });
+
+    if (!res.ok) {
+      const txt = await res.text().catch(() => '');
+      throw new Error(`Supabase imported month read failed (${res.status}) ${txt}`.trim());
+    }
+
+    const rows = await res.json();
+    if (!Array.isArray(rows) || !rows.length) {
+      throw new Error(`No Supabase imported month row found for ${channelCode} ${monthKey}.`);
+    }
+
+    cache.set(key, rows[0]);
+    return rows[0];
+  }
+
+  window.fetch = async function patchedWnmuFetch(input, init) {
+    const parsed = parsePath(input);
+    if (!parsed) return originalFetch(input, init);
+
+    try {
+      const row = await readRow(parsed.channelCode, parsed.monthKey);
+      const body = parsed.kind === 'verification'
+        ? (row.verification_json || {})
+        : (row.schedule_json || {});
+      return new Response(JSON.stringify(body), {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/json',
+          'X-WNMU-Source': VERSION
+        }
+      });
+    } catch (err) {
+      console.error(`${VERSION}: failed`, parsed, err);
+      return new Response(JSON.stringify({ error: err.message || String(err) }), {
+        status: 500,
+        headers: {
+          'Content-Type': 'application/json',
+          'X-WNMU-Source': VERSION
+        }
+      });
+    }
+  };
+
+  window.WNMU_SUPABASE_JSON_FETCH_SHIM_VERSION = VERSION;
+})();
+</script>
   <script src="wnmu-current-loader.v1.4.5.js?v=1.4.5"></script>
   <script src="archive-tools.v1.4.1.js?v=1.4.1" defer></script>
   <script src="wnmu-postload-fixes.v1.4.2.js?v=1.4.4" defer></script>
