@@ -26,14 +26,13 @@
     <div class="flagbar">
       <span class="flag" id="versionFlag">version</span>
       <span class="flag ok" id="coverageFlag">coverage</span>
-      <span class="flag" id="daysFlag">days</span>
     </div>
-    <div style="padding:0 1rem 1rem;font:14px system-ui,sans-serif">
+    <div class="schedule-navline" style="padding:0 1rem 1rem;font:14px system-ui,sans-serif">
       <a href="index.html">Home</a> ·
       <a id="otherChannelLink" href="index133.v1.4.1.html">Go to 13.3</a> ·
-      <a href="month-builder.v1.4.1.html?v=1.5.21">Import months</a> ·
-      <a id="monthRollupLink" href="#">Month Rollup</a>
-      <button type="button" id="exportPdfBtn" class="btn export-btn">Export PDF</button>
+      <a href="month-builder.v1.4.1.html?v=1.5.22">Import months</a> ·
+      <a id="monthRollupLink" href="#">Month Rollup</a> ·
+      <a id="exportPdfBtn" href="#">Export PDF</a>
     </div>
   </header>
 
@@ -43,7 +42,7 @@
     <section class="panel weeks-panel">
       <div class="panel-head">
         <h2>Week grids</h2>
-        <p><strong>Right-click any program cell</strong> to tag it, toggle Satellite Feed shading, or save a white note box with a manual length. Right-click a blank schedule cell for the full blank-slot menu.</p>
+        <p><strong>Right-click any program cell</strong> to tag it, toggle Satellite Feed shading, or add/edit a manual program entry with a custom length. Right-click a blank schedule cell for the full blank-slot menu.</p>
       </div>
       <div id="weekGrids" class="week-grids"></div>
     </section>
@@ -75,13 +74,13 @@
       <div class="rect-tools">
         <div id="rectStatus" class="rect-status">No rectangle note on this program yet.</div>
         <div class="rect-actions">
-          <button type="button" id="drawRectBtn" class="btn ghost">Add box note</button>
-          <button type="button" id="clearRectBtn" class="btn ghost">Clear rectangle / note</button>
+          <button type="button" id="drawRectBtn" class="btn ghost">Add/Edit program entry</button>
+          <button type="button" id="clearRectBtn" class="btn ghost">Clear program entry</button>
         </div>
       </div>
     </form>
     <div class="context-menu-actions">
-      <button type="button" id="clearMarksBtn" class="btn ghost">Clear tags and rectangle note</button>
+      <button type="button" id="clearMarksBtn" class="btn ghost">Clear tags and program entry</button>
     </div>
   </aside>
 
@@ -91,7 +90,7 @@
   <script src="wnmu-satellite-feed.v1.4.24.js?v=1.4.24"></script>
   <script src="wnmu-lite-checkboxes.v1.4.22.js?v=1.4.22"></script>
   <script src="wnmu-cell-interactions.v1.5.13.js?v=1.5.13"></script>
-  <script src="wnmu-manual-programs.v1.5.21.js?v=1.5.21"></script>
+  <script src="wnmu-manual-programs.v1.5.22.js?v=1.5.22"></script>
   <script src="config.js"></script>
   <script>
 (function () {
@@ -161,13 +160,13 @@
   window.WNMU_SUPABASE_JSON_FETCH_SHIM_VERSION = VERSION;
 })();
 </script>
-  <script src="wnmu-schedule-performance.v1.5.21.js?v=1.5.21"></script>
+  <script src="wnmu-schedule-performance.v1.5.22.js?v=1.5.22"></script>
   <script src="wnmu-current-loader.v1.4.5.js?v=1.4.5"></script>
   <script src="archive-tools.v1.4.1.js?v=1.4.1" defer></script>
   <script src="wnmu-postload-fixes.v1.4.2.js?v=1.4.4" defer></script>
   <script src="wnmu-sticky-week-headers.v1.5.10.js?v=1.5.10" defer></script>
-  <script src="wnmu-fixed-framework.v1.5.21.js?v=1.5.21" defer></script>
+  <script src="wnmu-fixed-framework.v1.5.22.js?v=1.5.22" defer></script>
   <script src="wnmu-diagnostics-panel.v1.5.6.js?v=1.5.6" defer></script>
-  <script src="wnmu-version-flag.v1.5.21.js?v=1.5.21" defer></script>
+  <script src="wnmu-version-flag.v1.5.22.js?v=1.5.22" defer></script>
 </body>
 </html>
