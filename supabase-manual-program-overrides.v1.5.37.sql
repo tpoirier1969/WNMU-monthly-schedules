@@ -1,0 +1,6 @@
+-- WNMU Monthly Schedules v1.5.37
+-- No SQL changes are required for this revision.
+-- v1.5.37 changes the browser commit workflow:
+-- Commit to Schedule now updates wnmu_monthly_schedules_imported_months.schedule_json
+-- and verification_json directly, instead of writing display-only override rows.
+-- The old wnmu_monthly_schedule_overrides table is ignored by the v1.5.37 page scripts.
