@@ -36,8 +36,8 @@
         </div>
       </div>
       <div class="top-tools">
-        <div class="version-flag">Home page v1.5.28 • manual program entries</div>
-        <a class="primary-btn" href="month-builder.v1.4.1.html?v=1.5.28">Import months</a>
+        <div class="version-flag">Home page v1.5.29 • manual program entries</div>
+        <a class="primary-btn" href="month-builder.v1.4.1.html?v=1.5.29">Import months</a>
       </div>
     </header>
 
@@ -57,7 +57,7 @@
   <script src="config.js"></script>
   <script>
     (function(){
-      const BUILD_VERSION = '1.5.28';
+      const BUILD_VERSION = '1.5.29';
       const TABLES = { importedMonths: 'wnmu_monthly_schedules_imported_months', currentMonths: 'wnmu_monthly_schedules_current_months' };
       const PAGES = { '13.1': 'index131.v1.4.1.html', '13.3': 'index133.v1.4.1.html' };
       const CHANNEL_INFO = { '13.1': { title: '13.1 — WNMU1HD' }, '13.3': { title: '13.3 — WNMU3PL' } };
@@ -67,7 +67,7 @@
       function ensureCfg(){ const cfg = getCfg(); if(!cfg?.url || !cfg?.anonKey) throw new Error('config.js is missing Supabase credentials.'); return cfg; }
       async function restSelect(pathAndQuery){ const cfg = ensureCfg(); const res = await fetch(`${cfg.url}${pathAndQuery}`, { headers: { apikey: cfg.anonKey, Authorization: `Bearer ${cfg.anonKey}` }, cache: 'no-store' }); if(!res.ok){ const txt = await res.text().catch(()=>''); throw new Error(`Supabase read failed (${res.status}) ${txt}`.trim()); } return res.json(); }
       function channelUrl(code, monthKey){ return `${PAGES[code]}?month=${encodeURIComponent(monthKey)}&v=${encodeURIComponent(BUILD_VERSION)}`; }
-      function channelRollupUrl(code, monthKey){ return `month-rollup.v1.5.28.html?channel=${encodeURIComponent(code)}&month=${encodeURIComponent(monthKey)}&v=${encodeURIComponent(BUILD_VERSION)}`; }
+      function channelRollupUrl(code, monthKey){ return `month-rollup.v1.5.29.html?channel=${encodeURIComponent(code)}&month=${encodeURIComponent(monthKey)}&v=${encodeURIComponent(BUILD_VERSION)}`; }
       function latestMonthFor(months){ return (months || []).slice().sort((a,b)=>b.month_key.localeCompare(a.month_key))[0]?.month_key || ''; }
       function buildCurrentCard(code, months, currentMonth){
         const info = CHANNEL_INFO[code];
@@ -122,6 +122,6 @@
       if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',start); else start();
     })();
   </script>
-  <script src="wnmu-version-flag.v1.5.28.js?v=1.5.28" defer></script>
+  <script src="wnmu-version-flag.v1.5.29.js?v=1.5.29" defer></script>
 </body>
 </html>
