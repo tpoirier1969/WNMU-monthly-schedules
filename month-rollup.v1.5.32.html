@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <title>WNMU Month Rollup</title>
+  <link rel="icon" href="favicon.ico" sizes="any">
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="manifest" href="site.webmanifest">
+  <meta name="theme-color" content="#0d4f38">
+  <style>
+    :root{--green:#0d4f38;--navy:#17345f;--line:#cfd8e3;--soft:#f3f6fb;--ink:#172033}
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--soft);color:var(--ink);font:13px/1.22 system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+    .wrap{max-width:1240px;margin:0 auto;padding:14px 16px 24px}
+    .top{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:8px}
+    .title h1{margin:0 0 2px;color:var(--green);font-size:24px;line-height:1.1}.sub{margin:0;color:#53627a;font-size:12px}
+    .tools{display:flex;flex-wrap:wrap;gap:5px;justify-content:flex-end;align-items:center}.btn{display:inline-flex;align-items:center;justify-content:center;text-decoration:none;border:1px solid var(--line);border-radius:999px;background:#fff;color:var(--navy);font-weight:850;padding:5px 9px;cursor:pointer;font-size:12px;line-height:1.1}.btn.primary{background:var(--green);border-color:var(--green);color:#fff}.badge{display:inline-flex;border:1px solid #c8d3e2;background:#fff;border-radius:999px;color:#17345f;font-size:11px;font-weight:850;padding:5px 8px;line-height:1.1}
+    .panel{background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 2px 10px rgba(23,52,95,.06);overflow:hidden}
+    .rollup-table{width:100%;border-collapse:collapse;font-size:11px;line-height:1.12;table-layout:fixed}.rollup-table th,.rollup-table td{border-top:1px solid #e6ebf2;text-align:left;vertical-align:top;padding:3px 5px}.rollup-table thead th{position:sticky;top:0;background:#eef3f8;color:var(--navy);font-weight:900;z-index:1;border-bottom:1px solid #111}.rollup-table th:nth-child(1),.rollup-table td:nth-child(1){width:112px;white-space:nowrap;font-weight:800}.rollup-table th:nth-child(2),.rollup-table td:nth-child(2){width:70px;white-space:nowrap}.rollup-table th:nth-child(3),.rollup-table td:nth-child(3){width:42px;white-space:nowrap;text-align:right}.rollup-table th:nth-child(5),.rollup-table td:nth-child(5){width:190px}.program-main{font-weight:850}.muted{color:#617086;font-size:10px;line-height:1.05;margin-top:1px}.note-inline{margin-top:2px;color:#24324a;font-size:10.5px;line-height:1.12}.tag-text{font-size:10.5px;line-height:1.15;color:#17345f}.blank-row{background:#fffdf2}.manual-row{background:#f8fbff}.empty,.error{padding:12px}.error{color:#8a1f1f;background:#fff3f3}.print-note{margin-top:6px;color:#667;font-size:11px}
+    @media (max-width:900px){.wrap{padding:10px}.top{display:block}.tools{justify-content:flex-start;margin-top:8px}.rollup-table{font-size:10px}.rollup-table th,.rollup-table td{padding:2px 3px}.rollup-table th:nth-child(1),.rollup-table td:nth-child(1){width:92px}.rollup-table th:nth-child(2),.rollup-table td:nth-child(2){width:58px}.rollup-table th:nth-child(3),.rollup-table td:nth-child(3){width:34px}.rollup-table th:nth-child(5),.rollup-table td:nth-child(5){width:140px}}
+    @media print{ @page{size:letter landscape;margin:.22in} body{background:#fff;font-size:9px}.wrap{max-width:none;padding:0}.tools,.print-note{display:none!important}.top{margin-bottom:4px}.title h1{font-size:15px;color:#000}.sub{font-size:8px;color:#333}.badge{border:0;padding:0;font-size:8px}.panel{border:0;box-shadow:none;border-radius:0;overflow:visible}.rollup-table{font-size:7.5px;line-height:1.02}.rollup-table th,.rollup-table td{padding:1px 2px}.rollup-table thead th{position:static;background:#eee;color:#000}.muted,.note-inline,.tag-text{font-size:6.8px;line-height:1.0}.many-items .rollup-table{font-size:6.8px}.many-items .rollup-table th,.many-items .rollup-table td{padding:1px}}
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <header class="top">
+      <div class="title">
+        <h1 id="pageTitle">WNMU Month Rollup</h1>
+        <p class="sub" id="pageSub">Loading selected month…</p>
+      </div>
+      <div class="tools">
+        <span class="badge" id="versionBadge">Month Rollup v1.5.32</span>
+        <a class="btn" id="homeLink" href="index.html?v=1.5.32">Home</a>
+        <a class="btn" id="scheduleLink" href="#">Schedule grid</a>
+        <button class="btn primary" type="button" onclick="window.print()">Print rollup</button>
+      </div>
+    </header>
+    <section class="panel" id="rollupBody"></section>
+    <div class="print-note">Print tip: this report is built for landscape printing. Browser scaling may still need “Fit to page” if a month has a large number of marked programs.</div>
+  </main>
+  <script src="config.js"></script>
+  <script src="month-rollup.v1.5.32.js?v=1.5.32"></script>
+</body>
+</html>
