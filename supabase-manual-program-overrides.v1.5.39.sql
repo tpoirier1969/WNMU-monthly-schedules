@@ -1,0 +1,5 @@
+-- WNMU Monthly Schedules v1.5.39
+-- No SQL schema change required.
+-- Manual commits continue to physically overwrite the affected day/time range inside
+-- public.wnmu_monthly_schedules_imported_months.schedule_json.
+-- v1.5.39 changes browser refresh/scroll behavior only.

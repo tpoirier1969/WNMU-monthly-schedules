@@ -36,8 +36,8 @@
         </div>
       </div>
       <div class="top-tools">
-        <div class="version-flag">Home page v1.5.38 • true schedule data overwrite</div>
-        <a class="primary-btn" href="month-builder.v1.4.1.html?v=1.5.38">Import months</a>
+        <div class="version-flag">Home page v1.5.39 • true schedule data overwrite + smoother commit refresh</div>
+        <a class="primary-btn" href="month-builder.v1.4.1.html?v=1.5.39">Import months</a>
       </div>
     </header>
 
@@ -67,7 +67,7 @@
       function ensureCfg(){ const cfg = getCfg(); if(!cfg?.url || !cfg?.anonKey) throw new Error('config.js is missing Supabase credentials.'); return cfg; }
       async function restSelect(pathAndQuery){ const cfg = ensureCfg(); const res = await fetch(`${cfg.url}${pathAndQuery}`, { headers: { apikey: cfg.anonKey, Authorization: `Bearer ${cfg.anonKey}` }, cache: 'no-store' }); if(!res.ok){ const txt = await res.text().catch(()=>''); throw new Error(`Supabase read failed (${res.status}) ${txt}`.trim()); } return res.json(); }
       function channelUrl(code, monthKey){ return `${PAGES[code]}?month=${encodeURIComponent(monthKey)}&v=${encodeURIComponent(BUILD_VERSION)}`; }
-      function channelRollupUrl(code, monthKey){ return `month-rollup.v1.5.38.html?channel=${encodeURIComponent(code)}&month=${encodeURIComponent(monthKey)}&v=${encodeURIComponent(BUILD_VERSION)}`; }
+      function channelRollupUrl(code, monthKey){ return `month-rollup.v1.5.39.html?channel=${encodeURIComponent(code)}&month=${encodeURIComponent(monthKey)}&v=${encodeURIComponent(BUILD_VERSION)}`; }
       function latestMonthFor(months){ return (months || []).slice().sort((a,b)=>b.month_key.localeCompare(a.month_key))[0]?.month_key || ''; }
       function buildCurrentCard(code, months, currentMonth){
         const info = CHANNEL_INFO[code];
@@ -122,6 +122,6 @@
       if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',start); else start();
     })();
   </script>
-  <script src="wnmu-version-flag.v1.5.38.js?v=1.5.38" defer></script>
+  <script src="wnmu-version-flag.v1.5.39.js?v=1.5.39" defer></script>
 </body>
 </html>
