@@ -1,0 +1,4 @@
+-- WNMU Monthly Schedules v1.5.38
+-- No SQL change required.
+-- Keeps true imported schedule_json overwrite behavior.
+-- Replaces the full browser page reload after Commit to Schedule with a soft schedule-grid refresh.
