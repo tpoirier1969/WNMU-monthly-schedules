@@ -1,11 +1,11 @@
 window.WNMU_MONTHLY_PAGE_CONFIG = {
-  "buildVersion": "v1.5.43",
-  "packageVersion": "v1.5.43",
+  "buildVersion": "v1.5.44",
+  "packageVersion": "v1.5.44",
   "channelCode": "13.3",
   "channelLabel": "WNMU3PL",
   "registryFile": "data/month-registry.v1.4.1.json",
   "sharedRendererFile": "wnmu-monthly-shared.v1.3.1.js",
-  "loaderVersion": "v1.5.43",
+  "loaderVersion": "v1.5.44",
   "useSourceInId": true,
   "tagOrder": ["newSeries","newSeason","highlight","oneOff","monthlyTopic","fundraiser","programmersChoice","holiday","noteworthy","educational","local","arts"],
   "tagPriority": ["holiday","fundraiser","programmersChoice","arts","educational","highlight","newSeason","newSeries","noteworthy","local","oneOff","monthlyTopic"],
@@ -29,6 +29,7 @@ window.WNMU_MONTHLY_PAGE_CONFIG = {
     { "weekdays": ["Saturday"], "range": ["09:30", "16:00"] }
   ],
   "suppressNewSeriesRules": [],
+  "autoSuppressSatelliteFeed": true,
   "autoTagRules": [
     { "tag": "programmersChoice", "weekdays": ["Sunday"], "times": ["19:00"] },
     { "tag": "educational", "weekdays": ["Saturday"], "times": ["20:00"] },
