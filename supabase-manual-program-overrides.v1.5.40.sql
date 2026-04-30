@@ -1,0 +1,3 @@
+-- WNMU Monthly Schedules v1.5.40
+-- No SQL changes required.
+-- Manual commits continue to physically update wnmu_monthly_schedules_imported_months.schedule_json.
