@@ -1,0 +1,1 @@
+-- v1.5.45: No SQL change required. UI color, menu layout, sticky header, and auto-tag handling only.
