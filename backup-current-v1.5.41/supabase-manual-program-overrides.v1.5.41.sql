@@ -1,0 +1,2 @@
+-- v1.5.41: no SQL changes required.
+-- This revision keeps true imported schedule_json overwrites and changes only sticky-header/version-display behavior.

@@ -1,38 +1,17 @@
 window.WNMU_MONTHLY_PAGE_CONFIG = {
-  "buildVersion": "v1.4.1",
+  "buildVersion": "v1.5.43",
+  "packageVersion": "v1.5.43",
   "channelCode": "13.1",
-  "channelLabel": "WNMU1HD",  "registryFile": "data/month-registry.v1.4.1.json",
+  "channelLabel": "WNMU1HD",
+  "registryFile": "data/month-registry.v1.4.1.json",
   "sharedRendererFile": "wnmu-monthly-shared.v1.3.1.js",
-  "loaderVersion": "v1.4.1",
+  "loaderVersion": "v1.5.43",
   "useSourceInId": false,
-  "tagOrder": [
-    "newSeries",
-    "highlight",
-    "oneOff",
-    "monthlyTopic",
-    "fundraiser",
-    "programmersChoice",
-    "holiday",
-    "noteworthy",
-    "educational",
-    "local",
-    "michigan"
-  ],
-  "tagPriority": [
-    "holiday",
-    "fundraiser",
-    "programmersChoice",
-    "michigan",
-    "local",
-    "educational",
-    "highlight",
-    "newSeries",
-    "noteworthy",
-    "oneOff",
-    "monthlyTopic"
-  ],
+  "tagOrder": ["newSeries","newSeason","highlight","oneOff","monthlyTopic","fundraiser","programmersChoice","holiday","noteworthy","educational","local","michigan"],
+  "tagPriority": ["holiday","fundraiser","programmersChoice","michigan","local","educational","highlight","newSeason","newSeries","noteworthy","oneOff","monthlyTopic"],
   "tagMeta": {
     "newSeries": { "label": "New Series", "color": "var(--new-series)" },
+    "newSeason": { "label": "New Season", "color": "var(--new-season)" },
     "highlight": { "label": "Highlight", "color": "var(--highlight)" },
     "oneOff": { "label": "One Off", "color": "var(--one-off)" },
     "monthlyTopic": { "label": "Monthly topic", "color": "var(--monthly-topic)" },
@@ -47,10 +26,7 @@ window.WNMU_MONTHLY_PAGE_CONFIG = {
   "suppressAllAutoRules": [],
   "suppressNewSeriesRules": [
     { "range": ["01:00", "07:00"] },
-    {
-      "weekdays": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
-      "range": ["08:30", "15:00"]
-    }
+    { "weekdays": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"], "range": ["08:30", "15:00"] }
   ],
   "autoTagRules": [
     { "tag": "programmersChoice", "weekdays": ["Sunday"], "times": ["19:00"] },

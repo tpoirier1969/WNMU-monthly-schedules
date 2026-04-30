@@ -1,0 +1,2 @@
+-- v1.5.42: no SQL change required. Sticky schedule header/layout update only.
+-- Do not run anything for this revision.

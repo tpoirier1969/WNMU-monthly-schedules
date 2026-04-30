@@ -1,0 +1,2 @@
+-- v1.5.43 note: no SQL change is required.
+-- This revision updates schedule UI colors, legend display, sticky header spacing, and browser-side New Season tagging helpers only.
