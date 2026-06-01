@@ -1,14 +1,14 @@
 window.WNMU_MONTHLY_PAGE_CONFIG = {
-  "buildVersion": "v1.5.45",
-  "packageVersion": "v1.5.45",
+  "buildVersion": "v1.5.47",
+  "packageVersion": "v1.5.47",
   "channelCode": "13.1",
   "channelLabel": "WNMU1HD",
   "registryFile": "data/month-registry.v1.4.1.json",
   "sharedRendererFile": "wnmu-monthly-shared.v1.3.1.js",
-  "loaderVersion": "v1.5.45",
+  "loaderVersion": "v1.5.47",
   "useSourceInId": false,
   "tagOrder": ["newSeries","newSeason","highlight","oneOff","monthlyTopic","fundraiser","programmersChoice","holiday","noteworthy","educational","local","michigan"],
-  "tagPriority": ["holiday","fundraiser","programmersChoice","michigan","local","educational","highlight","newSeason","newSeries","noteworthy","oneOff","monthlyTopic"],
+  "tagPriority": ["newSeries","newSeason","holiday","fundraiser","programmersChoice","michigan","local","educational","highlight","noteworthy","oneOff","monthlyTopic"],
   "tagMeta": {
     "newSeries": { "label": "New Series", "color": "var(--new-series)" },
     "newSeason": { "label": "New Season", "color": "var(--new-season)" },
