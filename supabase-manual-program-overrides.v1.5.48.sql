@@ -1,0 +1,1 @@
+-- v1.5.48: no SQL change required. Existing manual schedule overwrite tables remain unchanged.
