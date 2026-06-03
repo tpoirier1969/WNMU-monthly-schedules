@@ -17,7 +17,7 @@
 </head>
 <body>
   <main class="wrap">
-    <div class="topline"><a href="index.html?v=1.5.56">← Home</a></div>
+    <div class="topline"><a href="index.html?v=1.5.57">← Home</a></div>
     <h1>WNMU month builder <span class="badge">v1.4.16 visible-hole publish parser</span></h1>
     <p class="lede">Drop in one or both weekly-grid PDFs, parse them locally in your browser, then publish the imported month directly to the app-specific Supabase tables. This version reads ProTrack duration/start-time pairs, allows valid visible schedule holes, and blocks only missing-day, overlap, or clearly partial-month parses. Notes, tags, and rectangle notes are not modified by this import tool.</p>
     <section class="panel">
@@ -40,6 +40,12 @@
         <div class="summary-card"><h3>13.3</h3><div id="summary133" class="summary-body">No PDF loaded yet.</div></div>
       </div>
     </section>
+    <section class="panel" id="titleReviewPanel">
+      <h2>Title cleanup review</h2>
+      <p>After publishing an imported month, scan the current imported schedule titles here before opening the Sales View. Corrections saved here are display-only and do not rewrite schedule data.</p>
+      <button id="scanTitleReviewBtn" type="button">Scan current imported month titles</button>
+      <div id="titleReviewOutput" class="status">Title review has not run yet.</div>
+    </section>
     <section class="panel smallprint">
       <h2>What this builder changes</h2>
       <ul>
@@ -54,6 +60,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script>window.pdfjsLib && (window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js');</script>
   <script src="month-builder-publish.v1.4.16.js?v=1.4.16"></script>
-  <script src="wnmu-version-flag.v1.5.56.js?v=1.5.56" defer></script>
+  <script src="wnmu-title-review.v1.5.57.js?v=1.5.57" defer></script>
+  <script src="wnmu-version-flag.v1.5.57.js?v=1.5.57" defer></script>
 </body>
 </html>
