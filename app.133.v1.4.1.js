@@ -1,14 +1,14 @@
 window.WNMU_MONTHLY_PAGE_CONFIG = {
-  "buildVersion": "v1.5.84",
-  "packageVersion": "v1.5.84",
+  "buildVersion": "v1.5.85",
+  "packageVersion": "v1.5.85",
   "channelCode": "13.3",
   "channelLabel": "WNMU3PL",
   "registryFile": "data/month-registry.v1.4.1.json",
   "sharedRendererFile": "wnmu-monthly-shared.v1.3.1.js",
-  "loaderVersion": "v1.5.84",
+  "loaderVersion": "v1.5.85",
   "useSourceInId": true,
-  "tagOrder": ["newSeries","newSeason","highlight","oneOff","monthlyTopic","fundraiser","programmersChoice","holiday","noteworthy","educational","local","arts"],
-  "tagPriority": ["newSeries","newSeason","holiday","fundraiser","programmersChoice","arts","educational","highlight","noteworthy","local","oneOff","monthlyTopic"],
+  "tagOrder": ["highlight","newSeries","newSeason","oneOff","monthlyTopic","fundraiser","programmersChoice","holiday","educational","local","arts"],
+  "tagPriority": ["highlight","newSeries","newSeason","holiday","fundraiser","programmersChoice","arts","educational","local","oneOff","monthlyTopic"],
   "tagMeta": {
     "newSeries": { "label": "New Series", "color": "var(--new-series)" },
     "newSeason": { "label": "New Season", "color": "var(--new-season)" },
@@ -18,7 +18,6 @@ window.WNMU_MONTHLY_PAGE_CONFIG = {
     "fundraiser": { "label": "Fundraiser", "color": "var(--fundraiser)" },
     "programmersChoice": { "label": "Programmer's Choice", "color": "var(--programmers-choice)" },
     "holiday": { "label": "Holiday", "color": "var(--holiday)" },
-    "noteworthy": { "label": "Noteworthy", "color": "var(--noteworthy)" },
     "educational": { "label": "Educational", "color": "var(--educational)" },
     "local": { "label": "Local", "color": "var(--local)" },
     "arts": { "label": "Arts", "color": "var(--arts)" }

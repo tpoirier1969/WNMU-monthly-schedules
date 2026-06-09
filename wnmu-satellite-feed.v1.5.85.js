@@ -1,0 +1,465 @@
+(function () {
+  const VERSION = 'v1.5.85-pbs-feed-planning-tag-style-restore';
+  const SATELLITE_TAG = 'satelliteFeed';
+  const SATELLITE_OFF_TAG = 'satelliteFeedOff';
+  const SAT_COLOR = '#e6e6e6';
+  let selectedEntryId = '';
+  let paintRaf = 0;
+  let pendingPaintRoot = null;
+  let resizePaintTimer = 0;
+  let lastResizeKey = '';
+
+  function cfg() {
+    return window.WNMU_MONTHLY_PAGE_CONFIG || {};
+  }
+
+  function storageKey() {
+    return cfg().storageKey || '';
+  }
+
+  function readMarks() {
+    const key = storageKey();
+    if (!key) return {};
+    try {
+      const parsed = JSON.parse(localStorage.getItem(key) || '{}');
+      return parsed && typeof parsed === 'object' ? parsed : {};
+    } catch {
+      return {};
+    }
+  }
+
+  function writeMarks(value) {
+    const key = storageKey();
+    if (!key) return;
+    localStorage.setItem(key, JSON.stringify(value || {}));
+  }
+
+  function cssEscape(value) {
+    if (window.CSS && typeof CSS.escape === 'function') return CSS.escape(value);
+    return String(value).replace(/["\\]/g, '\\$&');
+  }
+
+  function timeToSlot(time) {
+    const [hh, mm] = String(time || '').split(':').map(Number);
+    if (!Number.isFinite(hh) || !Number.isFinite(mm)) return -1;
+    return hh * 2 + (mm >= 30 ? 1 : 0);
+  }
+
+  function weekday(date) {
+    const d = new Date(`${date}T00:00:00`);
+    if (Number.isNaN(d.getTime())) return '';
+    return d.toLocaleDateString('en-US', { weekday: 'long' });
+  }
+
+  function entryInfo(entryId) {
+    const parts = String(entryId || '').split('__');
+    return {
+      date: parts[0] || '',
+      time: parts[1] || '',
+      weekday: weekday(parts[0] || '')
+    };
+  }
+
+  function inRange(time, start, end) {
+    const t = timeToSlot(time);
+    return t >= timeToSlot(start) && t <= timeToSlot(end);
+  }
+
+  function matchRule(info, rule) {
+    if (!info.date || !info.time) return false;
+    if (rule.channel && cfg().channelCode !== rule.channel) return false;
+    if (rule.weekdays && !rule.weekdays.includes(info.weekday)) return false;
+    if (rule.times && !rule.times.some(item => timeToSlot(item) === timeToSlot(info.time))) return false;
+    if (rule.range && !inRange(info.time, rule.range[0], rule.range[1])) return false;
+    return true;
+  }
+
+  function rulesForChannel() {
+    if (cfg().channelCode === '13.3') {
+      return [
+        { channel: '13.3', weekdays: ['Sunday'], range: ['00:00', '09:30'] },
+        { channel: '13.3', weekdays: ['Sunday'], range: ['15:00', '23:30'] },
+
+        { channel: '13.3', weekdays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'], range: ['00:00', '17:30'] },
+        { channel: '13.3', weekdays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'], range: ['22:00', '23:30'] },
+
+        { channel: '13.3', weekdays: ['Saturday'], range: ['00:00', '16:30'] },
+        { channel: '13.3', weekdays: ['Saturday'], range: ['22:00', '23:30'] }
+      ];
+    }
+
+    return [
+      { channel: '13.1', weekdays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'], range: ['01:00', '06:30'] },
+      { channel: '13.1', weekdays: ['Sunday'], range: ['01:00', '08:30'] },
+      { channel: '13.1', weekdays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'], range: ['08:30', '13:30'] },
+
+      { channel: '13.1', weekdays: ['Monday'], range: ['20:00', '21:00'] },
+      { channel: '13.1', weekdays: ['Monday'], range: ['22:00', '23:30'] },
+      { channel: '13.1', weekdays: ['Tuesday', 'Wednesday', 'Friday'], range: ['20:00', '23:30'] },
+
+      { channel: '13.1', weekdays: ['Thursday'], times: ['23:00'] },
+      { channel: '13.1', weekdays: ['Saturday'], times: ['13:30', '14:00', '23:00'] },
+      { channel: '13.1', weekdays: ['Sunday'], times: ['20:00', '21:00', '22:00'] }
+    ];
+  }
+
+  function defaultSatellite(entryId) {
+    const info = entryInfo(entryId);
+    return rulesForChannel().some(rule => matchRule(info, rule));
+  }
+
+  function explicitSatellite(entryId) {
+    const state = readMarks()[entryId];
+    if (!state || typeof state !== 'object') return null;
+    const tags = state.tags && typeof state.tags === 'object' ? state.tags : state;
+
+    // A plain satelliteFeed:false is no longer a trustworthy manual off value.
+    // Newer note/custom-tag code normalized every unchecked tag to false, which
+    // accidentally made default PBS Feed blocks turn themselves off. The real
+    // manual-off marker is satelliteFeedOff:true, written by this module.
+    if (tags[SATELLITE_OFF_TAG] === true || state[SATELLITE_OFF_TAG] === true) return false;
+    if (tags[SATELLITE_TAG] === true || state[SATELLITE_TAG] === true) return true;
+
+    return null;
+  }
+
+  function normalizedFeedText(value) {
+    return String(value || '')
+      .replace(/\u00a0/g, ' ')
+      .replace(/[\s_\-–—:]+/g, ' ')
+      .trim()
+      .toLowerCase();
+  }
+
+  function textLooksLikePbsFeed(textValue) {
+    const text = normalizedFeedText(textValue);
+    if (!text) return false;
+
+    // Be deliberately broader than the old exact phrase test. July imports can
+    // call these blocks "PBS Feed", "PBS Feeds", "PBS Satellite Feed",
+    // or similar variants. The old rule only caught contiguous words and the
+    // hard-coded clock windows, so changed feed wording could fall through.
+    if (/\bpbs\b/.test(text) && /\bfeeds?\b/.test(text)) return true;
+    if (/\bsatellite\b/.test(text) && /\bfeeds?\b/.test(text)) return true;
+    if (/\bfeeds?\b.*\bpbs\b/.test(text)) return true;
+    if (/\bpbs\b.*\bnational\b.*\bservice\b/.test(text)) return true;
+
+    return false;
+  }
+
+  function cellTextLooksLikePbsFeed(cell) {
+    if (!cell) return false;
+    const title = cell.querySelector?.('.program-title')?.textContent || '';
+    const episode = cell.querySelector?.('.program-episode')?.textContent || '';
+    const all = cell.textContent || '';
+    return textLooksLikePbsFeed(title) || textLooksLikePbsFeed(episode) || textLooksLikePbsFeed(all);
+  }
+
+  function effectiveSatellite(entryId, cell) {
+    const explicit = explicitSatellite(entryId);
+    if (explicit !== null) return explicit;
+    if (cellTextLooksLikePbsFeed(cell)) return true;
+    return defaultSatellite(entryId);
+  }
+
+  function setOverride(entryId, checked) {
+    const key = storageKey();
+    if (!key || !entryId) return;
+
+    const all = readMarks();
+    const state = all[entryId] && typeof all[entryId] === 'object' ? { ...all[entryId] } : {};
+    const tags = state.tags && typeof state.tags === 'object' ? { ...state.tags } : {};
+
+    const def = defaultSatellite(entryId);
+
+    delete tags[SATELLITE_TAG];
+    delete tags[SATELLITE_OFF_TAG];
+    delete state[SATELLITE_TAG];
+    delete state[SATELLITE_OFF_TAG];
+
+    if (checked !== def) {
+      if (checked) tags[SATELLITE_TAG] = true;
+      else {
+        tags[SATELLITE_TAG] = false;
+        tags[SATELLITE_OFF_TAG] = true;
+      }
+    }
+
+    if (Object.keys(tags).length) state.tags = tags;
+    else delete state.tags;
+
+    if (Object.keys(state).length) all[entryId] = state;
+    else delete all[entryId];
+
+    writeMarks(all);
+    updateCheckbox();
+    paintEntry(entryId);
+  }
+
+  function configure() {
+    const c = cfg();
+    if (!c) return;
+
+    // Keep Satellite Feed out of the heavy renderer tag list and rollup.
+    // It remains visible as a popup checkbox and paints as a lightweight layer.
+    if (Array.isArray(c.tagOrder)) c.tagOrder = c.tagOrder.filter(key => key !== SATELLITE_TAG && key !== SATELLITE_OFF_TAG);
+    if (Array.isArray(c.tagPriority)) c.tagPriority = c.tagPriority.filter(key => key !== SATELLITE_TAG && key !== SATELLITE_OFF_TAG);
+    if (c.tagMeta) {
+      delete c.tagMeta[SATELLITE_TAG];
+      delete c.tagMeta[SATELLITE_OFF_TAG];
+    }
+    if (Array.isArray(c.autoTagRules)) {
+      c.autoTagRules = c.autoTagRules.filter(rule => rule?.tag !== SATELLITE_TAG && rule?.tag !== SATELLITE_OFF_TAG);
+    }
+
+    window.WNMU_SATELLITE_FEED_TAG_VERSION = VERSION;
+  }
+
+  function injectStyles() {
+    if (document.getElementById('wnmuSatelliteFeedV1567Styles')) return;
+    const style = document.createElement('style');
+    style.id = 'wnmuSatelliteFeedV1567Styles';
+    style.textContent = `
+      :root { --satellite-feed: ${SAT_COLOR}; }
+
+      .check-satellite-feed {
+        background: color-mix(in srgb, var(--satellite-feed) 82%, white);
+      }
+
+      .program-cell.wnmu-satellite-feed {
+        background: var(--satellite-feed) !important;
+        background-color: var(--satellite-feed) !important;
+      }
+
+      /* PBS Feed is a planning-style background, not extra text stamped onto the grid. */
+      .program-cell.wnmu-satellite-feed::before { display: none !important; }
+
+      .screen-week-grid .program-title {
+        margin-bottom: 2px;
+        line-height: 1.12;
+      }
+
+      .screen-week-grid .program-episode,
+      .screen-week-grid .program-duration {
+        display: inline;
+        font-size: 11px;
+        line-height: 1.08;
+      }
+
+      .screen-week-grid .program-episode + .program-duration::before {
+        content: " • ";
+      }
+
+      .screen-week-grid .program-tags {
+        margin-top: 3px;
+        gap: 3px;
+      }
+
+      .screen-week-grid .tag-pill {
+        padding: 2px 5px;
+      }
+
+      .screen-week-grid .program-cell {
+        min-height: 52px;
+      }
+
+      @media print {
+        .program-cell.wnmu-satellite-feed:not(.marked) {
+          background: #e6e6e6 !important;
+          background-color: #e6e6e6 !important;
+        }
+        .program-cell.wnmu-satellite-feed:not(.marked)::before {
+          display: none;
+        }
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  function ensureCheckbox() {
+    const form = document.getElementById('contextMenuForm');
+    if (!form) return;
+    if (form.querySelector('input[name="satelliteFeed"]')) return;
+
+    const label = document.createElement('label');
+    label.className = 'check-row check-satellite-feed';
+    label.innerHTML = '<input type="checkbox" name="satelliteFeed"> <span>PBS Feed</span>';
+
+    const rectTools = form.querySelector('.rect-tools');
+    if (rectTools) form.insertBefore(label, rectTools);
+    else form.appendChild(label);
+  }
+
+  function updateCheckbox() {
+    const input = document.querySelector('input[name="satelliteFeed"]');
+    if (!input || !selectedEntryId) return;
+    const cell = document.querySelector(`.program-cell[data-entry-id="${cssEscape(selectedEntryId)}"]`);
+    input.checked = effectiveSatellite(selectedEntryId, cell);
+  }
+
+  function cellHasRealPlanningMark(cell) {
+    if (!cell) return false;
+    if (cell.classList.contains('marked')) return true;
+    return !!cell.querySelector?.('.program-tags .tag-pill, .wnmu-cell-override-tags span');
+  }
+
+  function applySatelliteVisual(cell, isSatellite) {
+    if (!cell) return;
+    const hasRealTag = cellHasRealPlanningMark(cell);
+    const wasManagedSatellite = cell.dataset?.satelliteFeed === 'true' || cell.dataset?.satelliteFeedManaged === 'true' || cell.classList.contains('wnmu-satellite-feed');
+
+    cell.classList.toggle('wnmu-satellite-feed', !!isSatellite);
+    cell.dataset.satelliteFeed = isSatellite ? 'true' : 'false';
+
+    // PBS Feed should behave like the old lightweight planning layer:
+    // gray when nothing more important is marked, but let real planning tags
+    // such as Highlight take the visible color immediately.
+    if (isSatellite && !hasRealTag) {
+      cell.dataset.satelliteFeedManaged = 'true';
+      cell.style.backgroundColor = SAT_COLOR;
+      cell.style.setProperty('--mark-background', SAT_COLOR);
+      cell.style.setProperty('--satellite-feed-background', SAT_COLOR);
+      return;
+    }
+
+    if (wasManagedSatellite) {
+      cell.style.backgroundColor = '';
+      if (cell.dataset.satelliteFeedManaged === 'true') cell.style.removeProperty('--mark-background');
+      cell.dataset.satelliteFeedManaged = isSatellite ? 'deferred-to-planning-tag' : 'false';
+      cell.style.removeProperty('--satellite-feed-background');
+    }
+  }
+
+  function paintEntry(entryId, root) {
+    const scope = root && root.querySelectorAll ? root : document;
+    scope.querySelectorAll(`.program-cell[data-entry-id="${cssEscape(entryId)}"]`).forEach(cell => {
+      applySatelliteVisual(cell, effectiveSatellite(entryId, cell));
+    });
+  }
+
+  function paintRoot(root) {
+    const scope = root && root.querySelectorAll ? root : document;
+    scope.querySelectorAll('.program-cell[data-entry-id]').forEach(cell => {
+      const entryId = cell.dataset.entryId || '';
+      applySatelliteVisual(cell, effectiveSatellite(entryId, cell));
+    });
+  }
+
+  function fullGridRoot() {
+    return document.getElementById('weekGrids') || document;
+  }
+
+  function schedulePaint(root) {
+    // v1.5.85: always repaint the whole rendered grid, not just the most recent
+    // MutationObserver target. The old progressive renderer builds one week per
+    // frame; replacing a pending broad paint with a narrow screenHost paint could
+    // leave earlier/later weeks unpainted. Full-grid repaint is only about 1,500
+    // cells for a month, so reliability wins here.
+    const target = fullGridRoot();
+    pendingPaintRoot = target;
+    if (paintRaf) return;
+    paintRaf = requestAnimationFrame(() => {
+      const nextRoot = pendingPaintRoot || fullGridRoot();
+      paintRaf = 0;
+      pendingPaintRoot = null;
+      paintRoot(nextRoot);
+    });
+  }
+
+  function scheduleResizePaint() {
+    const resizeKey = `${window.innerWidth || 0}x${window.innerHeight || 0}`;
+    if (resizeKey === lastResizeKey) return;
+    lastResizeKey = resizeKey;
+    window.clearTimeout(resizePaintTimer);
+    resizePaintTimer = window.setTimeout(() => {
+      schedulePaint(fullGridRoot());
+    }, 220);
+  }
+
+  function repaintSoon(delay = 0) {
+    window.setTimeout(() => schedulePaint(fullGridRoot()), delay);
+  }
+
+  function installHooks() {
+    window.WNMU_REPAINT_SATELLITE_FEEDS = () => schedulePaint(fullGridRoot());
+    window.WNMU_SATELLITE_FEED_API = {
+      tag: SATELLITE_TAG,
+      offTag: SATELLITE_OFF_TAG,
+      defaultSatellite,
+      effectiveSatellite,
+      setOverride,
+      repaint: () => schedulePaint(fullGridRoot())
+    };
+
+    document.addEventListener('contextmenu', event => {
+      const cell = event.target.closest?.('.program-cell[data-entry-id]');
+      if (!cell) return;
+      selectedEntryId = cell.dataset.entryId || '';
+      window.setTimeout(() => {
+        ensureCheckbox();
+        updateCheckbox();
+        paintEntry(selectedEntryId);
+      }, 0);
+    }, true);
+
+    document.addEventListener('change', event => {
+      const input = event.target.closest?.('input[name="satelliteFeed"]');
+      if (!input || !selectedEntryId) return;
+      event.stopPropagation();
+      setOverride(selectedEntryId, !!input.checked);
+    }, true);
+
+    window.addEventListener('wnmu:lite-checkbox-updated', event => {
+      const entryId = event?.detail?.entryId;
+      if (entryId) requestAnimationFrame(() => paintEntry(entryId));
+    });
+
+    window.addEventListener('wnmu:auto-tags-rendered', () => repaintSoon(20));
+    window.addEventListener('wnmu:remote-storage-loaded', () => repaintSoon(80));
+    window.addEventListener('load', () => schedulePaint(document));
+    window.addEventListener('resize', scheduleResizePaint, { passive: true });
+  }
+
+  function installObserver() {
+    const host = document.getElementById('weekGrids') || document.body;
+    const observer = new MutationObserver(mutations => {
+      let root = null;
+      for (const mutation of mutations) {
+        if (mutation.addedNodes && mutation.addedNodes.length) {
+          root = mutation.target;
+          break;
+        }
+      }
+      if (root) schedulePaint(root);
+    });
+    observer.observe(host, { childList: true, subtree: true });
+  }
+
+  function installDelayedSweeps() {
+    // The old renderer progressively builds weeks. These short sweeps catch
+    // default/preselected Satellite Feed cells after each render chunk appears.
+    [150, 500, 1200, 2500, 5000, 9000, 15000].forEach(ms => {
+      window.setTimeout(() => schedulePaint(fullGridRoot()), ms);
+    });
+  }
+
+  function start() {
+    configure();
+    injectStyles();
+    ensureCheckbox();
+    installHooks();
+    installObserver();
+    installDelayedSweeps();
+    schedulePaint(document);
+
+  }
+
+  configure();
+  injectStyles();
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', start, { once: true });
+  } else {
+    start();
+  }
+})();

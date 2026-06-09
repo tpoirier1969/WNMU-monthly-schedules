@@ -9,13 +9,12 @@
   --outside: #e7e6e6;
   --ok: #24643e;
   --new-series: #f7e4a2;
-  --highlight: #beddff;
+  --highlight: #ff9f1c;
   --one-off: #f6c1d6;
   --monthly-topic: #ccecc5;
   --fundraiser: #cdb5ff;
   --programmers-choice: #ffd98f;
   --holiday: #ffb7b7;
-  --noteworthy: #aee7e7;
   --educational: #b8e1ff;
   --local: #bfe3bf;
   --michigan: #a8d6ff;
@@ -135,13 +134,12 @@ body { margin: 0; font-family: Calibri, Arial, sans-serif; background: var(--bg)
 .check-row { display: flex; align-items: center; gap: 8px; padding: 7px 9px; border-radius: 10px; border: 1px solid var(--line); cursor: pointer; font-size: 12px; min-height: 40px; }
 .check-row input { width: 15px; height: 15px; margin: 0; }
 .check-new-series { background: color-mix(in srgb, var(--new-series) 65%, white); }
-.check-highlight { background: color-mix(in srgb, var(--highlight) 65%, white); }
+.check-highlight { background: color-mix(in srgb, var(--highlight) 72%, white); font-weight: 800; }
 .check-one-off { background: color-mix(in srgb, var(--one-off) 65%, white); }
 .check-monthly-topic { background: color-mix(in srgb, var(--monthly-topic) 65%, white); }
 .check-fundraiser { background: color-mix(in srgb, var(--fundraiser) 68%, white); }
 .check-programmers-choice { background: color-mix(in srgb, var(--programmers-choice) 68%, white); }
 .check-holiday { background: color-mix(in srgb, var(--holiday) 68%, white); }
-.check-noteworthy { background: color-mix(in srgb, var(--noteworthy) 68%, white); }
 .check-educational { background: color-mix(in srgb, var(--educational) 68%, white); }
 .check-local { background: color-mix(in srgb, var(--local) 68%, white); }
 .check-michigan { background: color-mix(in srgb, var(--michigan) 68%, white); }
