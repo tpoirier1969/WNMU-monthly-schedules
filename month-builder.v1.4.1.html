@@ -13,18 +13,18 @@
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <link rel="manifest" href="site.webmanifest">
   <meta name="theme-color" content="#0d4f38">
-  <link rel="stylesheet" href="assets/month-builder.v1.4.0.css?v=1.4.0">
+  <link rel="stylesheet" href="assets/month-builder.v1.4.1.css?v=1.4.1">
 </head>
 <body>
   <main class="wrap">
     <div class="topline"><a href="index.html?v=1.5.63">← Home</a></div>
-    <h1>WNMU month builder <span class="badge">v1.4.16 visible-hole publish parser</span></h1>
-    <p class="lede">Drop in one or both weekly-grid PDFs, parse them locally in your browser, then publish the imported month directly to the app-specific Supabase tables. This version reads ProTrack duration/start-time pairs, allows valid visible schedule holes, and blocks only missing-day, overlap, or clearly partial-month parses. Notes, tags, and rectangle notes are not modified by this import tool.</p>
+    <h1>WNMU month builder <span class="badge">v1.4.17 drag/drop import</span></h1>
+    <p class="lede">Drop in one or both weekly-grid PDFs, parse them locally in your browser, then publish the imported month directly to the app-specific Supabase tables. This version reads ProTrack duration/start-time pairs, allows valid visible schedule holes, supports drag/drop onto the 13.1 and 13.3 PDF boxes, and blocks only missing-day, overlap, or clearly partial-month parses. Notes, tags, and rectangle notes are not modified by this import tool.</p>
     <section class="panel">
       <h2>Reports</h2>
       <div class="grid">
-        <label class="dropzone"><span class="label">13.1 / WNMU1HD PDF</span><input id="pdf131" type="file" accept="application/pdf"><span class="hint">One weekly-grid PDF for the main HD channel.</span></label>
-        <label class="dropzone"><span class="label">13.3 / WNMU3PL PDF</span><input id="pdf133" type="file" accept="application/pdf"><span class="hint">One weekly-grid PDF for the secondary channel.</span></label>
+        <label class="dropzone"><span class="label">13.1 / WNMU1HD PDF</span><input id="pdf131" type="file" accept="application/pdf"><span class="hint">Click to choose, or drag the main HD weekly-grid PDF here.</span></label>
+        <label class="dropzone"><span class="label">13.3 / WNMU3PL PDF</span><input id="pdf133" type="file" accept="application/pdf"><span class="hint">Click to choose, or drag the secondary channel weekly-grid PDF here.</span></label>
       </div>
       <div class="actions">
         <button id="parseBtn" type="button">Parse selected reports</button>
@@ -54,7 +54,7 @@
   <script src="config.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script>window.pdfjsLib && (window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js');</script>
-  <script src="month-builder-publish.v1.4.16.js?v=1.4.16"></script>
-  <script src="wnmu-version-flag.v1.5.64.js?v=1.5.63" defer></script>
+  <script src="month-builder-publish.v1.4.17.js?v=1.4.17"></script>
+  <script src="wnmu-version-flag.v1.5.85.js?v=1.5.89" defer></script>
 </body>
 </html>
