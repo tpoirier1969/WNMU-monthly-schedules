@@ -1,0 +1,63 @@
+name: Build v1.5.107 importer
+
+on:
+  push:
+    branches:
+      - update/v1.5.107
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out update branch
+        uses: actions/checkout@v4
+        with:
+          ref: update/v1.5.107
+          fetch-depth: 0
+
+      - name: Reconstruct and verify importer
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat \
+            .deploy-v15107b/chunk00.b64 \
+            .deploy-v15107b/chunk01.b64 \
+            .deploy-v15107b/chunk02.b64 \
+            .deploy-v15107b/chunk03.b64 \
+            .deploy-v15107b/chunk04a.b64 \
+            .deploy-v15107b/chunk04b0.b64 \
+            .deploy-v15107b/chunk04b1.b64 \
+            .deploy-v15107b/chunk04b2.b64 \
+            .deploy-v15107b/chunk05.b64 \
+            .deploy-v15107b/chunk06.b64 \
+            .deploy-v15107b/chunk07.b64 \
+            .deploy-v15107b/chunk08.b64 \
+            .deploy-v15107b/chunk09.b64 \
+            .deploy-v15107b/chunk10.b64 \
+            .deploy-v15107b/chunk11.b64 \
+            .deploy-v15107b/chunk12.b64 \
+            .deploy-v15107b/chunk13.b64 \
+            | base64 --decode > month-builder-publish.v1.4.29.js
+
+          echo "3760d340670d2106829e167f402508615bfce7bac891d7ebc603fc0bc303ed03  month-builder-publish.v1.4.29.js" | sha256sum -c -
+          echo "095bc870512aca3f90940c8b71ce2aca2d0636ed49fb90bd326fc7defc5c781f  month-builder.v1.4.1.html" | sha256sum -c -
+          echo "dbc0da5dc09a160cf2b66442a76a965ee4adffc8a2447507e49db60c6ad8cd71  wnmu-version-flag.v1.5.107.js" | sha256sum -c -
+          test "$(wc -c < month-builder-publish.v1.4.29.js)" -eq 50194
+          node --check month-builder-publish.v1.4.29.js
+
+      - name: Commit clean release files
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf .deploy-v15107 .deploy-v15107b
+          rm -f .github/workflows/build-v15107.yml
+          rmdir .github/workflows 2>/dev/null || true
+          rmdir .github 2>/dev/null || true
+          git config user.name "WNMU Monthly release bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add -A
+          git commit -m "Build v1.5.107 importer"
+          git push origin HEAD:update/v1.5.107
