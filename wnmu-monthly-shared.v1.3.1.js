@@ -947,24 +947,24 @@
 
   function bindContextMenuControls() {
     const closeBtn = document.getElementById('closeMenuBtn');
-    if (closeBtn) closeBtn.addEventListener('click', closeContextMenu);
+    if (closeBtn) closeBtn.addEventListener('click', closeContextMenu, { signal: instanceEvents.signal });
 
     const clearMarksBtn = document.getElementById('clearMarksBtn');
-    if (clearMarksBtn) clearMarksBtn.addEventListener('click', () => saveCurrentMenuTags(true));
+    if (clearMarksBtn) clearMarksBtn.addEventListener('click', () => saveCurrentMenuTags(true), { signal: instanceEvents.signal });
 
     const form = document.getElementById('contextMenuForm');
-    if (form && !isArchiveMode) form.addEventListener('change', () => saveCurrentMenuTags(false));
+    if (form && !isArchiveMode) form.addEventListener('change', () => saveCurrentMenuTags(false), { signal: instanceEvents.signal });
 
     const exportBtn = document.getElementById('exportPdfBtn');
     if (exportBtn) {
       exportBtn.addEventListener('click', () => {
         ensurePrintBuilt();
         window.print();
-      });
+      }, { signal: instanceEvents.signal });
     }
 
     const drawBtn = document.getElementById('drawRectBtn');
-    if (drawBtn && !isArchiveMode) drawBtn.addEventListener('click', beginRectDraw);
+    if (drawBtn && !isArchiveMode) drawBtn.addEventListener('click', beginRectDraw, { signal: instanceEvents.signal });
 
     const clearRectBtn = document.getElementById('clearRectBtn');
     if (clearRectBtn && !isArchiveMode) {
@@ -976,7 +976,7 @@
         rerenderWeekForEntry(entry._id);
         renderMonthRollup();
         updateRectControls(entry);
-      });
+      }, { signal: instanceEvents.signal });
     }
 
     const weekGrids = mustGet('weekGrids');
