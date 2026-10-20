@@ -14,6 +14,15 @@
     display: none !important;
   }
 
+  html body.wnmu-fixed-framework-active .wnmu-print-document-title {
+    display: block !important;
+    font: bold 12px Calibri, Arial, sans-serif !important;
+    color: #17345f !important;
+    margin: 0 0 4px 0 !important;
+    padding: 0 0 2px 0 !important;
+    border-bottom: 1px solid #aeb9c7 !important;
+  }
+
   /* A fixed-height, flex/scroller app can leave an entire first sheet blank.
      Print must flow directly into week one, with ordinary block pagination. */
   html body.wnmu-fixed-framework-active,
