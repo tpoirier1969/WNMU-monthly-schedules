@@ -24,7 +24,11 @@
   }
   function channelLabel() { return pageCfg().channelLabel || (channelCode() === '13.3' ? 'WNMU3PL' : 'WNMU1HD'); }
   function readCorrections() { try { return JSON.parse(localStorage.getItem(CORRECTION_KEY) || '{}') || {}; } catch { return {}; } }
-  function writeCorrections(map) { localStorage.setItem(CORRECTION_KEY, JSON.stringify(map || {})); }
+  function writeCorrections(map) {
+    localStorage.setItem(CORRECTION_KEY, JSON.stringify(map || {}));
+    // Display correction mappings are independent of imported program identities.
+    window.dispatchEvent(new CustomEvent('wnmu:title-corrections-changed', { detail: { version: VERSION } }));
+  }
   function readCorrectionMeta() { try { return JSON.parse(localStorage.getItem(CORRECTION_META_KEY) || '{}') || {}; } catch { return {}; } }
   function writeCorrectionMeta(map) { localStorage.setItem(CORRECTION_META_KEY, JSON.stringify(map || {})); }
 
@@ -507,12 +511,14 @@
     const code = channelCode();
     const current = await rest(`/rest/v1/${CURRENT_TABLE}?select=channel_code,month_key&channel_code=eq.${encodeURIComponent(code)}&limit=1`);
     const cur = Array.isArray(current) ? current[0] : null;
-    if (!cur?.month_key) throw new Error(`No current month pointer found for ${code}.`);
-    const rows = await rest(`/rest/v1/${IMPORTED_TABLE}?select=channel_code,month_key,schedule_json,updated_at&channel_code=eq.${encodeURIComponent(code)}&month_key=eq.${encodeURIComponent(cur.month_key)}&limit=1`);
+    const selectedMonth = window.WNMU_CURRENT_MONTH_META?.monthKey ||
+      new URLSearchParams(location.search).get('month') || cur?.month_key;
+    if (!selectedMonth) throw new Error(`No selected or current imported month found for ${code}.`);
+    const rows = await rest(`/rest/v1/${IMPORTED_TABLE}?select=channel_code,month_key,schedule_json,updated_at&channel_code=eq.${encodeURIComponent(code)}&month_key=eq.${encodeURIComponent(selectedMonth)}&limit=1`);
     const row = Array.isArray(rows) ? rows[0] : null;
     if (!row) throw new Error(`No imported month row found for ${code} ${cur.month_key}.`);
     const result = analyze(row);
-    renderResult(result, `Scanned ${code} ${cur.month_key}. Corrections save to Supabase when available, and are used by the Sales View.`);
+    renderResult(result, `Scanned ${code} ${selectedMonth}. Corrections save to Supabase when available, and update the grids and Sales View.`);
   }
   function showInlineEditor(button) {
     const from = button.getAttribute('data-title-from') || '';
