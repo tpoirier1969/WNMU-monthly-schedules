@@ -353,7 +353,17 @@
         });
         if (changed) { reentry = true; try { originalSetItem.call(this, disabledKey(), JSON.stringify(disabled)); originalSetItem.call(this, key, JSON.stringify(after)); } finally { reentry = false; } }
       } catch(err){ console.warn('WNMU auto tag disable tracking skipped.', err); }
-      if (!suppressStorageSanitize) scheduleSanitize(180);
+      if (!suppressStorageSanitize) {
+        const menu = document.getElementById('wnmuCellMenu');
+        const selected = menu && !menu.classList.contains('hidden') ? cellForMenu(menu) : null;
+        if (selected) {
+          // Editing a single program should not rescan the entire month's grid.
+          renderTags(selected, effectiveTagsForCell(selected));
+        } else {
+          // Remote loads, imports, and other bulk changes still need a full reconciliation.
+          scheduleSanitize(180);
+        }
+      }
       return result;
     };
   }
