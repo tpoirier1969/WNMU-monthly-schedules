@@ -100,6 +100,11 @@ body { margin: 0; font-family: Calibri, Arial, sans-serif; background: var(--bg)
 .rollup-box h4 { margin: 0 0 10px 0; color: var(--brand); }
 .week-rollup-grid { display: grid; gap: 8px; }
 .week-rollup-grid-7 { grid-template-columns: repeat(7, minmax(0, 1fr)); }
+/* Weekly rollup tracks follow the actual schedule-day column measurements. */
+.week-rollup-host > .rollup-box { padding-left: 0; padding-right: 0; }
+.week-rollup-host > .rollup-box > h4 { padding-left: 12px; padding-right: 12px; }
+.week-rollup-host .week-rollup-grid-7 { grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 0; }
+@media print { .week-rollup-host .week-rollup-grid-7 { margin-left: 42px !important; width: calc(100% - 42px) !important; grid-template-columns: repeat(7, minmax(0,1fr)) !important; } }
 .day-rollup { border: 1px solid var(--line); border-radius: 10px; background: white; padding: 10px; min-height: 88px; }
 .compact-day-rollup { padding: 8px; min-height: 96px; font-size: 11px; }
 .day-rollup.outside-day { background: #f0f0f0; color: #777; }

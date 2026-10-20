@@ -1,8 +1,8 @@
 (function () {
   'use strict';
 
-  const PACKAGE_VERSION = 'v1.5.108';
-  const PACKAGE_LABEL = 'deferred right-click menu save and custom planning tag fix';
+  const PACKAGE_VERSION = 'v1.5.109';
+  const PACKAGE_LABEL = 'White Override tags, daily checked-items, title cleanup and efficient refresh';
   const FLAG_TEXT = `${PACKAGE_VERSION} • ${PACKAGE_LABEL}`;
 
   function removeComponentVersionPanel() {

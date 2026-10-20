@@ -1,6 +1,9 @@
 (function () {
   const CONFIG = window.WNMU_MONTHLY_PAGE_CONFIG;
   if (!CONFIG) return;
+  window.WNMU_MONTHLY_SHARED_DESTROY?.();
+  const instanceEvents = new AbortController();
+  window.WNMU_MONTHLY_SHARED_DESTROY = () => instanceEvents.abort();
 
   const BUILD_VERSION = CONFIG.buildVersion;
   const DATA_FILES = {
@@ -61,6 +64,26 @@
     return d.toLocaleDateString('en-US', opts);
   }
 
+  function selectedMonthLabel() {
+    const key = window.WNMU_CURRENT_MONTH_META?.monthKey || String(appState.schedule?.days?.[0]?.date || '').slice(0, 7);
+    if (!/^\d{4}-\d{2}$/.test(key)) return 'selected month';
+    const [year, month] = key.split('-').map(Number);
+    return new Date(year, month - 1, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  }
+  let cachedTitleCorrectionRaw = null;
+  let cachedTitleCorrections = {};
+  function effectiveDisplayTitle(raw) {
+    try {
+      const serialized = localStorage.getItem('wnmu_sales_title_corrections_v1') || '{}';
+      if (serialized !== cachedTitleCorrectionRaw) {
+        cachedTitleCorrectionRaw = serialized;
+        cachedTitleCorrections = JSON.parse(serialized) || {};
+      }
+      const norm = str => String(str || '').toLowerCase().replace(/&/g, ' and ').replace(/[^a-z0-9]+/g, ' ').trim();
+      const compact = str => String(str || '').toLowerCase().replace(/&/g, 'and').replace(/[^a-z0-9]+/g, '');
+      return cachedTitleCorrections[norm(raw)] || cachedTitleCorrections[compact(raw)] || String(raw || '');
+    } catch { return String(raw || ''); }
+  }
   function fmtTime(timeStr) {
     const [hh, mm] = String(timeStr).split(':').map(Number);
     const d = new Date(2026, 4, 1, hh, mm);
@@ -286,11 +309,7 @@
   function allCheckedEntries() {
     const out = [];
     for (const day of appState.schedule.days || []) {
-      const normalizedDay = appState.dateMap[day.date];
-      if (!normalizedDay) continue;
-      for (const entry of normalizedDay.entries || []) {
-        if (getActiveTagKeys(entry).length || getRectNoteForEntry(entry)) out.push(entry);
-      }
+      out.push(...dayRollupEntries(day.date));
     }
     out.sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
     return out;
@@ -336,14 +355,14 @@
   function createRollupLine(entry, includeFullMeta = false) {
     const line = document.createElement('div');
     line.className = 'rollup-line';
-    const active = getActiveTagKeys(entry).map(key => TAG_META[key].label).join(', ');
+    const active = (entry._wnmuRollupLabels || getActiveTagKeys(entry).map(key => TAG_META[key]?.label || key)).join(', ');
     const episodePart = entry.episode ? ` • ${entry.episode}` : '';
-    const rectNote = getRectNoteForEntry(entry);
+    const rectNote = entry._wnmuReplacement ? null : getRectNoteForEntry(entry);
     const notePart = rectNote?.text ? ` • Box note: ${escapeHtml(rectNote.text)}` : (rectNote ? ' • Box note' : '');
     if (includeFullMeta) {
-      line.innerHTML = `<strong>${fmtDateLabel(entry.date, { weekday: 'short', month: 'short', day: 'numeric' })}</strong> • ${fmtTime(entry.time)} • ${entry.durationMin} min • <strong>${escapeHtml(entry.title)}</strong>${episodePart ? ` <span class="meta">${escapeHtml(episodePart)}</span>` : ''}${active ? ` <span class="meta">• ${escapeHtml(active)}</span>` : ''}${notePart ? ` <span class="meta">${notePart}</span>` : ''}`;
+      line.innerHTML = `<strong>${fmtDateLabel(entry.date, { weekday: 'short', month: 'short', day: 'numeric' })}</strong> • ${fmtTime(entry.time)} • ${entry.durationMin} min • <strong>${escapeHtml(effectiveDisplayTitle(entry.title))}</strong>${episodePart ? ` <span class="meta">${escapeHtml(episodePart)}</span>` : ''}${active ? ` <span class="meta">• ${escapeHtml(active)}</span>` : ''}${notePart ? ` <span class="meta">${notePart}</span>` : ''}`;
     } else {
-      line.innerHTML = `<strong>${fmtTime(entry.time)}</strong> • ${escapeHtml(entry.title)}${active ? ` <span class="meta">(${escapeHtml(active)})</span>` : ''}${notePart ? ` <span class="meta">${notePart}</span>` : ''}`;
+      line.innerHTML = `<strong>${fmtTime(entry.time)}</strong> • ${escapeHtml(effectiveDisplayTitle(entry.title))}${active ? ` <span class="meta">(${escapeHtml(active)})</span>` : ''}${notePart ? ` <span class="meta">${notePart}</span>` : ''}`;
     }
     return line;
   }
@@ -364,6 +383,77 @@
     return box;
   }
 
+  function rollupOtherLabel(mark) {
+    return String(mark?.otherLabel || mark?.planningOtherLabel || mark?.customPlanningLabel || mark?.customTagLabel || '').trim();
+  }
+  function rollupTagLabels(tags, otherLabel) {
+    return [...new Set([...TAG_ORDER, 'other'])].filter(tag => tag !== 'satelliteFeed' && tags?.[tag] === true && (tag !== 'other' || otherLabel))
+      .map(tag => tag === 'other' ? otherLabel : (TAG_META[tag]?.label || tag));
+  }
+  function dayRollupEntries(date) {
+    const imported = appState.dateMap[date]?.entries || [];
+    const notes = new Map();
+    Object.values(appState.marks || {}).forEach(mark => {
+      if (mark?.cellOverrideV15 && !mark.cleared && mark.date === date && mark.time && mark.text) notes.set(mark.time, mark);
+    });
+    try {
+      const key = STORAGE_KEY + '::cellOverrides.v1.5.0';
+      const canonical = JSON.parse(localStorage.getItem(key) || '{}');
+      Object.values(canonical || {}).forEach(mark => {
+        if (!mark || mark.date !== date || !mark.time) return;
+        if (mark.cleared) notes.delete(mark.time);
+        else if (mark.text) notes.set(mark.time, mark);
+      });
+    } catch {}
+    const overlays = [...notes.values()].map(mark => {
+      const slot = timeToSlotIndex(mark.time);
+      const base = imported.find(entry => entry.time === mark.time) || imported.find(entry => {
+        const first = timeToSlotIndex(entry.time);
+        return slot >= first && slot < first + Number(entry.slotCount || 1);
+      });
+      const other = rollupOtherLabel(mark);
+      const inheritedTags = base ? getTagsForEntry(base) : {};
+      const tags = { ...inheritedTags, ...(mark.tags || {}) };
+      if (other) tags.other = true;
+      const duration = Number(mark.durationMin || mark.rectNote?.durationMin || 30);
+      return { date, time: mark.time, title: String(mark.text), durationMin: duration, episode: '',
+        _wnmuReplacement: true, _wnmuRollupLabels: rollupTagLabels(tags, other),
+        _startSlot: slot, _endSlot: slot + Math.max(1, Math.round(duration / 30)) };
+    });
+    const normal = imported.filter(entry => {
+      const slot = timeToSlotIndex(entry.time);
+      if (overlays.some(box => slot >= box._startSlot && slot < box._endSlot)) return false;
+      const mark = appState.marks[entry._id] || {};
+      return !!(getActiveTagKeys(entry).length || getRectNoteForEntry(entry) ||
+        rollupOtherLabel(mark));
+    }).map(entry => {
+      const mark = appState.marks[entry._id] || {};
+      const other = rollupOtherLabel(mark);
+      return { ...entry, _wnmuRollupLabels: rollupTagLabels({ ...getTagsForEntry(entry), other: !!other }, other) };
+    });
+    // A manually checked blank slot has no imported program entry. It should
+    // still be listed by day, without manufacturing a schedule airing.
+    const blank = [];
+    Object.entries(appState.marks || {}).forEach(([key, mark]) => {
+      if (!mark || typeof mark !== 'object') return;
+      const match = String(key).match(/(?:^|__)(\d{4}-\d{2}-\d{2})__(\d{2}:\d{2})$/);
+      if (!match || match[1] !== date) return;
+      const time = match[2];
+      const slot = timeToSlotIndex(time);
+      const isCovered = imported.some(entry => {
+        const first = timeToSlotIndex(entry.time);
+        return slot >= first && slot < first + Number(entry.slotCount || 1);
+      });
+      if (isCovered || overlays.some(note => slot >= note._startSlot && slot < note._endSlot)) return;
+      const other = rollupOtherLabel(mark);
+      const labels = rollupTagLabels({ ...(mark.tags || {}), other: !!other }, other);
+      if (!labels.length) return;
+      blank.push({ date, time, title: '(Blank schedule slot)', durationMin: 30,
+        episode: '', _wnmuReplacement: true, _wnmuRollupLabels: labels });
+    });
+    return normal.concat(overlays, blank).sort((a,b) => a.time.localeCompare(b.time));
+  }
+
   function buildWeekRollup(week, weekIndex) {
     const box = document.createElement('section');
     box.className = 'rollup-box';
@@ -377,6 +467,7 @@
     week.forEach(day => {
       const dayBox = document.createElement('div');
       dayBox.className = 'day-rollup compact-day-rollup';
+      dayBox.dataset.rollupDate = day.date;
       if (!day.inMonth) dayBox.classList.add('outside-day');
       const heading = document.createElement('h5');
       heading.textContent = `${day.dayName} • ${fmtDateLabel(day.date, { month: 'short', day: 'numeric' })}`;
@@ -384,12 +475,12 @@
       if (!day.inMonth) {
         const none = document.createElement('div');
         none.className = 'rollup-empty';
-        none.textContent = 'Outside May';
+        none.textContent = `Outside ${selectedMonthLabel().split(' ')[0]}`;
         dayBox.appendChild(none);
         grid.appendChild(dayBox);
         return;
       }
-      const entries = (appState.dateMap[day.date]?.entries || []).filter(entry => getActiveTagKeys(entry).length || getRectNoteForEntry(entry));
+      const entries = dayRollupEntries(day.date);
       if (!entries.length) {
         const none = document.createElement('div');
         none.className = 'rollup-empty';
@@ -484,7 +575,8 @@
         content.className = 'program-content';
         const title = document.createElement('div');
         title.className = 'program-title';
-        title.textContent = entry.title;
+        title.textContent = effectiveDisplayTitle(entry.title);
+        title.dataset.wnmuOriginalTitle = entry.title;
         content.appendChild(title);
         if (entry.episode) {
           const episode = document.createElement('div');
@@ -576,7 +668,8 @@
         content.className = 'program-content';
         const title = document.createElement('div');
         title.className = 'program-title';
-        title.textContent = entry.title;
+        title.textContent = effectiveDisplayTitle(entry.title);
+        title.dataset.wnmuOriginalTitle = entry.title;
         content.appendChild(title);
         if (entry.episode) {
           const episode = document.createElement('div');
@@ -642,6 +735,44 @@
     return { wrap, screenHost, printHost, rollupHost };
   }
 
+  function refreshDayRollup(date) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date || '')) return;
+    appState.marks = loadMarks();
+    appState.schedule?.weeks?.forEach((week, index) => {
+      const day = week.find(candidate => candidate.inMonth && candidate.date === date);
+      const host = appState.weekHosts[index];
+      const previous = host?.rollupHost?.querySelector('[data-rollup-date="' + date + '"]');
+      if (day && previous) {
+        const replacement = buildWeekRollup([day], index).querySelector('.day-rollup');
+        if (replacement) previous.replaceWith(replacement);
+      }
+    });
+    appState.printDirty = true;
+  }
+  function refreshAllRollups() {
+    appState.marks = loadMarks();
+    appState.schedule?.weeks?.forEach((week, index) => {
+      const host = appState.weekHosts[index];
+      if (!host?.rollupHost?.querySelector('.rollup-box')) return;
+      host.rollupHost.replaceChildren(buildWeekRollup(week, index));
+      alignWeekRollup(index);
+    });
+    appState.printDirty = true;
+  }
+  function alignWeekRollup(weekIndex) {
+    const host = appState.weekHosts[weekIndex];
+    const table = host?.screenHost?.querySelector('table.screen-week-grid');
+    const grid = host?.rollupHost?.querySelector('.week-rollup-grid-7');
+    const headers = table?.querySelectorAll('thead th');
+    if (!grid || !headers || headers.length !== 8) return;
+    const origin = headers[1].getBoundingClientRect();
+    const rollup = host.rollupHost.getBoundingClientRect();
+    const widths = [...headers].slice(1).map(th => th.getBoundingClientRect().width);
+    if (!rollup.width || widths.some(width => !width)) return;
+    grid.style.marginLeft = `${origin.left - rollup.left}px`;
+    grid.style.width = `${widths.reduce((sum, width) => sum + width, 0)}px`;
+    grid.style.gridTemplateColumns = widths.map(width => `${width}px`).join(' ');
+  }
   function renderWeekAt(weekIndex) {
     const week = appState.schedule.weeks[weekIndex];
     const host = appState.weekHosts[weekIndex];
@@ -650,6 +781,7 @@
     clearChildren(host.rollupHost);
     host.screenHost.appendChild(buildScreenWeekGrid(week));
     host.rollupHost.appendChild(buildWeekRollup(week, weekIndex));
+    alignWeekRollup(weekIndex);
     appState.renderedWeeks.add(weekIndex);
     renderFlags();
   }
@@ -675,7 +807,7 @@
     const box = document.createElement('section');
     box.className = 'rollup-box';
     const heading = document.createElement('h4');
-    heading.textContent = 'All checked items for May 2026';
+    heading.textContent = 'All checked items for ${selectedMonthLabel()}';
     box.appendChild(heading);
     const checked = allCheckedEntries();
     if (!checked.length) {
@@ -702,7 +834,7 @@
     const box = document.createElement('section');
     box.className = 'rollup-box';
     const heading = document.createElement('h4');
-    heading.textContent = 'All checked items for May 2026';
+    heading.textContent = 'All checked items for ${selectedMonthLabel()}';
     box.appendChild(heading);
     const note = document.createElement('div');
     note.className = 'rollup-empty';
@@ -729,7 +861,7 @@
       if (appState.progressiveIndex < total) {
         requestAnimationFrame(step);
       } else {
-        setWeekStatus(`${appState.verification?.checks?.actualDayCount ?? 0} May dates • rendered ${appState.renderedWeeks.size}/${total}`);
+        setWeekStatus(`${appState.verification?.checks?.actualDayCount ?? 0} dates • rendered ${appState.renderedWeeks.size}/${total}`);
       }
     }
     step();
@@ -841,24 +973,24 @@
 
   function bindContextMenuControls() {
     const closeBtn = document.getElementById('closeMenuBtn');
-    if (closeBtn) closeBtn.addEventListener('click', closeContextMenu);
+    if (closeBtn) closeBtn.addEventListener('click', closeContextMenu, { signal: instanceEvents.signal });
 
     const clearMarksBtn = document.getElementById('clearMarksBtn');
-    if (clearMarksBtn) clearMarksBtn.addEventListener('click', () => saveCurrentMenuTags(true));
+    if (clearMarksBtn) clearMarksBtn.addEventListener('click', () => saveCurrentMenuTags(true), { signal: instanceEvents.signal });
 
     const form = document.getElementById('contextMenuForm');
-    if (form && !isArchiveMode) form.addEventListener('change', () => saveCurrentMenuTags(false));
+    if (form && !isArchiveMode) form.addEventListener('change', () => saveCurrentMenuTags(false), { signal: instanceEvents.signal });
 
     const exportBtn = document.getElementById('exportPdfBtn');
     if (exportBtn) {
       exportBtn.addEventListener('click', () => {
         ensurePrintBuilt();
         window.print();
-      });
+      }, { signal: instanceEvents.signal });
     }
 
     const drawBtn = document.getElementById('drawRectBtn');
-    if (drawBtn && !isArchiveMode) drawBtn.addEventListener('click', beginRectDraw);
+    if (drawBtn && !isArchiveMode) drawBtn.addEventListener('click', beginRectDraw, { signal: instanceEvents.signal });
 
     const clearRectBtn = document.getElementById('clearRectBtn');
     if (clearRectBtn && !isArchiveMode) {
@@ -870,7 +1002,7 @@
         rerenderWeekForEntry(entry._id);
         renderMonthRollup();
         updateRectControls(entry);
-      });
+      }, { signal: instanceEvents.signal });
     }
 
     const weekGrids = mustGet('weekGrids');
@@ -881,18 +1013,39 @@
       if (!entry) return;
       event.preventDefault();
       openContextMenu(entry, event.clientX, event.clientY);
-    });
+    }, { signal: instanceEvents.signal });
 
     document.addEventListener('click', event => {
       const menu = document.getElementById('contextMenu');
       if (menu && !menu.classList.contains('hidden') && !menu.contains(event.target)) closeContextMenu();
-    });
+    }, { signal: instanceEvents.signal });
 
     document.addEventListener('keydown', event => {
       if (event.key === 'Escape') closeContextMenu();
-    });
+    }, { signal: instanceEvents.signal });
 
-    window.addEventListener('beforeprint', ensurePrintBuilt);
+    window.addEventListener('beforeprint', ensurePrintBuilt, { signal: instanceEvents.signal });
+    const refreshEditedDay = event => {
+      const value = String(event.detail?.entryId || event.detail?.cellKey || '');
+      const date = value.match(/\d{4}-\d{2}-\d{2}/)?.[0];
+      if (date) refreshDayRollup(date);
+    };
+    window.addEventListener('wnmu:cell-planning-tags-saved', refreshEditedDay, { signal: instanceEvents.signal });
+    window.addEventListener('wnmu:cell-note-saved', refreshEditedDay, { signal: instanceEvents.signal });
+    window.addEventListener('wnmu:remote-storage-loaded', refreshAllRollups, { signal: instanceEvents.signal });
+    window.addEventListener('wnmu:title-corrections-changed', () => {
+      document.querySelectorAll('.program-title[data-wnmu-original-title]').forEach(title => {
+        title.textContent = effectiveDisplayTitle(title.dataset.wnmuOriginalTitle);
+      });
+      refreshAllRollups();
+      appState.printDirty = true;
+    }, { signal: instanceEvents.signal });
+    let alignFrame = 0;
+    window.addEventListener('resize', () => {
+      cancelAnimationFrame(alignFrame);
+      alignFrame = requestAnimationFrame(() =>
+        appState.weekHosts.forEach((_, index) => alignWeekRollup(index)));
+    }, { signal: instanceEvents.signal, passive: true });
   }
 
   async function init() {
@@ -949,7 +1102,7 @@
       appState.verificationCached = verificationResult.fromCache;
       renderFlags();
       const fillCount = appState.verification?.checks?.autoFilledGapSlots || 0;
-      setWeekStatus(`${appState.verification?.checks?.actualDayCount ?? 0} May dates${fillCount ? ` • ${fillCount} slot fills` : ''} • rendered ${appState.renderedWeeks.size}/${appState.schedule.weeks.length}`);
+      setWeekStatus(`${appState.verification?.checks?.actualDayCount ?? 0} dates${fillCount ? ` • ${fillCount} slot fills` : ''} • rendered ${appState.renderedWeeks.size}/${appState.schedule.weeks.length}`);
     }
   }
 

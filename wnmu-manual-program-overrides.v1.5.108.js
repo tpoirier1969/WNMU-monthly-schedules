@@ -58,7 +58,7 @@
     m = text.match(/(\d{4}-\d{2}-\d{2}).{0,8}(\d{1,2}:\d{2})/);
     return m ? { date: m[1], time: normalizeTime(m[2]) || m[2] } : null;
   }
-  function allTags() { const base = Array.isArray(cfg().tagOrder) ? cfg().tagOrder.slice() : []; if (!base.includes('satelliteFeed')) base.push('satelliteFeed'); return base; }
+  function allTags() { const base = Array.isArray(cfg().tagOrder) ? cfg().tagOrder.slice() : []; if (!base.includes('other')) base.push('other'); if (!base.includes('satelliteFeed')) base.push('satelliteFeed'); return base; }
   function normalizeTags(tags) { const out = {}; allTags().forEach(tag => { out[tag] = !!(tags && tags[tag]); }); return out; }
   function readJson(key, fallback) { try { const raw = key && localStorage.getItem(key); return raw ? JSON.parse(raw) : fallback; } catch { return fallback; } }
   function writeJson(key, value) { try { if (key) localStorage.setItem(key, JSON.stringify(value || {})); } catch (err) { console.warn('WNMU override local write skipped.', err); } }
@@ -201,7 +201,7 @@
   function entryEndSlot(entry) { const start = entryStartSlot(entry); return start < 0 ? -1 : Math.min(48, start + entrySlotCount(entry)); }
   function rangesOverlap(aStart, aEnd, bStart, bEnd) { return aStart < bEnd && bStart < aEnd; }
   function slugifyForEntryId(text) { return String(text || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'no-episode'; }
-  function scheduleEntryId(entry) { return `${entry.date}__${entry.time}__${slugifyForEntryId(entry.title)}__${slugifyForEntryId(entry.episode || 'no-episode')}__${slugifyForEntryId(entry.sourceDate || entry.date)}__${slugifyForEntryId(entry.sourceTime || entry.time)}`; }
+  function scheduleEntryId(entry) { const base = `${entry.date}__${entry.time}__${slugifyForEntryId(entry.title)}__${slugifyForEntryId(entry.episode || 'no-episode')}`; return cfg().useSourceInId ? `${base}__${slugifyForEntryId(entry.sourceDate || entry.date)}__${slugifyForEntryId(entry.sourceTime || entry.time)}` : base; }
   function buildManualScheduleEntry(row, day) {
     const date = row.date;
     const time = rowTime(row);
@@ -316,15 +316,17 @@
   }
   async function upsertSharedMark(entryKey, markJson, source) {
     if (!entryKey || !markJson || typeof markJson !== 'object') return;
-    if (!Object.keys(markJson.tags || {}).some(tag => markJson.tags[tag] === true) && !markJson.rectNote) return;
+    if (!Object.keys(markJson.tags || {}).length && !markJson.rectNote) return;
     await rest(`/rest/v1/${SHARED_MARKS_TABLE}?on_conflict=channel_code,month_key,entry_key`, { method: 'POST', headers: { Prefer: 'resolution=merge-duplicates,return=representation' }, body: JSON.stringify([{ channel_code: channelCode(), channel_slug: channelSlug(), month_key: monthKey() || String((entryKey.match(/\d{4}-\d{2}/) || [''])[0]), entry_key: entryKey, mark_json: markJson, source: source || 'manual-schedule-overwrite-commit', updated_at: new Date().toISOString() }]) });
   }
   async function saveTagsForManualEntry(row, manualEntry) {
     const entryKey = scheduleEntryId(manualEntry);
     const tags = normalizeTags(row.tags_json || row.tags || {});
-    const hasTag = Object.keys(tags).some(tag => tags[tag] === true);
-    if (!hasTag) return entryKey;
-    const markJson = { tags };
+    const otherLabel = String(row.other_label || '').trim();
+    tags.other = !!otherLabel;
+    // Also save explicit false values: a deliberately unchecked automatic tag
+    // must stay off on the committed replacement.
+    const markJson = { tags, otherLabel, planningOtherLabel: otherLabel, customPlanningLabel: otherLabel, customTagLabel: otherLabel };
     try { const key = storageKey(); if (key) { const stateObj = readJson(key, {}); stateObj[entryKey] = { ...(stateObj[entryKey] || {}), ...markJson }; writeJson(key, stateObj); } } catch (err) { console.warn('Manual overwrite tag local save skipped.', err); }
     try { await upsertSharedMark(entryKey, markJson, 'manual-schedule-overwrite-commit'); } catch (err) { console.warn('Manual overwrite tag shared save skipped.', err); }
     return entryKey;
@@ -337,10 +339,10 @@
     try { const backupKey = `wnmu_manual_overwrite_backup::${channelCode()}::${row.month_key || monthKey()}::${row.date}::${rowTime(row)}::${Date.now()}`; localStorage.setItem(backupKey, JSON.stringify({ version: VERSION, row, importedRowUpdatedAt: imported.updated_at || '', schedule_json: originalSchedule, verification_json: imported.verification_json || {} })); } catch (err) { console.warn('Local pre-overwrite backup skipped.', err); }
     await patchImportedMonth(row, result.schedule, result.verification);
     clearJsonCachesForMonth(row.channel_code || channelCode(), row.month_key || monthKey() || String(row.date).slice(0, 7));
-    const newEntryKey = await saveTagsForManualEntry(row, result.manualEntry);
+    const newEntryKey = scheduleEntryId(result.manualEntry);
     window.WNMU_LAST_MANUAL_SCHEDULE_OVERWRITE = { version: VERSION, row, newEntryKey, replacedCount: result.replaced.length, preservedSplitCount: result.preserved.length, at: new Date().toISOString() };
     state.tableAvailable = true;
-    return { ...row, source_entry_id: newEntryKey || row.source_entry_id || '', imported_month_overwritten: true, replaced_count: result.replaced.length, preserved_split_count: result.preserved.length };
+    return { ...row, new_entry_key: newEntryKey, manual_entry: result.manualEntry, imported_month_overwritten: true, replaced_count: result.replaced.length, preserved_split_count: result.preserved.length };
   }
   async function deactivateRow(row) { throw new Error('Remove committed program is disabled in v1.5.64 because commits now overwrite imported schedule_json. Restore from backup/reimport if a committed replacement needs to be undone.'); }
 
@@ -380,8 +382,9 @@
   function recordMatchesCommittedRow(row, key, raw, allowExactEmpty = true) {
     if (!row || !row.date || !rowTime(row)) return false;
     const exactKeys = committedRowKeys(row);
-    if (allowExactEmpty && exactKeys.has(String(key || ''))) return true;
+    // Never delete tags-only records when a replacement reuses an entry key.
     if (!shouldDeleteStagingRecord(raw)) return false;
+    if (allowExactEmpty && exactKeys.has(String(key || ''))) return true;
     const rowDate = String(row.date);
     const rowStart = rowTime(row);
     const slotSet = new Set(coveredTimes(rowDate, rowStart, row.duration_min || row.durationMin || 30).map(slot => `${slot.date}__${slot.time}`));
@@ -452,7 +455,7 @@
 
   function menuTarget(menu) { const date = menu?.dataset.wnmuDate || ''; const time = menu?.dataset.wnmuTime || ''; if (!date || !time) return null; return { date, time, key: menu.dataset.wnmuCellKey || canonicalKeyFor(date, time) }; }
   function safeName(name) { return window.CSS && CSS.escape ? CSS.escape(name) : String(name).replace(/["\\]/g, '\\$&'); }
-  function readTagsFromMenu(menu) { const tags = {}; allTags().forEach(tag => { const input = menu?.querySelector(`input[name="${safeName(tag)}"]`); tags[tag] = !!input?.checked; }); return normalizeTags(tags); }
+  function readTagsFromMenu(menu) { const tags = {}; allTags().forEach(tag => { const input = menu?.querySelector(`input[name="${safeName(tag)}"]`); tags[tag] = !!input?.checked; }); tags.other = !!String(menu?.querySelector('#wnmuCellCustomTagText')?.value || menu?.dataset?.wnmuOtherLabel || '').trim(); return normalizeTags(tags); }
   function rowFromMenu(menu) {
     const target = menuTarget(menu);
     if (!target) throw new Error('No schedule cell selected. Right-click the cell again.');
@@ -462,7 +465,7 @@
     const text = String(menu.querySelector('#wnmuCellText')?.value || staged?.text || '').trim();
     if (!text) throw new Error('Type a program title/replacement text before committing.');
     const duration = nearestDuration(menu.querySelector('input[name="wnmuCellDuration"]:checked')?.value || staged?.durationMin || 30);
-    return { channel_code: channelCode(), month_key: monthKey() || commitDate.slice(0, 7), entry_key: canonicalKeyFor(commitDate, commitTime), date: commitDate, slot_time: commitTime, duration_min: duration, source_entry_id: menu.dataset.wnmuEntryId || staged?.sourceEntryId || '', override_type: 'manual_program', title_text: text, tags_json: readTagsFromMenu(menu), is_active: true, updated_by: 'schedule-page-commit' };
+    return { channel_code: channelCode(), month_key: monthKey() || commitDate.slice(0, 7), entry_key: canonicalKeyFor(commitDate, commitTime), date: commitDate, slot_time: commitTime, duration_min: duration, source_entry_id: menu.dataset.wnmuEntryId || staged?.sourceEntryId || '', override_type: 'manual_program', title_text: text, tags_json: readTagsFromMenu(menu), other_label: String(menu.querySelector('#wnmuCellCustomTagText')?.value || menu.dataset.wnmuOtherLabel || '').trim(), is_active: true, updated_by: 'schedule-page-commit' };
   }
 
   function sameSlot(row, date, time) { return String(row.date) === String(date) && String(row.slot_time || row.time) === String(time); }
@@ -832,6 +835,8 @@
       const committed = await upsertRow(row);
       await clearSharedStagingRange(committed);
       clearStagingForCommittedRow(committed, true);
+      // Transfer replacement tags after removing old overlay staging records.
+      await saveTagsForManualEntry(row, committed.manual_entry);
       scheduleCommittedScrub('commit-overwrite');
       window.dispatchEvent(new CustomEvent('wnmu:manual-schedule-data-overwritten', { detail: { changed: 1, source: 'commit', row: committed } }));
       menuStatus(menu, `Imported schedule data overwritten. Replaced ${committed.replaced_count || 0} imported block(s); preserved ${committed.preserved_split_count || 0} split piece(s). Refreshing schedule grid…`);

@@ -388,6 +388,7 @@
       defaultSatellite,
       effectiveSatellite,
       setOverride,
+      repaintEntry: entryId => { if (entryId) paintEntry(entryId); },
       repaint: () => schedulePaint(fullGridRoot())
     };
 

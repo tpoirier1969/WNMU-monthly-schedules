@@ -172,10 +172,12 @@
     } catch (err) { console.warn('PBS Feed override failed.', err); }
     return false;
   }
-  function repaintSatelliteFeedsSoon(delay = 20) {
+  function repaintSatelliteFeedsSoon(delay = 20, entryId = '') {
+    if (!entryId) return;
     window.setTimeout(() => {
       try {
-        if (satelliteApi()?.repaint) satelliteApi().repaint();
+        if (satelliteApi()?.repaintEntry) satelliteApi().repaintEntry(entryId);
+        else if (satelliteApi()?.repaint) satelliteApi().repaint();
         else if (window.WNMU_REPAINT_SATELLITE_FEEDS) window.WNMU_REPAINT_SATELLITE_FEEDS();
       } catch {}
     }, delay);
@@ -453,7 +455,9 @@
     const duration = nearestDuration(note.durationMin || 30);
     const otherLabel = cleanOtherLabel(note.otherLabel || note.planningOtherLabel || note.customPlanningLabel || note.customTagLabel || note.otherText || '');
     let cleanTags = normalizeTagsForExplicitStorage(note.tags || {}, otherLabel);
-    const record = { channelCode: channelCode(), monthKey: monthKey() || target.date.slice(0, 7), date: target.date, time: target.time, sourceType: target.sourceType, sourceEntryId: target.entryId || '', text: note.text || '', durationMin: duration, tags: cleanTags, otherLabel, planningOtherLabel: otherLabel, customPlanningLabel: otherLabel, customTagLabel: otherLabel, cleared: !!note.cleared, updatedAt: new Date().toISOString() };
+    const previous = readCanonicalRecord(target.key);
+    const originalProgramMarkSnapshot = note.originalProgramMarkSnapshot || (!previous?.cleared ? previous?.originalProgramMarkSnapshot : null) || null;
+    const record = { originalProgramMarkSnapshot, channelCode: channelCode(), monthKey: monthKey() || target.date.slice(0, 7), date: target.date, time: target.time, sourceType: target.sourceType, sourceEntryId: target.entryId || '', text: note.text || '', durationMin: duration, tags: cleanTags, otherLabel, planningOtherLabel: otherLabel, customPlanningLabel: otherLabel, customTagLabel: otherLabel, cleared: !!note.cleared, updatedAt: new Date().toISOString() };
     const store = readCanonicalStore();
     store[target.key] = record;
     writeJson(canonicalStoreKey(), store);
@@ -777,6 +781,24 @@
       old.style.display = 'none';
     }
   }
+  function syncWhiteOverridePlanning(target, tags, otherLabel) {
+    if (!target?.key) return;
+    const canonical = readCanonicalStore();
+    const note = canonical[target.key];
+    if (!note || note.cleared || !note.text) return;
+    const next = { ...note, tags: { ...tags }, otherLabel, planningOtherLabel: otherLabel,
+      customPlanningLabel: otherLabel, customTagLabel: otherLabel, updatedAt: new Date().toISOString() };
+    canonical[target.key] = next;
+    writeJson(canonicalStoreKey(), canonical);
+    const main = readJson(storageKey(), {});
+    if (main[target.key]?.cellOverrideV15) {
+      main[target.key] = { ...main[target.key], tags: { ...tags }, otherLabel,
+        planningOtherLabel: otherLabel, customPlanningLabel: otherLabel, customTagLabel: otherLabel };
+      writeJson(storageKey(), main);
+    }
+    paintOverlay(target, next);
+  }
+
   function writeProgramPlanningTags(target, tags, otherLabel) {
     const key = storageKey();
     if (!key || !target) return false;
@@ -813,8 +835,9 @@
         applyCellTagVisual(target, cleanTags, cleanOther);
         forceCustomTagDisplayForCell(target.cell, cleanOther);
       }
-      repaintSatelliteFeedsSoon(30);
-      window.dispatchEvent(new CustomEvent('wnmu:cell-planning-tags-saved', { detail: { entryId, version: VERSION } }));
+      syncWhiteOverridePlanning(target, cleanTags, cleanOther);
+      repaintSatelliteFeedsSoon(30, target.entryId || '');
+      window.dispatchEvent(new CustomEvent('wnmu:cell-planning-tags-saved', { detail: { entryId, cellKey: target.key, version: VERSION } }));
       return true;
     }
 
@@ -849,7 +872,8 @@
       applyCellTagVisual(target, cleanTags, cleanOther);
       forceCustomTagDisplayForCell(target.cell, cleanOther);
     }
-    repaintSatelliteFeedsSoon(30);
+    syncWhiteOverridePlanning(target, cleanTags, cleanOther);
+    repaintSatelliteFeedsSoon(30, target.entryId || '');
     window.dispatchEvent(new CustomEvent('wnmu:cell-planning-tags-saved', { detail: { cellKey: target.key, version: VERSION } }));
     return true;
   }
@@ -962,9 +986,15 @@
     if (target?.cell) { if (otherLabel) target.cell.dataset.wnmuOtherLabel = otherLabel; else delete target.cell.dataset.wnmuOtherLabel; }
     updateOtherMenuLabel(menu, otherLabel);
     window.WNMU_MENU_BULK_EDIT_ACTIVE_UNTIL = Date.now() + 1200;
+    const previousOverlay = readCanonicalRecord(target.key);
+    const beforeMarks = readJson(storageKey(), {});
+    const originalProgramMarkSnapshot = (!previousOverlay?.cleared ? previousOverlay?.originalProgramMarkSnapshot : null) || (target.entryId ? {
+      existed: Object.prototype.hasOwnProperty.call(beforeMarks, target.entryId),
+      value: beforeMarks[target.entryId] ? JSON.parse(JSON.stringify(beforeMarks[target.entryId])) : null
+    } : null);
     writeProgramPlanningTags(target, tags, otherLabel);
     try {
-      writeCanonicalRecord(target, { text, durationMin: duration, tags, otherLabel });
+      writeCanonicalRecord(target, { text, durationMin: duration, tags, otherLabel, originalProgramMarkSnapshot });
       const reread = readEffectiveNote(target);
       removeOverlayElementsForDateTime(target.date, target.time);
       paintOverlay(target, { text, durationMin: duration, tags, otherLabel, planningOtherLabel: otherLabel });
@@ -972,6 +1002,7 @@
       forceCustomTagDisplayForCell(target.cell, otherLabel);
       window.WNMU_LAST_CELL_NOTE_SAVE = { target: { key: target.key, date: target.date, time: target.time, entryId: target.entryId || '', sourceType: target.sourceType }, text, durationMin: duration, tags, reread, savedAt: new Date().toISOString() };
       rememberMenuPlanningState(menu);
+      window.dispatchEvent(new CustomEvent('wnmu:cell-note-saved', { detail: { entryId: target.entryId || '', cellKey: target.key, version: VERSION } }));
       const status = menu?.querySelector('#wnmuCellStatus'); if (status) status.textContent = reread ? 'Box note saved.' : 'Save wrote, but readback did not find the note.';
       return true;
     } catch (err) {
@@ -983,16 +1014,33 @@
   function clearFromCellMenu() {
     const menu = document.getElementById('wnmuCellMenu'); const target = targetFromMenu(menu); if (!target) return;
     selectedTarget = target;
+    const existingOverlay = readCanonicalRecord(target.key);
+    const originalSnapshot = existingOverlay?.originalProgramMarkSnapshot || null;
     window.WNMU_MENU_BULK_EDIT_ACTIVE_UNTIL = Date.now() + 1200;
     writeProgramPlanningTags(target, explicitFalseTags(), '');
     writeCanonicalRecord(target, { text: '', durationMin: 30, tags: explicitFalseTags(), otherLabel: '', cleared: true });
+    if (originalSnapshot && target.entryId) {
+      const restored = readJson(storageKey(), {});
+      if (originalSnapshot.existed) restored[target.entryId] = originalSnapshot.value;
+      else delete restored[target.entryId];
+      writeJson(storageKey(), restored);
+      window.WNMU_AUTO_TAG_HELPERS_API?.invalidateStoreCache?.();
+    }
     removeOverlay(target);
     // Remove any duplicate visual remnants for the same date/time that came from older storage keys.
     removeOverlayElementsForDateTime(target.date, target.time);
     target.cell?.classList.remove('wnmu-has-cell-override');
     if (target.cell) { delete target.cell.dataset.wnmuOtherLabel; delete target.cell.dataset.wnmuCustomPlanningTag; }
-    applyCellTagVisual(target, explicitFalseTags());
+    let restoredTags = explicitFalseTags();
+    let restoredOtherLabel = '';
+    if (originalSnapshot && target.entryId) {
+      const oldRecord = originalSnapshot.value || {};
+      restoredOtherLabel = noteOtherLabel(oldRecord);
+      restoredTags = window.WNMU_AUTO_TAG_HELPERS_API?.effectiveTagsForCell?.(target.cell) || oldRecord.tags || {};
+    }
+    applyCellTagVisual(target, restoredTags, restoredOtherLabel);
     rememberMenuPlanningState(menu);
+    window.dispatchEvent(new CustomEvent('wnmu:cell-note-saved', { detail: { entryId: target.entryId || '', cellKey: target.key, version: VERSION } }));
     const status = menu?.querySelector('#wnmuCellStatus'); if (status) status.textContent = 'Box note and visible tags cleared.';
   }
 
