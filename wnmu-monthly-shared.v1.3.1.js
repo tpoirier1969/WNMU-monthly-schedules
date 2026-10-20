@@ -303,11 +303,7 @@
   function allCheckedEntries() {
     const out = [];
     for (const day of appState.schedule.days || []) {
-      const normalizedDay = appState.dateMap[day.date];
-      if (!normalizedDay) continue;
-      for (const entry of normalizedDay.entries || []) {
-        if (getActiveTagKeys(entry).length || getRectNoteForEntry(entry)) out.push(entry);
-      }
+      out.push(...dayRollupEntries(day.date));
     }
     out.sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
     return out;
@@ -423,7 +419,7 @@
       if (overlays.some(box => slot >= box._startSlot && slot < box._endSlot)) return false;
       const mark = appState.marks[entry._id] || {};
       return !!(getActiveTagKeys(entry).length || getRectNoteForEntry(entry) ||
-        (rollupOtherLabel(mark) && mark.tags?.other));
+        rollupOtherLabel(mark));
     }).map(entry => {
       const mark = appState.marks[entry._id] || {};
       const other = rollupOtherLabel(mark);
