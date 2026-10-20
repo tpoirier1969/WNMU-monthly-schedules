@@ -880,6 +880,9 @@
 
   function ensurePrintBuilt() {
     if (appState.printBuilt && !appState.printDirty) return;
+    // Unlike the screen grid, the print grid is built only on demand.
+    // Re-read current edits and auto-tags before constructing print cells.
+    appState.marks = loadMarks();
     appState.weekHosts.forEach((host, weekIndex) => {
       clearChildren(host.printHost);
       host.printHost.appendChild(buildPrintWeekGrid(appState.schedule.weeks[weekIndex]));
