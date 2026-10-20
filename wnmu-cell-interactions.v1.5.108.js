@@ -172,10 +172,12 @@
     } catch (err) { console.warn('PBS Feed override failed.', err); }
     return false;
   }
-  function repaintSatelliteFeedsSoon(delay = 20) {
+  function repaintSatelliteFeedsSoon(delay = 20, entryId = '') {
+    if (!entryId) return;
     window.setTimeout(() => {
       try {
-        if (satelliteApi()?.repaint) satelliteApi().repaint();
+        if (satelliteApi()?.repaintEntry) satelliteApi().repaintEntry(entryId);
+        else if (satelliteApi()?.repaint) satelliteApi().repaint();
         else if (window.WNMU_REPAINT_SATELLITE_FEEDS) window.WNMU_REPAINT_SATELLITE_FEEDS();
       } catch {}
     }, delay);
@@ -832,7 +834,7 @@
         forceCustomTagDisplayForCell(target.cell, cleanOther);
       }
       syncWhiteOverridePlanning(target, cleanTags, cleanOther);
-      repaintSatelliteFeedsSoon(30);
+      repaintSatelliteFeedsSoon(30, target.entryId || '');
       window.dispatchEvent(new CustomEvent('wnmu:cell-planning-tags-saved', { detail: { entryId, cellKey: target.key, version: VERSION } }));
       return true;
     }
@@ -869,7 +871,7 @@
       forceCustomTagDisplayForCell(target.cell, cleanOther);
     }
     syncWhiteOverridePlanning(target, cleanTags, cleanOther);
-    repaintSatelliteFeedsSoon(30);
+    repaintSatelliteFeedsSoon(30, target.entryId || '');
     window.dispatchEvent(new CustomEvent('wnmu:cell-planning-tags-saved', { detail: { cellKey: target.key, version: VERSION } }));
     return true;
   }
