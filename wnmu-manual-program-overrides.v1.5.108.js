@@ -316,7 +316,7 @@
   }
   async function upsertSharedMark(entryKey, markJson, source) {
     if (!entryKey || !markJson || typeof markJson !== 'object') return;
-    if (!Object.keys(markJson.tags || {}).some(tag => markJson.tags[tag] === true) && !markJson.rectNote) return;
+    if (!Object.keys(markJson.tags || {}).length && !markJson.rectNote) return;
     await rest(`/rest/v1/${SHARED_MARKS_TABLE}?on_conflict=channel_code,month_key,entry_key`, { method: 'POST', headers: { Prefer: 'resolution=merge-duplicates,return=representation' }, body: JSON.stringify([{ channel_code: channelCode(), channel_slug: channelSlug(), month_key: monthKey() || String((entryKey.match(/\d{4}-\d{2}/) || [''])[0]), entry_key: entryKey, mark_json: markJson, source: source || 'manual-schedule-overwrite-commit', updated_at: new Date().toISOString() }]) });
   }
   async function saveTagsForManualEntry(row, manualEntry) {
@@ -324,8 +324,8 @@
     const tags = normalizeTags(row.tags_json || row.tags || {});
     const otherLabel = String(row.other_label || '').trim();
     tags.other = !!otherLabel;
-    const hasTag = Object.keys(tags).some(tag => tag !== 'satelliteFeed' && tags[tag] === true);
-    if (!hasTag) return entryKey;
+    // Also save explicit false values: a deliberately unchecked automatic tag
+    // must stay off on the committed replacement.
     const markJson = { tags, otherLabel, planningOtherLabel: otherLabel, customPlanningLabel: otherLabel, customTagLabel: otherLabel };
     try { const key = storageKey(); if (key) { const stateObj = readJson(key, {}); stateObj[entryKey] = { ...(stateObj[entryKey] || {}), ...markJson }; writeJson(key, stateObj); } } catch (err) { console.warn('Manual overwrite tag local save skipped.', err); }
     try { await upsertSharedMark(entryKey, markJson, 'manual-schedule-overwrite-commit'); } catch (err) { console.warn('Manual overwrite tag shared save skipped.', err); }
