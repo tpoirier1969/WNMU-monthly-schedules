@@ -425,7 +425,27 @@
       const other = rollupOtherLabel(mark);
       return { ...entry, _wnmuRollupLabels: rollupTagLabels({ ...getTagsForEntry(entry), other: !!other }, other) };
     });
-    return normal.concat(overlays).sort((a,b) => a.time.localeCompare(b.time));
+    // A manually checked blank slot has no imported program entry. It should
+    // still be listed by day, without manufacturing a schedule airing.
+    const blank = [];
+    Object.entries(appState.marks || {}).forEach(([key, mark]) => {
+      if (!mark || typeof mark !== 'object') return;
+      const match = String(key).match(/(?:^|__)(\d{4}-\d{2}-\d{2})__(\d{2}:\d{2})$/);
+      if (!match || match[1] !== date) return;
+      const time = match[2];
+      const slot = timeToSlotIndex(time);
+      const isCovered = imported.some(entry => {
+        const first = timeToSlotIndex(entry.time);
+        return slot >= first && slot < first + Number(entry.slotCount || 1);
+      });
+      if (isCovered || overlays.some(note => slot >= note._startSlot && slot < note._endSlot)) return;
+      const other = rollupOtherLabel(mark);
+      const labels = rollupTagLabels({ ...(mark.tags || {}), other: !!other }, other);
+      if (!labels.length) return;
+      blank.push({ date, time, title: '(Blank schedule slot)', durationMin: 30,
+        episode: '', _wnmuReplacement: true, _wnmuRollupLabels: labels });
+    });
+    return normal.concat(overlays, blank).sort((a,b) => a.time.localeCompare(b.time));
   }
 
   function buildWeekRollup(week, weekIndex) {
