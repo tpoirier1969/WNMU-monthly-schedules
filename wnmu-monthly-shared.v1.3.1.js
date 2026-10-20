@@ -322,7 +322,7 @@
 
   function renderFlags() {
     const sourceBit = appState.scheduleCached ? 'cached' : 'network';
-    mustGet('versionFlag').textContent = `${BUILD_VERSION} • faster load • ${sourceBit}`;
+    if (!window.WNMU_MONTHLY_PACKAGE_VERSION) mustGet('versionFlag').textContent = `${BUILD_VERSION} • faster load • ${sourceBit}`;
     if (appState.verification) {
       mustGet('coverageFlag').textContent = appState.verification?.checks?.everyDayHas48CoveredSlots ? '31/31 days at 48/48' : 'coverage issue';
     } else {
