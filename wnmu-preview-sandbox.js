@@ -99,6 +99,10 @@
   window.WNMU_PREVIEW_SANDBOX = { active: true, productionWrites: false };
   function banner() {
     const bar = document.createElement('div');
+    bar.className = 'wnmu-preview-banner';
+    const printStyle = document.createElement('style');
+    printStyle.textContent = '@media print { .wnmu-preview-banner { display: none !important; } }';
+    document.head.appendChild(printStyle);
     bar.style.cssText='position:sticky;top:0;z-index:99999;background:#ffe8a3;color:#202020;border:2px solid #9a6910;padding:10px 12px;text-align:center;font:bold 15px system-ui';
     bar.textContent='WNMU TEST COPY | Edits stay in this browser | Live schedule and Supabase data are protected';
     document.body.prepend(bar);
