@@ -589,10 +589,21 @@
         duration.textContent = `${entry.durationMin} min`;
         content.appendChild(duration);
         const activeTags = getActiveTagKeys(entry);
-        if (activeTags.length) {
+        const savedMark = appState.marks[entry._id] || {};
+        const customLabel = rollupOtherLabel(savedMark);
+        // The print grid is static, so include custom tags here instead of
+        // asking the screen tag observer to revisit every hidden print cell.
+        if (activeTags.length || (customLabel && savedMark.tags?.other)) {
           const tags = document.createElement('div');
           tags.className = 'program-tags';
           activeTags.slice(0, 5).forEach(tagKey => tags.appendChild(createTagPill(tagKey)));
+          if (customLabel && savedMark.tags?.other) {
+            const custom = document.createElement('span');
+            custom.className = 'tag-pill';
+            custom.textContent = customLabel;
+            custom.dataset.wnmuCustomTagLabel = customLabel;
+            tags.appendChild(custom);
+          }
           content.appendChild(tags);
         }
         td.appendChild(content);
