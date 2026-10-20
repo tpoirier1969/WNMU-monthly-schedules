@@ -1,4 +1,49 @@
 @media print {
+  /* Print the schedule, not the web app's fixed header and editor UI.
+     Use specificity higher than wnmu-fixed-framework's screen declarations. */
+  html body.wnmu-fixed-framework-active > header.topbar,
+  html body > header.topbar,
+  html body.wnmu-fixed-framework-active > #archiveBanner,
+  html body.wnmu-fixed-framework-active .title-review-panel,
+  html body.wnmu-fixed-framework-active .wnmu-schedule-legend,
+  html body.wnmu-fixed-framework-active .weeks-panel > .panel-head,
+  html body.wnmu-fixed-framework-active #monthRollup,
+  html body.wnmu-fixed-framework-active #wnmuCellMenu,
+  html body.wnmu-fixed-framework-active #contextMenu,
+  html body.wnmu-fixed-framework-active .draw-hint {
+    display: none !important;
+  }
+
+  /* A fixed-height, flex/scroller app can leave an entire first sheet blank.
+     Print must flow directly into week one, with ordinary block pagination. */
+  html body.wnmu-fixed-framework-active,
+  html body.wnmu-fixed-framework-active > main.page,
+  html body.wnmu-fixed-framework-active .weeks-panel,
+  html body.wnmu-fixed-framework-active .week-grids,
+  html body.wnmu-fixed-framework-active .week-grid-wrap {
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+    display: block !important;
+    position: static !important;
+    transform: none !important;
+    contain: none !important;
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+  }
+  html body.wnmu-fixed-framework-active > main.page {
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+  html body.wnmu-fixed-framework-active .week-grids {
+    margin: 0 !important;
+    gap: 0 !important;
+  }
+  html body.wnmu-fixed-framework-active .week-grid-wrap:first-child {
+    break-before: auto !important;
+    page-break-before: auto !important;
+  }
   @page { size: letter landscape; margin: 0.12in; }
 
   .topbar {
