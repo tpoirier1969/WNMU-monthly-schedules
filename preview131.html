@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <title>TEST COPY | WNMU1HD current schedule</title>
+  <link rel="icon" href="favicon.ico" sizes="any">
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="manifest" href="site.webmanifest">
+  <meta name="theme-color" content="#0d4f38">
+  <link rel="stylesheet" href="styles.dual.v1.1.4.css?v=1.1.4">
+  <link rel="stylesheet" href="print-layout-fix.v1.1.3.css?v=1.1.3" media="print">
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <h1 id="pageHeading">WNMU1HD current schedule</h1>
+      <p class="sub" id="pageSub">Loading the selected imported month…</p>
+      <div id="monthNav" style="padding:0 1rem 1rem;font:14px system-ui,sans-serif;color:#ddd"></div>
+    </div>
+    <div class="flagbar">
+      <span class="flag" id="versionFlag">version</span>
+      <span class="flag ok" id="coverageFlag">coverage</span>
+    </div>
+    <div class="schedule-navline" style="padding:0 1rem 1rem;font:14px system-ui,sans-serif">
+      <a href="index.html">Home</a> ·
+      <a id="otherChannelLink" href="preview133.html">Go to 13.3</a> ·
+      <a href="month-builder.v1.4.1.html?v=1.5.107">Import months</a> ·
+      <a id="monthRollupLink" href="#">Month Rollup</a> ·
+      <a id="exportPdfBtn" href="#">Export PDF</a> ·
+      <a id="salesExportBtn" href="sales-export.v1.5.88.html">Export Sales View</a>
+    </div>
+  </header>
+
+  <div id="archiveBanner" class="panel hidden" style="margin:1rem auto;max-width:1500px"></div>
+
+  <main class="page">
+    <section class="panel title-review-panel" id="titleReviewPanel" data-title-review-channel="13.1">
+      <div class="panel-head title-review-head">
+        <div>
+          <h2>Title cleanup review</h2>
+          <p>Review OCR/import title variants for this channel before creating the Sales View. Corrections are display-only and do not rewrite imported schedule data.</p>
+        </div>
+        <button id="scanTitleReviewBtn" type="button" class="btn ghost">Scan this channel</button>
+      </div>
+      <div id="titleReviewOutput" class="title-review-output">Title review has not run yet.</div>
+    </section>
+    <section class="panel weeks-panel">
+      <div class="panel-head">
+        <h2>Week grids</h2>
+        <p><strong>Right-click any program cell</strong> to tag it, toggle PBS Feed shading, or add/edit a manual program entry with a custom length. Right-click a blank schedule cell for the full blank-slot menu.</p>
+      </div>
+      <div id="weekGrids" class="week-grids"></div>
+    </section>
+  </main>
+
+  <div id="monthRollup" hidden aria-hidden="true"></div>
+
+  <aside id="contextMenu" class="context-menu hidden" aria-hidden="true">
+    <div class="context-menu-head">
+      <div>
+        <h3 id="menuTitle">Program markup</h3>
+        <div id="menuMeta" class="context-menu-meta"></div>
+      </div>
+      <button type="button" id="closeMenuBtn" class="menu-close" aria-label="Close">×</button>
+    </div>
+    <form id="contextMenuForm" class="context-menu-form">
+      <label class="check-row check-new-series"><input type="checkbox" name="newSeries"> <span>New Series</span></label>
+      <label class="check-row check-new-season"><input type="checkbox" name="newSeason"> <span>New Season</span></label>
+      <label class="check-row check-highlight"><input type="checkbox" name="highlight"> <span>Highlight</span></label>
+      <label class="check-row check-one-off"><input type="checkbox" name="oneOff"> <span>One Off</span></label>
+      <label class="check-row check-monthly-topic"><input type="checkbox" name="monthlyTopic"> <span>Monthly topic</span></label>
+      <label class="check-row check-fundraiser"><input type="checkbox" name="fundraiser"> <span>Fundraiser</span></label>
+      <label class="check-row check-programmers-choice"><input type="checkbox" name="programmersChoice"> <span>Programmer's Choice</span></label>
+      <label class="check-row check-holiday"><input type="checkbox" name="holiday"> <span>Holiday</span></label>
+      <label class="check-row check-educational"><input type="checkbox" name="educational"> <span>Educational</span></label>
+      <label class="check-row check-local"><input type="checkbox" name="local"> <span>Local</span></label>
+      <label class="check-row check-michigan"><input type="checkbox" name="michigan"> <span>Michigan</span></label>
+
+      <div class="rect-tools">
+        <div id="rectStatus" class="rect-status">No rectangle note on this program yet.</div>
+        <div class="rect-actions">
+          <button type="button" id="drawRectBtn" class="btn ghost">Add/Edit staged replacement</button>
+          <button type="button" id="clearRectBtn" class="btn ghost">Clear staged replacement</button>
+        </div>
+      </div>
+    </form>
+    <div class="context-menu-actions">
+      <button type="button" id="clearMarksBtn" class="btn ghost">Clear tags and program entry</button>
+    </div>
+  </aside>
+
+  <div id="drawHint" class="draw-hint hidden" aria-live="polite"></div>
+
+  <script src="app.131.v1.4.1.js?v=1.5.93"></script>
+  <script src="wnmu-satellite-feed.v1.5.85.js?v=1.5.85"></script>
+  <script src="wnmu-lite-checkboxes.v1.4.22.js?v=1.4.22"></script>
+  <script src="wnmu-cell-interactions.v1.5.108.js?v=1.5.108"></script>
+  <script src="wnmu-manual-programs.v1.5.64.js?v=1.5.63"></script>
+  <script src="config.js"></script>
+<script src="wnmu-preview-sandbox.js"></script>
+  <script src="wnmu-remote-storage.v1.5.85.js?v=1.5.85"></script>
+  <script src="wnmu-manual-program-overrides.v1.5.108.js?v=1.5.108"></script>
+  <script>
+(function () {
+  const VERSION = 'v1.4.19-inline-supabase-json-fetch-shim-clear';
+  const TABLE = 'wnmu_monthly_schedules_imported_months';
+  const originalFetch = window.fetch.bind(window);
+  const cache = new Map();
+
+  function parsePath(input) {
+    let urlText = '';
+    if (typeof input === 'string') urlText = input;
+    else if (input && typeof input.url === 'string') urlText = input.url;
+    else return null;
+
+    const decoded = decodeURIComponent(String(urlText));
+    const match = decoded.match(/supabase-imported-months\/(13\.1|13\.3)\/(\d{4}-\d{2})\/(schedule|verification)-/);
+    if (match) return { channelCode: match[1], monthKey: match[2], kind: match[3] };
+
+    try {
+      const path = decodeURIComponent(new URL(urlText, window.location.href).pathname);
+      const pathMatch = path.match(/supabase-imported-months\/(13\.1|13\.3)\/(\d{4}-\d{2})\/(schedule|verification)-/);
+      if (pathMatch) return { channelCode: pathMatch[1], monthKey: pathMatch[2], kind: pathMatch[3] };
+    } catch {}
+
+    return null;
+  }
+
+  async function readRow(channelCode, monthKey) {
+    const key = `${channelCode}::${monthKey}`;
+    if (cache.has(key)) return cache.get(key);
+
+    const cfg = window.WNMU_SHAREBOARD_SUPABASE || {};
+    if (!cfg.url || !cfg.anonKey) throw new Error('config.js is missing Supabase credentials.');
+
+    const select = 'channel_code,month_key,schedule_json,verification_json,updated_at';
+    const url = `${cfg.url}/rest/v1/${TABLE}?select=${select}&channel_code=eq.${encodeURIComponent(channelCode)}&month_key=eq.${encodeURIComponent(monthKey)}&limit=1`;
+    const res = await originalFetch(url, {
+      headers: { apikey: cfg.anonKey, Authorization: `Bearer ${cfg.anonKey}` },
+      cache: 'no-store'
+    });
+
+    if (!res.ok) {
+      const txt = await res.text().catch(() => '');
+      throw new Error(`Supabase imported month read failed (${res.status}) ${txt}`.trim());
+    }
+
+    const rows = await res.json();
+    if (!Array.isArray(rows) || !rows.length) throw new Error(`No Supabase imported month row found for ${channelCode} ${monthKey}.`);
+    cache.set(key, rows[0]);
+    return rows[0];
+  }
+
+  window.WNMU_SUPABASE_JSON_FETCH_SHIM_CLEAR = function clearWnmuSupabaseJsonFetchShim(channelCode, monthKey) {
+    try {
+      if (!channelCode && !monthKey) {
+        cache.clear();
+        return;
+      }
+      cache.delete(`${channelCode}::${monthKey}`);
+    } catch (err) {
+      console.warn(`${VERSION}: cache clear skipped`, err);
+    }
+  };
+
+  window.fetch = async function patchedWnmuFetch(input, init) {
+    const parsed = parsePath(input);
+    if (!parsed) return originalFetch(input, init);
+
+    try {
+      const row = await readRow(parsed.channelCode, parsed.monthKey);
+      const body = parsed.kind === 'verification' ? (row.verification_json || {}) : (row.schedule_json || {});
+      return new Response(JSON.stringify(body), { status: 200, headers: { 'Content-Type': 'application/json', 'X-WNMU-Source': VERSION } });
+    } catch (err) {
+      console.error(`${VERSION}: failed`, parsed, err);
+      return new Response(JSON.stringify({ error: err.message || String(err) }), { status: 500, headers: { 'Content-Type': 'application/json', 'X-WNMU-Source': VERSION } });
+    }
+  };
+
+  window.WNMU_SUPABASE_JSON_FETCH_SHIM_VERSION = VERSION;
+})();
+</script>
+  <script src="wnmu-schedule-performance.v1.5.64.js?v=1.5.63"></script>
+  <script src="wnmu-auto-tag-helpers.v1.5.96.js?v=1.5.96"></script>
+  <script src="wnmu-title-review.v1.5.65.js?v=1.5.65" defer></script>
+  <script src="wnmu-current-loader.v1.4.6.js?v=1.4.6"></script>
+  <script src="archive-tools.v1.4.1.js?v=1.4.1" defer></script>
+  <script src="wnmu-postload-fixes.v1.4.2.js?v=1.4.4" defer></script>
+  <script src="wnmu-sticky-week-headers.v1.5.64.js?v=1.5.63" defer></script>
+  <script src="wnmu-fixed-framework.v1.5.93.js?v=1.5.93" defer></script>
+  <script src="wnmu-diagnostics-panel.v1.5.6.js?v=1.5.6" defer></script>
+  <script src="wnmu-version-flag.v1.5.108.js?v=1.5.108" defer></script>
+  <script src="wnmu-sales-link.v1.5.88.js?v=1.5.88" defer></script>
+</body>
+</html>
