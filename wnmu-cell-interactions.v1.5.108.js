@@ -456,7 +456,7 @@
     const otherLabel = cleanOtherLabel(note.otherLabel || note.planningOtherLabel || note.customPlanningLabel || note.customTagLabel || note.otherText || '');
     let cleanTags = normalizeTagsForExplicitStorage(note.tags || {}, otherLabel);
     const previous = readCanonicalRecord(target.key);
-    const originalProgramMarkSnapshot = note.originalProgramMarkSnapshot || previous?.originalProgramMarkSnapshot || null;
+    const originalProgramMarkSnapshot = note.originalProgramMarkSnapshot || (!previous?.cleared ? previous?.originalProgramMarkSnapshot : null) || null;
     const record = { originalProgramMarkSnapshot, channelCode: channelCode(), monthKey: monthKey() || target.date.slice(0, 7), date: target.date, time: target.time, sourceType: target.sourceType, sourceEntryId: target.entryId || '', text: note.text || '', durationMin: duration, tags: cleanTags, otherLabel, planningOtherLabel: otherLabel, customPlanningLabel: otherLabel, customTagLabel: otherLabel, cleared: !!note.cleared, updatedAt: new Date().toISOString() };
     const store = readCanonicalStore();
     store[target.key] = record;
@@ -988,7 +988,7 @@
     window.WNMU_MENU_BULK_EDIT_ACTIVE_UNTIL = Date.now() + 1200;
     const previousOverlay = readCanonicalRecord(target.key);
     const beforeMarks = readJson(storageKey(), {});
-    const originalProgramMarkSnapshot = previousOverlay?.originalProgramMarkSnapshot || (target.entryId ? {
+    const originalProgramMarkSnapshot = (!previousOverlay?.cleared ? previousOverlay?.originalProgramMarkSnapshot : null) || (target.entryId ? {
       existed: Object.prototype.hasOwnProperty.call(beforeMarks, target.entryId),
       value: beforeMarks[target.entryId] ? JSON.parse(JSON.stringify(beforeMarks[target.entryId])) : null
     } : null);
