@@ -1,6 +1,9 @@
 (function () {
   const CONFIG = window.WNMU_MONTHLY_PAGE_CONFIG;
   if (!CONFIG) return;
+  window.WNMU_MONTHLY_SHARED_DESTROY?.();
+  const instanceEvents = new AbortController();
+  window.WNMU_MONTHLY_SHARED_DESTROY = () => instanceEvents.abort();
 
   const BUILD_VERSION = CONFIG.buildVersion;
   const DATA_FILES = {
@@ -61,6 +64,20 @@
     return d.toLocaleDateString('en-US', opts);
   }
 
+  function selectedMonthLabel() {
+    const key = window.WNMU_CURRENT_MONTH_META?.monthKey || String(appState.schedule?.days?.[0]?.date || '').slice(0, 7);
+    if (!/^\d{4}-\d{2}$/.test(key)) return 'selected month';
+    const [year, month] = key.split('-').map(Number);
+    return new Date(year, month - 1, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  }
+  function effectiveDisplayTitle(raw) {
+    try {
+      const map = JSON.parse(localStorage.getItem('wnmu_sales_title_corrections_v1') || '{}');
+      const norm = str => String(str || '').toLowerCase().replace(/&/g, ' and ').replace(/[^a-z0-9]+/g, ' ').trim();
+      const compact = str => String(str || '').toLowerCase().replace(/&/g, 'and').replace(/[^a-z0-9]+/g, '');
+      return map[norm(raw)] || map[compact(raw)] || String(raw || '');
+    } catch { return String(raw || ''); }
+  }
   function fmtTime(timeStr) {
     const [hh, mm] = String(timeStr).split(':').map(Number);
     const d = new Date(2026, 4, 1, hh, mm);
@@ -384,7 +401,7 @@
       if (!day.inMonth) {
         const none = document.createElement('div');
         none.className = 'rollup-empty';
-        none.textContent = 'Outside May';
+        none.textContent = `Outside ${selectedMonthLabel().split(' ')[0]}`;
         dayBox.appendChild(none);
         grid.appendChild(dayBox);
         return;
@@ -484,7 +501,8 @@
         content.className = 'program-content';
         const title = document.createElement('div');
         title.className = 'program-title';
-        title.textContent = entry.title;
+        title.textContent = effectiveDisplayTitle(entry.title);
+        title.dataset.wnmuOriginalTitle = entry.title;
         content.appendChild(title);
         if (entry.episode) {
           const episode = document.createElement('div');
@@ -576,7 +594,8 @@
         content.className = 'program-content';
         const title = document.createElement('div');
         title.className = 'program-title';
-        title.textContent = entry.title;
+        title.textContent = effectiveDisplayTitle(entry.title);
+        title.dataset.wnmuOriginalTitle = entry.title;
         content.appendChild(title);
         if (entry.episode) {
           const episode = document.createElement('div');
@@ -642,6 +661,20 @@
     return { wrap, screenHost, printHost, rollupHost };
   }
 
+  function alignWeekRollup(weekIndex) {
+    const host = appState.weekHosts[weekIndex];
+    const table = host?.screenHost?.querySelector('table.screen-week-grid');
+    const grid = host?.rollupHost?.querySelector('.week-rollup-grid-7');
+    const headers = table?.querySelectorAll('thead th');
+    if (!grid || !headers || headers.length !== 8) return;
+    const origin = headers[1].getBoundingClientRect();
+    const rollup = host.rollupHost.getBoundingClientRect();
+    const widths = [...headers].slice(1).map(th => th.getBoundingClientRect().width);
+    if (!rollup.width || widths.some(width => !width)) return;
+    grid.style.marginLeft = `${origin.left - rollup.left}px`;
+    grid.style.width = `${widths.reduce((sum, width) => sum + width, 0)}px`;
+    grid.style.gridTemplateColumns = widths.map(width => `${width}px`).join(' ');
+  }
   function renderWeekAt(weekIndex) {
     const week = appState.schedule.weeks[weekIndex];
     const host = appState.weekHosts[weekIndex];
@@ -650,6 +683,7 @@
     clearChildren(host.rollupHost);
     host.screenHost.appendChild(buildScreenWeekGrid(week));
     host.rollupHost.appendChild(buildWeekRollup(week, weekIndex));
+    alignWeekRollup(weekIndex);
     appState.renderedWeeks.add(weekIndex);
     renderFlags();
   }
@@ -675,7 +709,7 @@
     const box = document.createElement('section');
     box.className = 'rollup-box';
     const heading = document.createElement('h4');
-    heading.textContent = 'All checked items for May 2026';
+    heading.textContent = 'All checked items for ${selectedMonthLabel()}';
     box.appendChild(heading);
     const checked = allCheckedEntries();
     if (!checked.length) {
@@ -702,7 +736,7 @@
     const box = document.createElement('section');
     box.className = 'rollup-box';
     const heading = document.createElement('h4');
-    heading.textContent = 'All checked items for May 2026';
+    heading.textContent = 'All checked items for ${selectedMonthLabel()}';
     box.appendChild(heading);
     const note = document.createElement('div');
     note.className = 'rollup-empty';
@@ -729,7 +763,7 @@
       if (appState.progressiveIndex < total) {
         requestAnimationFrame(step);
       } else {
-        setWeekStatus(`${appState.verification?.checks?.actualDayCount ?? 0} May dates • rendered ${appState.renderedWeeks.size}/${total}`);
+        setWeekStatus(`${appState.verification?.checks?.actualDayCount ?? 0} dates • rendered ${appState.renderedWeeks.size}/${total}`);
       }
     }
     step();
@@ -886,13 +920,25 @@
     document.addEventListener('click', event => {
       const menu = document.getElementById('contextMenu');
       if (menu && !menu.classList.contains('hidden') && !menu.contains(event.target)) closeContextMenu();
-    });
+    }, { signal: instanceEvents.signal });
 
     document.addEventListener('keydown', event => {
       if (event.key === 'Escape') closeContextMenu();
-    });
+    }, { signal: instanceEvents.signal });
 
-    window.addEventListener('beforeprint', ensurePrintBuilt);
+    window.addEventListener('beforeprint', ensurePrintBuilt, { signal: instanceEvents.signal });
+    window.addEventListener('wnmu:title-corrections-changed', () => {
+      document.querySelectorAll('.program-title[data-wnmu-original-title]').forEach(title => {
+        title.textContent = effectiveDisplayTitle(title.dataset.wnmuOriginalTitle);
+      });
+      appState.printDirty = true;
+    }, { signal: instanceEvents.signal });
+    let alignFrame = 0;
+    window.addEventListener('resize', () => {
+      cancelAnimationFrame(alignFrame);
+      alignFrame = requestAnimationFrame(() =>
+        appState.weekHosts.forEach((_, index) => alignWeekRollup(index)));
+    }, { signal: instanceEvents.signal, passive: true });
   }
 
   async function init() {
@@ -949,7 +995,7 @@
       appState.verificationCached = verificationResult.fromCache;
       renderFlags();
       const fillCount = appState.verification?.checks?.autoFilledGapSlots || 0;
-      setWeekStatus(`${appState.verification?.checks?.actualDayCount ?? 0} May dates${fillCount ? ` • ${fillCount} slot fills` : ''} • rendered ${appState.renderedWeeks.size}/${appState.schedule.weeks.length}`);
+      setWeekStatus(`${appState.verification?.checks?.actualDayCount ?? 0} dates${fillCount ? ` • ${fillCount} slot fills` : ''} • rendered ${appState.renderedWeeks.size}/${appState.schedule.weeks.length}`);
     }
   }
 
