@@ -70,12 +70,18 @@
     const [year, month] = key.split('-').map(Number);
     return new Date(year, month - 1, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
   }
+  let cachedTitleCorrectionRaw = null;
+  let cachedTitleCorrections = {};
   function effectiveDisplayTitle(raw) {
     try {
-      const map = JSON.parse(localStorage.getItem('wnmu_sales_title_corrections_v1') || '{}');
+      const serialized = localStorage.getItem('wnmu_sales_title_corrections_v1') || '{}';
+      if (serialized !== cachedTitleCorrectionRaw) {
+        cachedTitleCorrectionRaw = serialized;
+        cachedTitleCorrections = JSON.parse(serialized) || {};
+      }
       const norm = str => String(str || '').toLowerCase().replace(/&/g, ' and ').replace(/[^a-z0-9]+/g, ' ').trim();
       const compact = str => String(str || '').toLowerCase().replace(/&/g, 'and').replace(/[^a-z0-9]+/g, '');
-      return map[norm(raw)] || map[compact(raw)] || String(raw || '');
+      return cachedTitleCorrections[norm(raw)] || cachedTitleCorrections[compact(raw)] || String(raw || '');
     } catch { return String(raw || ''); }
   }
   function fmtTime(timeStr) {
