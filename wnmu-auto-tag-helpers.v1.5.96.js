@@ -458,7 +458,11 @@
       cell.dataset.satelliteFeed = 'true';
       cell.style.backgroundColor = '#e6e6e6';
       cell.style.setProperty('--satellite-feed-background', '#e6e6e6');
-      window.setTimeout(() => window.WNMU_REPAINT_SATELLITE_FEEDS?.(), 0);
+      if (!sanitizeActive) window.setTimeout(() => {
+        const id = cell.dataset?.entryId || '';
+        if (id && window.WNMU_SATELLITE_FEED_API?.repaintEntry) window.WNMU_SATELLITE_FEED_API.repaintEntry(id);
+        else window.WNMU_REPAINT_SATELLITE_FEEDS?.();
+      }, 0);
     } else {
       cell.style.backgroundColor = '';
       cell.style.removeProperty('--satellite-feed-background');
