@@ -727,6 +727,13 @@
     wrap.className = 'week-grid-wrap';
     wrap.dataset.weekIndex = String(weekIndex);
 
+    if (weekIndex === 0) {
+      const printTitle = document.createElement('div');
+      printTitle.className = 'wnmu-print-document-title';
+      printTitle.textContent = `${CONFIG.channelLabel || CONFIG.channelCode} • ${selectedMonthLabel()}`;
+      printTitle.style.display = 'none';
+      wrap.appendChild(printTitle);
+    }
     const heading = buildWeekHeading(week, weekIndex);
     wrap.appendChild(heading);
 
