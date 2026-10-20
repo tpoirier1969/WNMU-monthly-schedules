@@ -353,14 +353,14 @@
   function createRollupLine(entry, includeFullMeta = false) {
     const line = document.createElement('div');
     line.className = 'rollup-line';
-    const active = getActiveTagKeys(entry).map(key => TAG_META[key].label).join(', ');
+    const active = (entry._wnmuRollupLabels || getActiveTagKeys(entry).map(key => TAG_META[key]?.label || key)).join(', ');
     const episodePart = entry.episode ? ` • ${entry.episode}` : '';
-    const rectNote = getRectNoteForEntry(entry);
+    const rectNote = entry._wnmuReplacement ? null : getRectNoteForEntry(entry);
     const notePart = rectNote?.text ? ` • Box note: ${escapeHtml(rectNote.text)}` : (rectNote ? ' • Box note' : '');
     if (includeFullMeta) {
-      line.innerHTML = `<strong>${fmtDateLabel(entry.date, { weekday: 'short', month: 'short', day: 'numeric' })}</strong> • ${fmtTime(entry.time)} • ${entry.durationMin} min • <strong>${escapeHtml(entry.title)}</strong>${episodePart ? ` <span class="meta">${escapeHtml(episodePart)}</span>` : ''}${active ? ` <span class="meta">• ${escapeHtml(active)}</span>` : ''}${notePart ? ` <span class="meta">${notePart}</span>` : ''}`;
+      line.innerHTML = `<strong>${fmtDateLabel(entry.date, { weekday: 'short', month: 'short', day: 'numeric' })}</strong> • ${fmtTime(entry.time)} • ${entry.durationMin} min • <strong>${escapeHtml(effectiveDisplayTitle(entry.title))}</strong>${episodePart ? ` <span class="meta">${escapeHtml(episodePart)}</span>` : ''}${active ? ` <span class="meta">• ${escapeHtml(active)}</span>` : ''}${notePart ? ` <span class="meta">${notePart}</span>` : ''}`;
     } else {
-      line.innerHTML = `<strong>${fmtTime(entry.time)}</strong> • ${escapeHtml(entry.title)}${active ? ` <span class="meta">(${escapeHtml(active)})</span>` : ''}${notePart ? ` <span class="meta">${notePart}</span>` : ''}`;
+      line.innerHTML = `<strong>${fmtTime(entry.time)}</strong> • ${escapeHtml(effectiveDisplayTitle(entry.title))}${active ? ` <span class="meta">(${escapeHtml(active)})</span>` : ''}${notePart ? ` <span class="meta">${notePart}</span>` : ''}`;
     }
     return line;
   }
@@ -381,6 +381,57 @@
     return box;
   }
 
+  function rollupOtherLabel(mark) {
+    return String(mark?.otherLabel || mark?.planningOtherLabel || mark?.customPlanningLabel || mark?.customTagLabel || '').trim();
+  }
+  function rollupTagLabels(tags, otherLabel) {
+    return [...new Set([...TAG_ORDER, 'other'])].filter(tag => tag !== 'satelliteFeed' && tags?.[tag] === true && (tag !== 'other' || otherLabel))
+      .map(tag => tag === 'other' ? otherLabel : (TAG_META[tag]?.label || tag));
+  }
+  function dayRollupEntries(date) {
+    const imported = appState.dateMap[date]?.entries || [];
+    const notes = new Map();
+    Object.values(appState.marks || {}).forEach(mark => {
+      if (mark?.cellOverrideV15 && !mark.cleared && mark.date === date && mark.time && mark.text) notes.set(mark.time, mark);
+    });
+    try {
+      const key = STORAGE_KEY + '::cellOverrides.v1.5.0';
+      const canonical = JSON.parse(localStorage.getItem(key) || '{}');
+      Object.values(canonical || {}).forEach(mark => {
+        if (!mark || mark.date !== date || !mark.time) return;
+        if (mark.cleared) notes.delete(mark.time);
+        else if (mark.text) notes.set(mark.time, mark);
+      });
+    } catch {}
+    const overlays = [...notes.values()].map(mark => {
+      const slot = timeToSlotIndex(mark.time);
+      const base = imported.find(entry => entry.time === mark.time) || imported.find(entry => {
+        const first = timeToSlotIndex(entry.time);
+        return slot >= first && slot < first + Number(entry.slotCount || 1);
+      });
+      const other = rollupOtherLabel(mark);
+      const inheritedTags = base ? getTagsForEntry(base) : {};
+      const tags = { ...inheritedTags, ...(mark.tags || {}) };
+      if (other) tags.other = true;
+      const duration = Number(mark.durationMin || mark.rectNote?.durationMin || 30);
+      return { date, time: mark.time, title: String(mark.text), durationMin: duration, episode: '',
+        _wnmuReplacement: true, _wnmuRollupLabels: rollupTagLabels(tags, other),
+        _startSlot: slot, _endSlot: slot + Math.max(1, Math.round(duration / 30)) };
+    });
+    const normal = imported.filter(entry => {
+      const slot = timeToSlotIndex(entry.time);
+      if (overlays.some(box => slot >= box._startSlot && slot < box._endSlot)) return false;
+      const mark = appState.marks[entry._id] || {};
+      return !!(getActiveTagKeys(entry).length || getRectNoteForEntry(entry) ||
+        (rollupOtherLabel(mark) && mark.tags?.other));
+    }).map(entry => {
+      const mark = appState.marks[entry._id] || {};
+      const other = rollupOtherLabel(mark);
+      return { ...entry, _wnmuRollupLabels: rollupTagLabels({ ...getTagsForEntry(entry), other: !!other }, other) };
+    });
+    return normal.concat(overlays).sort((a,b) => a.time.localeCompare(b.time));
+  }
+
   function buildWeekRollup(week, weekIndex) {
     const box = document.createElement('section');
     box.className = 'rollup-box';
@@ -394,6 +445,7 @@
     week.forEach(day => {
       const dayBox = document.createElement('div');
       dayBox.className = 'day-rollup compact-day-rollup';
+      dayBox.dataset.rollupDate = day.date;
       if (!day.inMonth) dayBox.classList.add('outside-day');
       const heading = document.createElement('h5');
       heading.textContent = `${day.dayName} • ${fmtDateLabel(day.date, { month: 'short', day: 'numeric' })}`;
@@ -406,7 +458,7 @@
         grid.appendChild(dayBox);
         return;
       }
-      const entries = (appState.dateMap[day.date]?.entries || []).filter(entry => getActiveTagKeys(entry).length || getRectNoteForEntry(entry));
+      const entries = dayRollupEntries(day.date);
       if (!entries.length) {
         const none = document.createElement('div');
         none.className = 'rollup-empty';
@@ -661,6 +713,30 @@
     return { wrap, screenHost, printHost, rollupHost };
   }
 
+  function refreshDayRollup(date) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date || '')) return;
+    appState.marks = loadMarks();
+    appState.schedule?.weeks?.forEach((week, index) => {
+      const day = week.find(candidate => candidate.inMonth && candidate.date === date);
+      const host = appState.weekHosts[index];
+      const previous = host?.rollupHost?.querySelector('[data-rollup-date="' + date + '"]');
+      if (day && previous) {
+        const replacement = buildWeekRollup([day], index).querySelector('.day-rollup');
+        if (replacement) previous.replaceWith(replacement);
+      }
+    });
+    appState.printDirty = true;
+  }
+  function refreshAllRollups() {
+    appState.marks = loadMarks();
+    appState.schedule?.weeks?.forEach((week, index) => {
+      const host = appState.weekHosts[index];
+      if (!host?.rollupHost?.querySelector('.rollup-box')) return;
+      host.rollupHost.replaceChildren(buildWeekRollup(week, index));
+      alignWeekRollup(index);
+    });
+    appState.printDirty = true;
+  }
   function alignWeekRollup(weekIndex) {
     const host = appState.weekHosts[weekIndex];
     const table = host?.screenHost?.querySelector('table.screen-week-grid');
@@ -915,7 +991,7 @@
       if (!entry) return;
       event.preventDefault();
       openContextMenu(entry, event.clientX, event.clientY);
-    });
+    }, { signal: instanceEvents.signal });
 
     document.addEventListener('click', event => {
       const menu = document.getElementById('contextMenu');
@@ -927,10 +1003,19 @@
     }, { signal: instanceEvents.signal });
 
     window.addEventListener('beforeprint', ensurePrintBuilt, { signal: instanceEvents.signal });
+    const refreshEditedDay = event => {
+      const value = String(event.detail?.entryId || event.detail?.cellKey || '');
+      const date = value.match(/\d{4}-\d{2}-\d{2}/)?.[0];
+      if (date) refreshDayRollup(date);
+    };
+    window.addEventListener('wnmu:cell-planning-tags-saved', refreshEditedDay, { signal: instanceEvents.signal });
+    window.addEventListener('wnmu:cell-note-saved', refreshEditedDay, { signal: instanceEvents.signal });
+    window.addEventListener('wnmu:remote-storage-loaded', refreshAllRollups, { signal: instanceEvents.signal });
     window.addEventListener('wnmu:title-corrections-changed', () => {
       document.querySelectorAll('.program-title[data-wnmu-original-title]').forEach(title => {
         title.textContent = effectiveDisplayTitle(title.dataset.wnmuOriginalTitle);
       });
+      refreshAllRollups();
       appState.printDirty = true;
     }, { signal: instanceEvents.signal });
     let alignFrame = 0;
