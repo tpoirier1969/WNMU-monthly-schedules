@@ -1,8 +1,8 @@
 (function () {
   'use strict';
 
-  const PACKAGE_VERSION = 'v1.5.109';
-  const PACKAGE_LABEL = 'White Override tags, daily checked-items, title cleanup and efficient refresh';
+  const PACKAGE_VERSION = 'v1.5.110';
+  const PACKAGE_LABEL = 'PDF print layout and responsive export fixes';
   const FLAG_TEXT = `${PACKAGE_VERSION} • ${PACKAGE_LABEL}`;
 
   function removeComponentVersionPanel() {

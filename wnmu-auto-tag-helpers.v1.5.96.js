@@ -517,7 +517,7 @@
     if (sanitizeActive) return;
     sanitizeActive = true;
     try {
-      document.querySelectorAll('td.program-cell[data-entry-id]').forEach(cell => renderTags(cell, effectiveTagsForCell(cell)));
+      document.querySelectorAll('table.screen-week-grid td.program-cell[data-entry-id]').forEach(cell => renderTags(cell, effectiveTagsForCell(cell)));
       window.dispatchEvent(new CustomEvent('wnmu:auto-tags-rendered', { detail: { version: VERSION, at: new Date().toISOString() } }));
       window.setTimeout(() => window.WNMU_REPAINT_SATELLITE_FEEDS?.(), 25);
     } finally {

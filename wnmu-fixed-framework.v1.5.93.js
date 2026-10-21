@@ -177,7 +177,7 @@
     const target = document.getElementById('weekGrids');
     if (target && 'MutationObserver' in window) {
       const isOwnMarkup = (node) => node && node.nodeType === 1 && (node.matches?.('.program-tags,.tag-pill,.wnmu-cell-override-layer,.wnmu-cell-override-box') || node.closest?.('.program-tags,.wnmu-cell-override-layer'));
-      const looksLikeGridContent = (node) => node && node.nodeType === 1 && !isOwnMarkup(node) && (node.matches?.('table.screen-week-grid,tr,td.program-cell,.program-cell,.week-grid-wrap,.screen-host') || node.querySelector?.('table.screen-week-grid,tr,td.program-cell,.program-cell,.week-grid-wrap,.screen-host'));
+      const looksLikeGridContent = (node) => node && node.nodeType === 1 && !node.closest?.('.print-host') && !node.matches?.('table.print-week-grid,.print-host') && !isOwnMarkup(node) && (node.matches?.('table.screen-week-grid,.week-grid-wrap,.screen-host') || node.querySelector?.('table.screen-week-grid'));
       const observer = new MutationObserver(mutations => {
         if (mutations.some(m => Array.from(m.addedNodes || []).some(looksLikeGridContent))) scheduleMeasureStickyBlock(160);
       });

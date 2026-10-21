@@ -511,7 +511,7 @@
   }
   function loadRenderer() {
     const script = document.createElement('script');
-    script.src = `${CONFIG.sharedRendererFile}?loader=${BUILD_VERSION}&release=1.5.109`;
+    script.src = `${CONFIG.sharedRendererFile}?loader=${BUILD_VERSION}&release=1.5.110`;
     script.defer = true;
     document.body.appendChild(script);
   }

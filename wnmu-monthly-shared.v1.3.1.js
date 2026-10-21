@@ -589,10 +589,21 @@
         duration.textContent = `${entry.durationMin} min`;
         content.appendChild(duration);
         const activeTags = getActiveTagKeys(entry);
-        if (activeTags.length) {
+        const savedMark = appState.marks[entry._id] || {};
+        const customLabel = rollupOtherLabel(savedMark);
+        // The print grid is static, so include custom tags here instead of
+        // asking the screen tag observer to revisit every hidden print cell.
+        if (activeTags.length || (customLabel && savedMark.tags?.other)) {
           const tags = document.createElement('div');
           tags.className = 'program-tags';
           activeTags.slice(0, 5).forEach(tagKey => tags.appendChild(createTagPill(tagKey)));
+          if (customLabel && savedMark.tags?.other) {
+            const custom = document.createElement('span');
+            custom.className = 'tag-pill';
+            custom.textContent = customLabel;
+            custom.dataset.wnmuCustomTagLabel = customLabel;
+            tags.appendChild(custom);
+          }
           content.appendChild(tags);
         }
         td.appendChild(content);
@@ -716,6 +727,13 @@
     wrap.className = 'week-grid-wrap';
     wrap.dataset.weekIndex = String(weekIndex);
 
+    if (weekIndex === 0) {
+      const printTitle = document.createElement('div');
+      printTitle.className = 'wnmu-print-document-title';
+      printTitle.textContent = `${CONFIG.channelLabel || CONFIG.channelCode} • ${selectedMonthLabel()}`;
+      printTitle.style.display = 'none';
+      wrap.appendChild(printTitle);
+    }
     const heading = buildWeekHeading(week, weekIndex);
     wrap.appendChild(heading);
 
@@ -880,6 +898,9 @@
 
   function ensurePrintBuilt() {
     if (appState.printBuilt && !appState.printDirty) return;
+    // Unlike the screen grid, the print grid is built only on demand.
+    // Re-read current edits and auto-tags before constructing print cells.
+    appState.marks = loadMarks();
     appState.weekHosts.forEach((host, weekIndex) => {
       clearChildren(host.printHost);
       host.printHost.appendChild(buildPrintWeekGrid(appState.schedule.weeks[weekIndex]));

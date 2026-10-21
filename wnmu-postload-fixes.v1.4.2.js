@@ -34,7 +34,16 @@
     fixRollupHeadings();
   }
 
-  const observer = new MutationObserver(() => runFixes());
+  // The print grids duplicate every schedule cell in a hidden printable table.
+  // Adding those tables must not trigger a scan of the whole live schedule.
+  const observer = new MutationObserver(mutations => {
+    const screenChange = mutations.some(mutation => Array.from(mutation.addedNodes || []).some(node =>
+      node?.nodeType === 1 &&
+      !node.closest?.('.print-host') &&
+      (node.matches?.('.week-grid-wrap,table.screen-week-grid,.day-rollup') ||
+       node.querySelector?.('table.screen-week-grid,.day-rollup'))));
+    if (screenChange) runFixes();
+  });
 
   function start() {
     runFixes();
