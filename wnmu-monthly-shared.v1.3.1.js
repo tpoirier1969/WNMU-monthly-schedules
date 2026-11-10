@@ -72,7 +72,21 @@
   }
   let cachedTitleCorrectionRaw = null;
   let cachedTitleCorrections = {};
-  function effectiveDisplayTitle(raw) {
+  function standardTitleCase(raw) {
+    const little = new Set(['a','an','and','as','at','but','by','for','from','in','into','nor','of','on','or','per','the','to','vs','with']);
+    const acronyms = new Set(['PBS','BBC','WNMU','NMU','NOVA','POV','USA','TV','DW','NPR','APT']);
+    const words = String(raw || '').trim().replace(/\s+/g, ' ').toLowerCase().split(' ');
+    return words.map((word, index) => {
+      const alpha = word.replace(/[^a-z0-9]/g, '').toUpperCase();
+      if (acronyms.has(alpha)) return alpha;
+      if (index > 0 && index < words.length - 1 && little.has(word)) return word;
+      return word.replace(/(^|[-(\[/])([a-z])/g, (_, prefix, ch) => prefix + ch.toUpperCase());
+    }).join(' ');
+  }
+  function effectiveDisplayTitle(raw, entry) {
+    const unmodified = String(raw || '');
+    // User-entered replacement titles are intentional: preserve their casing.
+    if (entry?._wnmuReplacement || entry?.durationSource === 'manual-schedule-overwrite') return unmodified;
     try {
       const serialized = localStorage.getItem('wnmu_sales_title_corrections_v1') || '{}';
       if (serialized !== cachedTitleCorrectionRaw) {
@@ -81,8 +95,9 @@
       }
       const norm = str => String(str || '').toLowerCase().replace(/&/g, ' and ').replace(/[^a-z0-9]+/g, ' ').trim();
       const compact = str => String(str || '').toLowerCase().replace(/&/g, 'and').replace(/[^a-z0-9]+/g, '');
-      return cachedTitleCorrections[norm(raw)] || cachedTitleCorrections[compact(raw)] || String(raw || '');
-    } catch { return String(raw || ''); }
+      return cachedTitleCorrections[norm(raw)] || cachedTitleCorrections[compact(raw)] ||
+        String(entry?.displayTitle || '') || standardTitleCase(unmodified);
+    } catch { return String(entry?.displayTitle || '') || standardTitleCase(unmodified); }
   }
   function fmtTime(timeStr) {
     const [hh, mm] = String(timeStr).split(':').map(Number);
@@ -344,11 +359,15 @@
     banner.innerHTML = `<strong>Read-only archive:</strong> ${escapeHtml(row.archive_name || 'Untitled archive')} • ${escapeHtml(row.channel_label || '')} • ${new Date(row.created_at).toLocaleString()}${row.archive_note ? ` • ${escapeHtml(row.archive_note)}` : ''}`;
   }
 
-  function createTagPill(tagKey) {
+  function formattedMonthlyTopic(topic) {
+    const name = String(topic || '').trim();
+    return /^christmas (?:eve|day)$/i.test(name) ? 'Christmas' : name;
+  }
+  function createTagPill(tagKey, selectedTopic = '') {
     const pill = document.createElement('span');
     pill.className = 'tag-pill';
     pill.style.setProperty('--tag-color', TAG_META[tagKey].color);
-    pill.textContent = TAG_META[tagKey].label;
+    pill.textContent = tagKey === 'monthlyTopic' && selectedTopic ? formattedMonthlyTopic(selectedTopic) : TAG_META[tagKey].label;
     return pill;
   }
 
@@ -360,9 +379,9 @@
     const rectNote = entry._wnmuReplacement ? null : getRectNoteForEntry(entry);
     const notePart = rectNote?.text ? ` • Box note: ${escapeHtml(rectNote.text)}` : (rectNote ? ' • Box note' : '');
     if (includeFullMeta) {
-      line.innerHTML = `<strong>${fmtDateLabel(entry.date, { weekday: 'short', month: 'short', day: 'numeric' })}</strong> • ${fmtTime(entry.time)} • ${entry.durationMin} min • <strong>${escapeHtml(effectiveDisplayTitle(entry.title))}</strong>${episodePart ? ` <span class="meta">${escapeHtml(episodePart)}</span>` : ''}${active ? ` <span class="meta">• ${escapeHtml(active)}</span>` : ''}${notePart ? ` <span class="meta">${notePart}</span>` : ''}`;
+      line.innerHTML = `<strong>${fmtDateLabel(entry.date, { weekday: 'short', month: 'short', day: 'numeric' })}</strong> • ${fmtTime(entry.time)} • ${entry.durationMin} min • <strong>${escapeHtml(effectiveDisplayTitle(entry.title, entry))}</strong>${episodePart ? ` <span class="meta">${escapeHtml(episodePart)}</span>` : ''}${active ? ` <span class="meta">• ${escapeHtml(active)}</span>` : ''}${notePart ? ` <span class="meta">${notePart}</span>` : ''}`;
     } else {
-      line.innerHTML = `<strong>${fmtTime(entry.time)}</strong> • ${escapeHtml(effectiveDisplayTitle(entry.title))}${active ? ` <span class="meta">(${escapeHtml(active)})</span>` : ''}${notePart ? ` <span class="meta">${notePart}</span>` : ''}`;
+      line.innerHTML = `<strong>${fmtTime(entry.time)}</strong> • ${escapeHtml(effectiveDisplayTitle(entry.title, entry))}${active ? ` <span class="meta">(${escapeHtml(active)})</span>` : ''}${notePart ? ` <span class="meta">${notePart}</span>` : ''}`;
     }
     return line;
   }
@@ -386,9 +405,9 @@
   function rollupOtherLabel(mark) {
     return String(mark?.otherLabel || mark?.planningOtherLabel || mark?.customPlanningLabel || mark?.customTagLabel || '').trim();
   }
-  function rollupTagLabels(tags, otherLabel) {
+  function rollupTagLabels(tags, otherLabel, selectedTopic = '') {
     return [...new Set([...TAG_ORDER, 'other'])].filter(tag => tag !== 'satelliteFeed' && tags?.[tag] === true && (tag !== 'other' || otherLabel))
-      .map(tag => tag === 'other' ? otherLabel : (TAG_META[tag]?.label || tag));
+      .map(tag => tag === 'other' ? otherLabel : tag === 'monthlyTopic' && selectedTopic ? formattedMonthlyTopic(selectedTopic) : (TAG_META[tag]?.label || tag));
   }
   function dayRollupEntries(date) {
     const imported = appState.dateMap[date]?.entries || [];
@@ -417,7 +436,7 @@
       if (other) tags.other = true;
       const duration = Number(mark.durationMin || mark.rectNote?.durationMin || 30);
       return { date, time: mark.time, title: String(mark.text), durationMin: duration, episode: '',
-        _wnmuReplacement: true, _wnmuRollupLabels: rollupTagLabels(tags, other),
+        _wnmuReplacement: true, _wnmuRollupLabels: rollupTagLabels(tags, other, mark.monthlyTopicLabel || (base && appState.marks[base._id]?.monthlyTopicLabel) || ''),
         _startSlot: slot, _endSlot: slot + Math.max(1, Math.round(duration / 30)) };
     });
     const normal = imported.filter(entry => {
@@ -429,7 +448,7 @@
     }).map(entry => {
       const mark = appState.marks[entry._id] || {};
       const other = rollupOtherLabel(mark);
-      return { ...entry, _wnmuRollupLabels: rollupTagLabels({ ...getTagsForEntry(entry), other: !!other }, other) };
+      return { ...entry, _wnmuRollupLabels: rollupTagLabels({ ...getTagsForEntry(entry), other: !!other }, other, mark.monthlyTopicLabel || '') };
     });
     // A manually checked blank slot has no imported program entry. It should
     // still be listed by day, without manufacturing a schedule airing.
@@ -446,7 +465,7 @@
       });
       if (isCovered || overlays.some(note => slot >= note._startSlot && slot < note._endSlot)) return;
       const other = rollupOtherLabel(mark);
-      const labels = rollupTagLabels({ ...(mark.tags || {}), other: !!other }, other);
+      const labels = rollupTagLabels({ ...(mark.tags || {}), other: !!other }, other, mark.monthlyTopicLabel || '');
       if (!labels.length) return;
       blank.push({ date, time, title: '(Blank schedule slot)', durationMin: 30,
         episode: '', _wnmuReplacement: true, _wnmuRollupLabels: labels });
@@ -575,8 +594,10 @@
         content.className = 'program-content';
         const title = document.createElement('div');
         title.className = 'program-title';
-        title.textContent = effectiveDisplayTitle(entry.title);
+        title.textContent = effectiveDisplayTitle(entry.title, entry);
         title.dataset.wnmuOriginalTitle = entry.title;
+        title.dataset.wnmuImportedDisplayTitle = entry.displayTitle || '';
+        title.dataset.wnmuManualTitle = entry.durationSource === 'manual-schedule-overwrite' ? '1' : '0';
         content.appendChild(title);
         if (entry.episode) {
           const episode = document.createElement('div');
@@ -596,7 +617,7 @@
         if (activeTags.length || (customLabel && savedMark.tags?.other)) {
           const tags = document.createElement('div');
           tags.className = 'program-tags';
-          activeTags.slice(0, 5).forEach(tagKey => tags.appendChild(createTagPill(tagKey)));
+          activeTags.slice(0, 5).forEach(tagKey => tags.appendChild(createTagPill(tagKey, savedMark.monthlyTopicLabel || '')));
           if (customLabel && savedMark.tags?.other) {
             const custom = document.createElement('span');
             custom.className = 'tag-pill';
@@ -643,6 +664,7 @@
     const skip = new Array(7).fill(0);
     for (let slot = 0; slot < 48; slot++) {
       const tr = document.createElement('tr');
+      tr.className = slot % 2 === 0 ? 'hour-start' : 'half-hour-start';
       const slotTime = slot % 2 === 0 ? `${String(Math.floor(slot / 2)).padStart(2, '0')}:00` : `${String(Math.floor(slot / 2)).padStart(2, '0')}:30`;
       const timeTd = document.createElement('td');
       timeTd.className = 'time-col';
@@ -679,8 +701,10 @@
         content.className = 'program-content';
         const title = document.createElement('div');
         title.className = 'program-title';
-        title.textContent = effectiveDisplayTitle(entry.title);
+        title.textContent = effectiveDisplayTitle(entry.title, entry);
         title.dataset.wnmuOriginalTitle = entry.title;
+        title.dataset.wnmuImportedDisplayTitle = entry.displayTitle || '';
+        title.dataset.wnmuManualTitle = entry.durationSource === 'manual-schedule-overwrite' ? '1' : '0';
         content.appendChild(title);
         if (entry.episode) {
           const episode = document.createElement('div');
@@ -696,7 +720,7 @@
         if (activeTags.length) {
           const tags = document.createElement('div');
           tags.className = 'program-tags';
-          activeTags.slice(0, 5).forEach(tagKey => tags.appendChild(createTagPill(tagKey)));
+          activeTags.slice(0, 5).forEach(tagKey => tags.appendChild(createTagPill(tagKey, appState.marks[entry._id]?.monthlyTopicLabel || '')));
           content.appendChild(tags);
         }
         td.appendChild(content);
@@ -1056,7 +1080,10 @@
     window.addEventListener('wnmu:remote-storage-loaded', refreshAllRollups, { signal: instanceEvents.signal });
     window.addEventListener('wnmu:title-corrections-changed', () => {
       document.querySelectorAll('.program-title[data-wnmu-original-title]').forEach(title => {
-        title.textContent = effectiveDisplayTitle(title.dataset.wnmuOriginalTitle);
+        title.textContent = effectiveDisplayTitle(title.dataset.wnmuOriginalTitle, {
+          displayTitle: title.dataset.wnmuImportedDisplayTitle,
+          durationSource: title.dataset.wnmuManualTitle === '1' ? 'manual-schedule-overwrite' : ''
+        });
       });
       refreshAllRollups();
       appState.printDirty = true;

@@ -103,9 +103,81 @@
     ];
   }
 
-  function defaultSatellite(entryId) {
+  const JSON_CACHE_PREFIX = 'wnmu_json_cache_v1_3_1';
+  let currentHistoryFile = '';
+  let currentHistoryEntries = [];
+  let currentHistoryReady = false;
+  const slotPatternCache = new Map();
+
+  function normalizeProgramTitle(raw) {
+    return String(raw || '').toLowerCase().replace(/&/g, ' and ')
+      .replace(/[^a-z0-9]+/g, ' ').trim().replace(/\s+/g, ' ');
+  }
+  function currentImportedAirings() {
+    const c = cfg();
+    const file = String(c.scheduleFile || '');
+    if (!file) return [];
+    if (file !== currentHistoryFile || !currentHistoryReady) {
+      currentHistoryFile = file;
+      currentHistoryReady = false;
+      currentHistoryEntries = [];
+      slotPatternCache.clear();
+      try {
+        const key = `${JSON_CACHE_PREFIX}::schedule::${c.buildVersion}::${file}`;
+        const schedule = JSON.parse(localStorage.getItem(key) || '{}');
+        if (Array.isArray(schedule.days) && schedule.days.length) {
+          currentHistoryEntries = schedule.days.flatMap(day =>
+            (day.entries || []).map(entry => ({
+              date: entry.date || day.date, time: entry.time, title: entry.title
+            })));
+          currentHistoryReady = true;
+        }
+      } catch (err) {
+        console.warn('PBS Feed pattern history unavailable.', err);
+      }
+    }
+    return currentHistoryEntries;
+  }
+  function regularProgramCountsForSlot(info) {
+    const current = currentImportedAirings();
+    const prior = window.WNMU_PREVIOUS_MONTH_PREMIERE_CONTEXT;
+    const context = window.WNMU_CURRENT_MONTH_META;
+    const hasPrior = prior?.available && prior.channelCode === cfg().channelCode &&
+      prior.currentMonth === context?.monthKey && Array.isArray(prior.entries);
+    const cacheKey = `${currentHistoryFile}::${info.weekday}::${info.time}::${hasPrior ? prior.previousMonth : 'no-prior'}`;
+    if (currentHistoryReady && slotPatternCache.has(cacheKey)) return slotPatternCache.get(cacheKey);
+    const matchSlot = entry => entry.time === info.time && weekday(entry.date) === info.weekday;
+    const present = current.filter(matchSlot).map(entry => normalizeProgramTitle(entry.title)).filter(Boolean);
+    const titles = present.length < 3 && hasPrior
+      ? present.concat(prior.entries.filter(matchSlot).map(entry => normalizeProgramTitle(entry.title)).filter(Boolean))
+      : present;
+    const counts = new Map();
+    titles.forEach(title => counts.set(title, (counts.get(title) || 0) + 1));
+    const result = counts;
+    if (currentHistoryReady) slotPatternCache.set(cacheKey, result);
+    return result;
+  }
+  function primeTimePatternIsRegular(entryId, cell) {
     const info = entryInfo(entryId);
-    return rulesForChannel().some(rule => matchRule(info, rule));
+    const titleNode = cell?.querySelector?.('.program-title');
+    const title = normalizeProgramTitle(titleNode?.dataset?.wnmuOriginalTitle || titleNode?.textContent);
+    if (!title || cell?.classList?.contains('wnmu-has-cell-override')) return false;
+    const counts = regularProgramCountsForSlot(info);
+    const occurrences = counts.get(title) || 0;
+    let strongestAlternative = 0;
+    for (const [name, count] of counts) {
+      if (name !== title) strongestAlternative = Math.max(strongestAlternative, count);
+    }
+    // Do not automatically PBS-tag a one-off substitute at an established hour.
+    return occurrences >= 2 && occurrences > strongestAlternative;
+  }
+  function defaultSatellite(entryId, cell) {
+    const info = entryInfo(entryId);
+    if (!rulesForChannel().some(rule => matchRule(info, rule))) return false;
+    // Preserve the existing daytime/off-peak schedule windows. Prime-time
+    // blocks must also match an established program-title pattern.
+    if (timeToSlot(info.time) < timeToSlot('19:00')) return true;
+    return primeTimePatternIsRegular(entryId, cell);
   }
 
   function explicitSatellite(entryId) {
@@ -159,7 +231,7 @@
     const explicit = explicitSatellite(entryId);
     if (explicit !== null) return explicit;
     if (cellTextLooksLikePbsFeed(cell)) return true;
-    return defaultSatellite(entryId);
+    return defaultSatellite(entryId, cell);
   }
 
   function setOverride(entryId, checked) {
@@ -170,19 +242,17 @@
     const state = all[entryId] && typeof all[entryId] === 'object' ? { ...all[entryId] } : {};
     const tags = state.tags && typeof state.tags === 'object' ? { ...state.tags } : {};
 
-    const def = defaultSatellite(entryId);
-
+    // An explicit user choice must survive even if it equals today's default:
+    // schedule pattern history can change after the next month is imported.
     delete tags[SATELLITE_TAG];
     delete tags[SATELLITE_OFF_TAG];
     delete state[SATELLITE_TAG];
     delete state[SATELLITE_OFF_TAG];
 
-    if (checked !== def) {
-      if (checked) tags[SATELLITE_TAG] = true;
-      else {
-        tags[SATELLITE_TAG] = false;
-        tags[SATELLITE_OFF_TAG] = true;
-      }
+    if (checked) tags[SATELLITE_TAG] = true;
+    else {
+      tags[SATELLITE_TAG] = false;
+      tags[SATELLITE_OFF_TAG] = true;
     }
 
     if (Object.keys(tags).length) state.tags = tags;
@@ -381,6 +451,16 @@
   }
 
   function installHooks() {
+    window.addEventListener('wnmu:month-ready', () => {
+      currentHistoryFile = '';
+      currentHistoryReady = false;
+      slotPatternCache.clear();
+    });
+    window.addEventListener('wnmu:remote-storage-loaded', () => {
+      currentHistoryFile = '';
+      currentHistoryReady = false;
+      slotPatternCache.clear();
+    });
     window.WNMU_REPAINT_SATELLITE_FEEDS = () => schedulePaint(fullGridRoot());
     window.WNMU_SATELLITE_FEED_API = {
       tag: SATELLITE_TAG,
@@ -423,15 +503,15 @@
 
   function installObserver() {
     const host = document.getElementById('weekGrids') || document.body;
+    // Planning-tag pills, menu UI and note overlays are frequent DOM edits.
+    // They are not new schedule airings and must not repaint the entire month.
+    const isScheduleContent = node => node?.nodeType === 1 &&
+      (node.matches?.('table.screen-week-grid,.screen-host,.week-grid-wrap,td.program-cell[data-entry-id]') ||
+       node.querySelector?.('table.screen-week-grid,td.program-cell[data-entry-id]'));
     const observer = new MutationObserver(mutations => {
-      let root = null;
-      for (const mutation of mutations) {
-        if (mutation.addedNodes && mutation.addedNodes.length) {
-          root = mutation.target;
-          break;
-        }
+      if (mutations.some(mutation => Array.from(mutation.addedNodes || []).some(isScheduleContent))) {
+        schedulePaint(host);
       }
-      if (root) schedulePaint(root);
     });
     observer.observe(host, { childList: true, subtree: true });
   }
@@ -439,7 +519,9 @@
   function installDelayedSweeps() {
     // The old renderer progressively builds weeks. These short sweeps catch
     // default/preselected Satellite Feed cells after each render chunk appears.
-    [150, 500, 1200, 2500, 5000, 9000, 15000].forEach(ms => {
+    // Structure observer and remote-load events cover ongoing additions.
+    // Keep two bounded startup safety passes, not seven full-month sweeps.
+    [300, 1600].forEach(ms => {
       window.setTimeout(() => schedulePaint(fullGridRoot()), ms);
     });
   }

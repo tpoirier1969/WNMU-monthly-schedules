@@ -326,7 +326,8 @@
     tags.other = !!otherLabel;
     // Also save explicit false values: a deliberately unchecked automatic tag
     // must stay off on the committed replacement.
-    const markJson = { tags, otherLabel, planningOtherLabel: otherLabel, customPlanningLabel: otherLabel, customTagLabel: otherLabel };
+    const monthlyTopicLabel = tags.monthlyTopic ? String(row.tags_json?.monthlyTopicLabel || '').trim().slice(0,160) : '';
+    const markJson = { tags, monthlyTopicLabel, otherLabel, planningOtherLabel: otherLabel, customPlanningLabel: otherLabel, customTagLabel: otherLabel };
     try { const key = storageKey(); if (key) { const stateObj = readJson(key, {}); stateObj[entryKey] = { ...(stateObj[entryKey] || {}), ...markJson }; writeJson(key, stateObj); } } catch (err) { console.warn('Manual overwrite tag local save skipped.', err); }
     try { await upsertSharedMark(entryKey, markJson, 'manual-schedule-overwrite-commit'); } catch (err) { console.warn('Manual overwrite tag shared save skipped.', err); }
     return entryKey;
@@ -337,7 +338,19 @@
     const result = replaceScheduleRange(originalSchedule, imported.verification_json || {}, row);
     validateOverwrite(originalSchedule, result, row);
     try { const backupKey = `wnmu_manual_overwrite_backup::${channelCode()}::${row.month_key || monthKey()}::${row.date}::${rowTime(row)}::${Date.now()}`; localStorage.setItem(backupKey, JSON.stringify({ version: VERSION, row, importedRowUpdatedAt: imported.updated_at || '', schedule_json: originalSchedule, verification_json: imported.verification_json || {} })); } catch (err) { console.warn('Local pre-overwrite backup skipped.', err); }
-    await patchImportedMonth(row, result.schedule, result.verification);
+    const saved = await patchImportedMonth(row, result.schedule, result.verification);
+    // An HTTP 200 with zero affected rows is not a successful commit. Confirm
+    // the actual database representation contains the new replacement first.
+    const savedDay = saved?.schedule_json?.days?.find(day => day.date === row.date);
+    const savedEntry = savedDay?.entries?.find(entry =>
+      entry.time === result.manualEntry.time &&
+      entry.title === result.manualEntry.title &&
+      Number(entry.durationMin) === Number(result.manualEntry.durationMin) &&
+      entry.manualScheduleOverwrite === true);
+    if (!savedEntry) throw new Error(
+      'Commit was not confirmed in the database. The staged box has been kept. ' +
+      'No cleanup was performed; please retry or check the error before continuing.');
+    clearSupabaseJsonFetchShimCache(row);
     clearJsonCachesForMonth(row.channel_code || channelCode(), row.month_key || monthKey() || String(row.date).slice(0, 7));
     const newEntryKey = scheduleEntryId(result.manualEntry);
     window.WNMU_LAST_MANUAL_SCHEDULE_OVERWRITE = { version: VERSION, row, newEntryKey, replacedCount: result.replaced.length, preservedSplitCount: result.preserved.length, at: new Date().toISOString() };
@@ -465,7 +478,7 @@
     const text = String(menu.querySelector('#wnmuCellText')?.value || staged?.text || '').trim();
     if (!text) throw new Error('Type a program title/replacement text before committing.');
     const duration = nearestDuration(menu.querySelector('input[name="wnmuCellDuration"]:checked')?.value || staged?.durationMin || 30);
-    return { channel_code: channelCode(), month_key: monthKey() || commitDate.slice(0, 7), entry_key: canonicalKeyFor(commitDate, commitTime), date: commitDate, slot_time: commitTime, duration_min: duration, source_entry_id: menu.dataset.wnmuEntryId || staged?.sourceEntryId || '', override_type: 'manual_program', title_text: text, tags_json: readTagsFromMenu(menu), other_label: String(menu.querySelector('#wnmuCellCustomTagText')?.value || menu.dataset.wnmuOtherLabel || '').trim(), is_active: true, updated_by: 'schedule-page-commit' };
+    return { channel_code: channelCode(), month_key: monthKey() || commitDate.slice(0, 7), entry_key: canonicalKeyFor(commitDate, commitTime), date: commitDate, slot_time: commitTime, duration_min: duration, source_entry_id: menu.dataset.wnmuEntryId || staged?.sourceEntryId || '', override_type: 'manual_program', title_text: text, tags_json: { ...readTagsFromMenu(menu), monthlyTopicLabel: String(menu.querySelector('#wnmuMonthTopicValue')?.value || '').trim().slice(0,160) }, other_label: String(menu.querySelector('#wnmuCellCustomTagText')?.value || menu.dataset.wnmuOtherLabel || '').trim(), is_active: true, updated_by: 'schedule-page-commit' };
   }
 
   function sameSlot(row, date, time) { return String(row.date) === String(date) && String(row.slot_time || row.time) === String(time); }
@@ -742,10 +755,11 @@
 
   function closeMenuBeforeRendererReset() {
     try {
-      const closeBtn = document.getElementById('closeMenuBtn');
-      if (closeBtn) closeBtn.click();
-      const menu = document.getElementById('contextMenu') || document.getElementById('wnmuCellMenu');
-      if (menu) {
+      // Both menus exist in the DOM. Choosing the legacy menu with || leaves
+      // the active White Override menu open over the refreshed schedule.
+      for (const id of ['wnmuCellMenu', 'contextMenu']) {
+        const menu = document.getElementById(id);
+        if (!menu) continue;
         menu.classList.add('hidden');
         menu.setAttribute('aria-hidden', 'true');
       }

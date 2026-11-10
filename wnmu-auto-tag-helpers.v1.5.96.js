@@ -147,7 +147,10 @@
     if (cleanOtherLabel(attr)) return cleanOtherLabel(attr);
     const known = new Set(Object.values(tagMeta()).map(meta => String(meta?.label || '').trim()).filter(Boolean));
     known.add('Satellite Feed'); known.add('PBS Feed'); known.add('New Season'); known.add('Custom');
-    const labels = Array.from(cell.querySelectorAll?.('.tag-pill') || []).map(el => cleanOtherLabel(el.textContent || '')).filter(Boolean);
+    const labels = Array.from(cell.querySelectorAll?.('.tag-pill') || [])
+      // Named Monthly Topic pills must never be misread as a custom planning tag.
+      .filter(el => !el.dataset?.wnmuPlanningTag || el.dataset.wnmuPlanningTag === OTHER_KEY)
+      .map(el => cleanOtherLabel(el.textContent || '')).filter(Boolean);
     return labels.find(label => !known.has(label)) || '';
   }
   function customOtherLabelForCell(cell){
@@ -251,14 +254,41 @@
     return scheduleIndexCache;
   }
 
+  function normalizedEpisodeNumber(episode){
+    return String(episode || '').replace(/\D/g, '');
+  }
+  function previousMonthEntriesFor(entry){
+    const prior = window.WNMU_PREVIOUS_MONTH_PREMIERE_CONTEXT;
+    if (!prior?.available || prior.channelCode !== channelCode() ||
+      prior.currentMonth !== monthKey() || !Array.isArray(prior.entries)) return [];
+    const title = normTitle(entry.title);
+    return prior.entries.filter(item => normTitle(item.title) === title);
+  }
+  function airedEarlierInCurrentMonth(entry, index){
+    const episode = normalizedEpisodeNumber(entry.episode);
+    if (!episode) return false;
+    const title = normTitle(entry.title);
+    return index.entries.some(prior => prior !== entry &&
+      normTitle(prior.title) === title &&
+      normalizedEpisodeNumber(prior.episode) === episode &&
+      (prior.date < entry.date || (prior.date === entry.date && prior.time < entry.time)));
+  }
   function isNewSeasonCandidate(entry, index){
     if (!entry || !entry.seasonStart || !shouldAutoNewSeries(entry)) return false;
-    const priorDate = addDays(entry.date, -7); if (!priorDate) return false;
-    return !!index.byDateTimeTitle.get(`${priorDate}__${entry.time}__${normTitle(entry.title)}`);
+    // The previous month is authoritative for a series returning at a month boundary.
+    const priorAirings = previousMonthEntriesFor(entry);
+    if (priorAirings.length) return true;
+    const priorDate = addDays(entry.date, -7);
+    return !!(priorDate && index.byDateTimeTitle.get(`${priorDate}__${entry.time}__${normTitle(entry.title)}`));
   }
 
   function classifyAutoPremiereTag(entry, index){
     if (!entry || !entry.seasonStart || !shouldAutoNewSeries(entry)) return '';
+    const episode = normalizedEpisodeNumber(entry.episode);
+    // A reairing of episode 01 is not a new series or a new season.
+    if (airedEarlierInCurrentMonth(entry, index)) return '';
+    const priorAirings = previousMonthEntriesFor(entry);
+    if (episode && priorAirings.some(item => normalizedEpisodeNumber(item.episode) === episode)) return '';
     return isNewSeasonCandidate(entry, index) ? 'newSeason' : 'newSeries';
   }
 
@@ -284,6 +314,10 @@
       // but true season-start signals should still remain visible.
       tagOrder().forEach(tag => { if (tag !== 'newSeries' && tag !== 'newSeason') out[tag] = false; });
     }
+    // ProTrack uses a trailing dollar sign in the episode field to designate
+    // fundraising. Only the episode code qualifies, never a program title.
+    // User-saved true/false values take precedence when effective tags merge.
+    if (/\$\s*$/.test(String(entry.episode || ''))) out.fundraiser = true;
     return out;
   }
 
@@ -302,32 +336,74 @@
     const key = storageKey(); const schedule = readCachedSchedule();
     if (!key || !schedule || !Array.isArray(schedule.days)) return;
     const marks = readJson(key, {}); const disabled = readJson(disabledKey(), {});
-    const candidates = detectAutoPremiereEntries(); const ids = new Set(); const tagById = new Map();
+    const previousState = readJson(autoStateKey(), {});
+    const previousIds = new Map();
+    (previousState.newSeriesEntryIds || []).forEach(id => previousIds.set(id, 'newSeries'));
+    (previousState.newSeasonEntryIds || []).forEach(id => previousIds.set(id, 'newSeason'));
+    // Existing browsers may have auto-only marks synced from Supabase without
+    // the locally stored auto-state index. Infer ownership only for bare,
+    // two-boolean premiere marks; never infer it for a user's full tag record.
+    buildScheduleIndex().entries.forEach(entry => {
+      if (!entry.seasonStart) return;
+      const id = entryId(entry);
+      if (!id || previousIds.has(id)) return;
+      const mark = marks[id] || {};
+      const tags = tagsObject(mark);
+      const bare = Object.keys(mark).every(k => k === 'tags' || k === 'autoPremiereSource') &&
+        Object.keys(tags).every(k => k === 'newSeries' || k === 'newSeason');
+      if (!bare) return;
+      if (tags.newSeries === true && tags.newSeason === false) previousIds.set(id, 'newSeries');
+      else if (tags.newSeason === true && tags.newSeries === false) previousIds.set(id, 'newSeason');
+    });
+    const candidates = detectAutoPremiereEntries();
+    const ids = new Set(); const tagById = new Map(); let modified = false;
     const autoState = { version: VERSION, at: new Date().toISOString(), newSeriesEntryIds: [], newSeasonEntryIds: [] };
     candidates.forEach(({ entry, tag }) => {
       const id = entryId(entry); if (!id) return;
       ids.add(id); tagById.set(id, tag);
-      if (tag === 'newSeason') autoState.newSeasonEntryIds.push(id);
-      else if (tag === 'newSeries') autoState.newSeriesEntryIds.push(id);
-      const existing = marks[id] || {}; const disabledTags = disabled[id] || {};
-      if (disabledTags[tag] === true || (hasExplicitTag(existing, tag) && tagsObject(existing)[tag] === false)) return;
+      autoState[tag === 'newSeason' ? 'newSeasonEntryIds' : 'newSeriesEntryIds'].push(id);
+    });
+    const touched = new Set([...ids, ...previousIds.keys()]);
+    touched.forEach(id => {
+      const tag = tagById.get(id) || '';
+      const previousTag = previousIds.get(id) || '';
+      const existing = marks[id] || {};
+      const before = JSON.stringify(existing);
+      const existingTags = tagsObject(existing);
+      // Preserve deliberate edits. Legacy automatically generated marks contain
+      // only the two premiere booleans; user edits add other keys/metadata.
+      const onlyPremiereFields = Object.keys(existing).every(k => k === 'tags' || k === 'autoPremiereSource') &&
+        Object.keys(existingTags).every(k => k === 'newSeries' || k === 'newSeason');
+      const autoOwned = !!previousTag && onlyPremiereFields;
       let next = existing;
-      if (tag === 'newSeason') {
-        if (!hasExplicitTag(existing, 'newSeason')) next = setTag(next, 'newSeason', true);
-        if (!hasExplicitTag(existing, 'newSeries')) next = setTag(next, 'newSeries', false);
-      } else if (tag === 'newSeries') {
-        if (!hasExplicitTag(existing, 'newSeries')) next = setTag(next, 'newSeries', true);
-        if (!hasExplicitTag(existing, 'newSeason')) next = setTag(next, 'newSeason', false);
+      if (autoOwned && previousTag && previousTag !== tag &&
+        existingTags[previousTag] === true && disabled[id]?.[previousTag] !== true) {
+        next = setTag(next, previousTag, false);
       }
-      marks[id] = next;
+      if (tag && disabled[id]?.[tag] !== true) {
+        const targetTags = tagsObject(next);
+        if (!hasExplicitTag(next, tag) || (autoOwned && targetTags[tag] !== true &&
+            disabled[id]?.[tag] !== true && previousTag && previousTag !== tag)) {
+          next = setTag(next, tag, true);
+        }
+        const opposite = tag === 'newSeason' ? 'newSeries' : 'newSeason';
+        if (!hasExplicitTag(next, opposite) || (autoOwned && previousTag === opposite)) {
+          next = setTag(next, opposite, false);
+        }
+        if (autoOwned || !Object.keys(existing).length) next = { ...next, autoPremiereSource: VERSION };
+      }
+      if (JSON.stringify(next) !== before) {
+        marks[id] = next;
+        modified = true;
+      }
     });
     lastAutoEntryIds = ids; lastAutoTagsByEntryId = tagById;
-    writeJson(autoStateKey(), autoState); writeJson(key, marks);
+    writeJson(autoStateKey(), autoState);
+    if (modified) writeJson(key, marks);
     window.WNMU_AUTO_TAG_HELPERS_STATUS = {
-      version: VERSION,
+      version: VERSION, previousMonthHistoryAvailable: !!window.WNMU_PREVIOUS_MONTH_PREMIERE_CONTEXT?.available,
       newSeriesCount: autoState.newSeriesEntryIds.length,
-      newSeasonCount: autoState.newSeasonEntryIds.length,
-      storageKey: key,
+      newSeasonCount: autoState.newSeasonEntryIds.length, storageKey: key,
       at: new Date().toISOString()
     };
   }
@@ -420,8 +496,14 @@
     const otherLabel = customOtherLabelForCell(cell);
     const stored = storedTagsForCell(cell);
     if (hasAnyExplicitStoredTag(stored)) {
-      const out = {};
-      allTagKeys().forEach(tag => { out[tag] = stored[tag] === true; });
+      // Preserve each user-saved true/false independently. Unset tags may still
+      // receive new derived defaults (e.g. fundraiser from an episode ending $).
+      // A saved mark for Highlight should not suppress unrelated auto-tags.
+      const defaults = defaultTagsForEntryId(entryId);
+      const out = { ...defaults };
+      allTagKeys().forEach(tag => {
+        if (typeof stored[tag] === 'boolean') out[tag] = stored[tag];
+      });
       if (otherLabel) out[OTHER_KEY] = true;
       return out;
     }
@@ -469,6 +551,21 @@
     }
   }
 
+  function monthlyTopicLabelForCell(cell) {
+    const normalize = value => {
+      const label = String(value || '').trim();
+      return /^christmas (?:eve|day)$/i.test(label) ? 'Christmas' : label;
+    };
+    const records = recordsForCell(cell);
+    for (const record of records) {
+      if (record?.tags?.monthlyTopic === false) return '';
+      const label = normalize(record?.monthlyTopicLabel || record?.monthly_topic_label);
+      if (label) return label;
+      // A legacy cell-level record can have monthlyTopic:true but no label.
+      // Check subsequent records before returning the generic category.
+    }
+    return normalize(cell?.dataset?.wnmuMonthlyTopicLabel);
+  }
   function renderTags(cell, tags){
     if (!cell) return;
     const clean = normalizedMenuTags(tags || {});
@@ -479,7 +576,8 @@
     if (otherLabel) { clean[OTHER_KEY] = true; cell.dataset.wnmuOtherLabel = otherLabel; cell.dataset.wnmuCustomPlanningTag = otherLabel; }
     else { delete cell.dataset.wnmuOtherLabel; delete cell.dataset.wnmuCustomPlanningTag; }
     const active = activeTagList(clean, false).filter(tag => tag !== OTHER_KEY || otherLabel);
-    const signature = active.join('|') + `::other=${otherLabel}`;
+    const topicLabel = active.includes('monthlyTopic') ? monthlyTopicLabelForCell(cell) : '';
+    const signature = active.join('|') + `::other=${otherLabel}::topic=${topicLabel}`;
     if (cell.dataset.wnmuAutoTagRenderSig === signature) return;
     cell.dataset.wnmuAutoTagRenderSig = signature;
     cell.querySelectorAll('.program-tags').forEach(el => el.remove());
@@ -504,9 +602,9 @@
       wrap.className = 'program-tags';
       const pills = activeTagList(clean, true).filter(tag => tag !== OTHER_KEY || otherLabel).slice(0, 6);
       wrap.innerHTML = pills.map(tag => {
-        const label = tagLabel(tag, otherLabel);
+        const label = tag === 'monthlyTopic' && topicLabel ? topicLabel : tagLabel(tag, otherLabel);
         const customAttr = tag === OTHER_KEY && otherLabel ? ` data-wnmu-custom-tag-label="${escAttr(otherLabel)}"` : '';
-        return `<span class="tag-pill"${customAttr} style="--tag-color:${colorFor(tag)}">${label}</span>`;
+        return `<span class="tag-pill" data-wnmu-planning-tag="${escAttr(tag)}"${customAttr} style="--tag-color:${colorFor(tag)}">${escAttr(label)}</span>`;
       }).join('');
       content.appendChild(wrap);
     }
@@ -518,8 +616,9 @@
     sanitizeActive = true;
     try {
       document.querySelectorAll('table.screen-week-grid td.program-cell[data-entry-id]').forEach(cell => renderTags(cell, effectiveTagsForCell(cell)));
+      // Satellite Feed listens for wnmu:auto-tags-rendered and schedules one
+      // paint. Calling its global repaint again creates a redundant full scan.
       window.dispatchEvent(new CustomEvent('wnmu:auto-tags-rendered', { detail: { version: VERSION, at: new Date().toISOString() } }));
-      window.setTimeout(() => window.WNMU_REPAINT_SATELLITE_FEEDS?.(), 25);
     } finally {
       window.setTimeout(() => { sanitizeActive = false; }, 120);
     }
@@ -560,6 +659,10 @@
     const entryId = cell.dataset.entryId || ''; const cellKey = menu?.dataset?.wnmuCellKey || '';
     const marks = readJson(key, {}); let clean = normalizedMenuTags(tags);
     const pendingOtherLabel = cleanOtherLabel(readCustomOtherLabelFromMenu(menu));
+    const chosenTopic = clean.monthlyTopic
+      ? String(menu.querySelector('#wnmuMonthTopicValue')?.value ||
+          cell.dataset?.wnmuMonthlyTopicLabel || '').trim().slice(0,160)
+      : '';
     if (pendingOtherLabel) clean[OTHER_KEY] = true;
     const writeRecord = (recordKey) => {
       if (!recordKey) return;
@@ -568,7 +671,9 @@
       const rectNote = existing.rectNote && typeof existing.rectNote === 'object'
         ? { ...existing.rectNote, otherLabel, planningOtherLabel: otherLabel, customPlanningLabel: otherLabel, customTagLabel: otherLabel }
         : existing.rectNote;
-      marks[recordKey] = { ...existing, tags: { ...clean }, otherLabel, planningOtherLabel: otherLabel, customPlanningLabel: otherLabel, customTagLabel: otherLabel, rectNote };
+      marks[recordKey] = { ...existing, tags: { ...clean },
+        monthlyTopicLabel: chosenTopic || (clean.monthlyTopic ? existing.monthlyTopicLabel || '' : ''),
+        otherLabel, planningOtherLabel: otherLabel, customPlanningLabel: otherLabel, customTagLabel: otherLabel, rectNote };
     };
     writeRecord(entryId); writeRecord(cellKey);
     const savedOtherLabel = otherLabelFromRecord(marks[entryId]) || otherLabelFromRecord(marks[cellKey]);
@@ -577,6 +682,8 @@
     suppressStorageSanitize += 1;
     try { writeJson(key, marks); } finally { suppressStorageSanitize = Math.max(0, suppressStorageSanitize - 1); }
     invalidateStoreCache();
+    if (clean.monthlyTopic && chosenTopic) cell.dataset.wnmuMonthlyTopicLabel = chosenTopic;
+    else if (!clean.monthlyTopic) delete cell.dataset.wnmuMonthlyTopicLabel;
     renderTags(cell, clean);
     forceCustomTagDisplayForCell(cell, savedOtherLabel);
     window.WNMU_LAST_TAG_MENU_SYNC = { version: VERSION, entryId, cellKey, tags: clean, at: new Date().toISOString() };
@@ -640,7 +747,10 @@
         gridObs.observe(host, { childList:true, subtree:true });
       }
     }
-    [600,1600,3200].forEach(ms => window.setTimeout(() => { sanitizeVisibleHighlights(); scheduleCustomLabelRepair(40); }, ms));
+    // Progressive week insertion and remote-load events already trigger repairs.
+    // Two fallback passes cover startup without repeatedly scanning all cells
+    // and scheduling another redundant whole-grid custom-label sweep.
+    [700,2200].forEach(ms => window.setTimeout(sanitizeVisibleHighlights, ms));
   }
 
   function installRemoteStorageListener(){

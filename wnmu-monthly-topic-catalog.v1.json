@@ -1,0 +1,1048 @@
+{
+  "source": {
+    "repository": "tpoirier1969/WNMU-Programming-library",
+    "path": "js/holidays-calendar.js",
+    "catalog": "SUPPLEMENTAL_OBSERVANCES",
+    "purpose": "WNMU Monthly Topic planning-tag picker",
+    "note": "Derived read-only snapshot of WNMU Programming Library Holidays & Events list; update from source list when it changes."
+  },
+  "observances": [
+    {
+      "title": "Glaucoma Awareness Month",
+      "rule_type": "month_scope",
+      "month": 1,
+      "category": "health"
+    },
+    {
+      "title": "National Mentoring Month",
+      "rule_type": "month_scope",
+      "month": 1,
+      "category": "awareness"
+    },
+    {
+      "title": "Slavery and Human Trafficking Prevention Month",
+      "rule_type": "month_scope",
+      "month": 1,
+      "category": "awareness"
+    },
+    {
+      "title": "Science Fiction Day",
+      "rule_type": "fixed_date",
+      "month": 1,
+      "category": "education",
+      "day": 2
+    },
+    {
+      "title": "Technology Day",
+      "rule_type": "fixed_date",
+      "month": 1,
+      "category": "education",
+      "day": 6
+    },
+    {
+      "title": "National Human Trafficking Awareness Day",
+      "rule_type": "fixed_date",
+      "month": 1,
+      "category": "awareness",
+      "day": 11
+    },
+    {
+      "title": "Religious Freedom Day",
+      "rule_type": "fixed_date",
+      "month": 1,
+      "category": "national",
+      "day": 16
+    },
+    {
+      "title": "International Holocaust Remembrance Day",
+      "rule_type": "fixed_date",
+      "month": 1,
+      "category": "history",
+      "day": 27
+    },
+    {
+      "title": "Bird-Feeding Month",
+      "rule_type": "month_scope",
+      "month": 2,
+      "category": "environment"
+    },
+    {
+      "title": "American Heart Month",
+      "rule_type": "month_scope",
+      "month": 2,
+      "category": "health"
+    },
+    {
+      "title": "Black History Month",
+      "rule_type": "month_scope",
+      "month": 2,
+      "category": "heritage"
+    },
+    {
+      "title": "Groundhog Day",
+      "rule_type": "fixed_date",
+      "month": 2,
+      "category": "seasonal",
+      "day": 2
+    },
+    {
+      "title": "World Cancer Day",
+      "rule_type": "fixed_date",
+      "month": 2,
+      "category": "health",
+      "day": 4
+    },
+    {
+      "title": "Sami National Day",
+      "rule_type": "fixed_date",
+      "month": 2,
+      "category": "heritage",
+      "day": 6
+    },
+    {
+      "title": "Safer Internet Day",
+      "rule_type": "nth_weekday",
+      "month": 2,
+      "category": "education",
+      "nth": 2,
+      "weekday": 2
+    },
+    {
+      "title": "International Day of Women and Girls in Science",
+      "rule_type": "fixed_date",
+      "month": 2,
+      "category": "education",
+      "day": 11
+    },
+    {
+      "title": "World Day of the Sick",
+      "rule_type": "fixed_date",
+      "month": 2,
+      "category": "health",
+      "day": 11
+    },
+    {
+      "title": "Sexual and Reproductive Health Awareness Week",
+      "rule_type": "date_range_fixed",
+      "month": 2,
+      "category": "health",
+      "start_month": 2,
+      "end_month": 2,
+      "start_day": 12,
+      "end_day": 16
+    },
+    {
+      "title": "Valentine's Day",
+      "rule_type": "fixed_date",
+      "month": 2,
+      "category": "seasonal",
+      "day": 14
+    },
+    {
+      "title": "Random Acts of Kindness Day",
+      "rule_type": "fixed_date",
+      "month": 2,
+      "category": "awareness",
+      "day": 17
+    },
+    {
+      "title": "World Day of Social Justice",
+      "rule_type": "fixed_date",
+      "month": 2,
+      "category": "international",
+      "day": 20
+    },
+    {
+      "title": "Brain Injury Awareness Month",
+      "rule_type": "month_scope",
+      "month": 3,
+      "category": "health"
+    },
+    {
+      "title": "Irish-American Heritage Month",
+      "rule_type": "month_scope",
+      "month": 3,
+      "category": "heritage"
+    },
+    {
+      "title": "National Colon Cancer Awareness Month",
+      "rule_type": "month_scope",
+      "month": 3,
+      "category": "health"
+    },
+    {
+      "title": "Women's History Month",
+      "rule_type": "month_scope",
+      "month": 3,
+      "category": "heritage"
+    },
+    {
+      "title": "Youth Art Month",
+      "rule_type": "month_scope",
+      "month": 3,
+      "category": "education"
+    },
+    {
+      "title": "Employee Appreciation Day",
+      "rule_type": "nth_weekday",
+      "month": 3,
+      "category": "awareness",
+      "nth": 1,
+      "weekday": 5
+    },
+    {
+      "title": "World Wildlife Day",
+      "rule_type": "fixed_date",
+      "month": 3,
+      "category": "environment",
+      "day": 3
+    },
+    {
+      "title": "International Women's Day",
+      "rule_type": "fixed_date",
+      "month": 3,
+      "category": "international",
+      "day": 8
+    },
+    {
+      "title": "St. Urho Day",
+      "rule_type": "fixed_date",
+      "month": 3,
+      "category": "heritage",
+      "day": 16
+    },
+    {
+      "title": "St. Patrick's Day",
+      "rule_type": "fixed_date",
+      "month": 3,
+      "category": "heritage",
+      "day": 17
+    },
+    {
+      "title": "World Poetry Day",
+      "rule_type": "fixed_date",
+      "month": 3,
+      "category": "education",
+      "day": 21
+    },
+    {
+      "title": "World Down Syndrome Day",
+      "rule_type": "fixed_date",
+      "month": 3,
+      "category": "health",
+      "day": 21
+    },
+    {
+      "title": "International Day of Forests",
+      "rule_type": "fixed_date",
+      "month": 3,
+      "category": "environment",
+      "day": 21
+    },
+    {
+      "title": "World Water Day",
+      "rule_type": "fixed_date",
+      "month": 3,
+      "category": "environment",
+      "day": 22
+    },
+    {
+      "title": "National Vietnam War Veterans Day",
+      "rule_type": "fixed_date",
+      "month": 3,
+      "category": "history",
+      "day": 29
+    },
+    {
+      "title": "World Bipolar Day",
+      "rule_type": "fixed_date",
+      "month": 3,
+      "category": "health",
+      "day": 30
+    },
+    {
+      "title": "Arab American Heritage Month",
+      "rule_type": "month_scope",
+      "month": 4,
+      "category": "heritage"
+    },
+    {
+      "title": "Autism Awareness Month",
+      "rule_type": "month_scope",
+      "month": 4,
+      "category": "health"
+    },
+    {
+      "title": "Jazz Appreciation Month",
+      "rule_type": "month_scope",
+      "month": 4,
+      "category": "education"
+    },
+    {
+      "title": "National Child Abuse Prevention Month",
+      "rule_type": "month_scope",
+      "month": 4,
+      "category": "awareness"
+    },
+    {
+      "title": "National Poetry Month",
+      "rule_type": "month_scope",
+      "month": 4,
+      "category": "education"
+    },
+    {
+      "title": "Second Chance Month",
+      "rule_type": "month_scope",
+      "month": 4,
+      "category": "awareness"
+    },
+    {
+      "title": "Sexual Assault Awareness Month",
+      "rule_type": "month_scope",
+      "month": 4,
+      "category": "health"
+    },
+    {
+      "title": "Public School Month",
+      "rule_type": "month_scope",
+      "month": 4,
+      "category": "education"
+    },
+    {
+      "title": "World Autism Awareness Day",
+      "rule_type": "fixed_date",
+      "month": 4,
+      "category": "health",
+      "day": 2
+    },
+    {
+      "title": "World Health Day",
+      "rule_type": "fixed_date",
+      "month": 4,
+      "category": "health",
+      "day": 7
+    },
+    {
+      "title": "World Hemophilia Day",
+      "rule_type": "fixed_date",
+      "month": 4,
+      "category": "health",
+      "day": 17
+    },
+    {
+      "title": "National Education and Sharing Day",
+      "rule_type": "fixed_date",
+      "month": 4,
+      "category": "education",
+      "day": 19
+    },
+    {
+      "title": "Earth Day",
+      "rule_type": "fixed_date",
+      "month": 4,
+      "category": "environment",
+      "day": 22
+    },
+    {
+      "title": "International Jazz Day",
+      "rule_type": "fixed_date",
+      "month": 4,
+      "category": "education",
+      "day": 30
+    },
+    {
+      "title": "Women's Health Month",
+      "rule_type": "month_scope",
+      "month": 5,
+      "category": "health"
+    },
+    {
+      "title": "ALS Awareness Month",
+      "rule_type": "month_scope",
+      "month": 5,
+      "category": "health"
+    },
+    {
+      "title": "Asian Pacific American Heritage Month",
+      "rule_type": "month_scope",
+      "month": 5,
+      "category": "heritage"
+    },
+    {
+      "title": "Celiac Awareness Month",
+      "rule_type": "month_scope",
+      "month": 5,
+      "category": "health"
+    },
+    {
+      "title": "Jewish American Heritage Month",
+      "rule_type": "month_scope",
+      "month": 5,
+      "category": "heritage"
+    },
+    {
+      "title": "Mental Health Awareness Month",
+      "rule_type": "month_scope",
+      "month": 5,
+      "category": "health"
+    },
+    {
+      "title": "National Bike Month",
+      "rule_type": "month_scope",
+      "month": 5,
+      "category": "environment"
+    },
+    {
+      "title": "National Foster Care Month",
+      "rule_type": "month_scope",
+      "month": 5,
+      "category": "awareness"
+    },
+    {
+      "title": "National Pet Month",
+      "rule_type": "month_scope",
+      "month": 5,
+      "category": "seasonal"
+    },
+    {
+      "title": "National Stroke Awareness Month",
+      "rule_type": "month_scope",
+      "month": 5,
+      "category": "health"
+    },
+    {
+      "title": "World Press Freedom Day",
+      "rule_type": "fixed_date",
+      "month": 5,
+      "category": "awareness",
+      "day": 3
+    },
+    {
+      "title": "International Firefighters' Day",
+      "rule_type": "fixed_date",
+      "month": 5,
+      "category": "national",
+      "day": 4
+    },
+    {
+      "title": "Cinco de Mayo",
+      "rule_type": "fixed_date",
+      "month": 5,
+      "category": "heritage",
+      "day": 5
+    },
+    {
+      "title": "International No Diet Day",
+      "rule_type": "fixed_date",
+      "month": 5,
+      "category": "health",
+      "day": 6
+    },
+    {
+      "title": "Teacher Appreciation Day",
+      "rule_type": "nth_weekday",
+      "month": 5,
+      "category": "education",
+      "nth": 1,
+      "weekday": 2
+    },
+    {
+      "title": "World Migratory Bird Day",
+      "rule_type": "nth_weekday",
+      "month": 5,
+      "category": "environment",
+      "nth": 2,
+      "weekday": 6
+    },
+    {
+      "title": "International Nurses Day",
+      "rule_type": "fixed_date",
+      "month": 5,
+      "category": "health",
+      "day": 12
+    },
+    {
+      "title": "Greek Pride Day",
+      "rule_type": "fixed_date",
+      "month": 5,
+      "category": "heritage",
+      "day": 19
+    },
+    {
+      "title": "World Hunger Day",
+      "rule_type": "fixed_date",
+      "month": 5,
+      "category": "awareness",
+      "day": 28
+    },
+    {
+      "title": "World No Tobacco Day",
+      "rule_type": "fixed_date",
+      "month": 5,
+      "category": "health",
+      "day": 31
+    },
+    {
+      "title": "Great Outdoors Month",
+      "rule_type": "month_scope",
+      "month": 6,
+      "category": "environment"
+    },
+    {
+      "title": "African-American Music Appreciation Month",
+      "rule_type": "month_scope",
+      "month": 6,
+      "category": "heritage"
+    },
+    {
+      "title": "Alzheimer's and Brain Awareness Month",
+      "rule_type": "month_scope",
+      "month": 6,
+      "category": "health"
+    },
+    {
+      "title": "LGBT Pride Month",
+      "rule_type": "month_scope",
+      "month": 6,
+      "category": "heritage"
+    },
+    {
+      "title": "National Safety Month",
+      "rule_type": "month_scope",
+      "month": 6,
+      "category": "health"
+    },
+    {
+      "title": "International Children's Day",
+      "rule_type": "fixed_date",
+      "month": 6,
+      "category": "international",
+      "day": 1
+    },
+    {
+      "title": "World Environment Day",
+      "rule_type": "fixed_date",
+      "month": 6,
+      "category": "environment",
+      "day": 5
+    },
+    {
+      "title": "D-Day Anniversary",
+      "rule_type": "fixed_date",
+      "month": 6,
+      "category": "history",
+      "day": 6
+    },
+    {
+      "title": "Anne Frank Day",
+      "rule_type": "fixed_date",
+      "month": 6,
+      "category": "history",
+      "day": 12
+    },
+    {
+      "title": "Flag Day",
+      "rule_type": "fixed_date",
+      "month": 6,
+      "category": "national",
+      "day": 14
+    },
+    {
+      "title": "International Yoga Day",
+      "rule_type": "fixed_date",
+      "month": 6,
+      "category": "health",
+      "day": 21
+    },
+    {
+      "title": "Take Your Dog to Work Day",
+      "rule_type": "nth_weekday",
+      "month": 6,
+      "category": "seasonal",
+      "nth": 3,
+      "weekday": 5
+    },
+    {
+      "title": "PTSD Awareness Day",
+      "rule_type": "fixed_date",
+      "month": 6,
+      "category": "health",
+      "day": 27
+    },
+    {
+      "title": "National Ice Cream Month",
+      "rule_type": "month_scope",
+      "month": 7,
+      "category": "seasonal"
+    },
+    {
+      "title": "Bastille Day",
+      "rule_type": "fixed_date",
+      "month": 7,
+      "category": "heritage",
+      "day": 14
+    },
+    {
+      "title": "Christmas in July",
+      "rule_type": "month_scope",
+      "month": 7,
+      "category": "seasonal"
+    },
+    {
+      "title": "International Beer Day",
+      "rule_type": "nth_weekday",
+      "month": 8,
+      "category": "seasonal",
+      "nth": 1,
+      "weekday": 5
+    },
+    {
+      "title": "International Owl Awareness Day",
+      "rule_type": "fixed_date",
+      "month": 8,
+      "category": "environment",
+      "day": 4
+    },
+    {
+      "title": "International Day of the World's Indigenous Peoples",
+      "rule_type": "fixed_date",
+      "month": 8,
+      "category": "heritage",
+      "day": 9
+    },
+    {
+      "title": "Youth Day",
+      "rule_type": "fixed_date",
+      "month": 8,
+      "category": "awareness",
+      "day": 12
+    },
+    {
+      "title": "World Mosquito Day",
+      "rule_type": "fixed_date",
+      "month": 8,
+      "category": "health",
+      "day": 20
+    },
+    {
+      "title": "Women's Equality Day",
+      "rule_type": "fixed_date",
+      "month": 8,
+      "category": "awareness",
+      "day": 26
+    },
+    {
+      "title": "Friendship Day",
+      "rule_type": "nth_weekday",
+      "month": 8,
+      "category": "seasonal",
+      "nth": 1,
+      "weekday": 0
+    },
+    {
+      "title": "National Park Service Anniversary",
+      "rule_type": "fixed_date",
+      "month": 8,
+      "category": "environment",
+      "day": 25
+    },
+    {
+      "title": "Classical Music Month",
+      "rule_type": "month_scope",
+      "month": 9,
+      "category": "education"
+    },
+    {
+      "title": "Gospel Music Heritage Month",
+      "rule_type": "month_scope",
+      "month": 9,
+      "category": "heritage"
+    },
+    {
+      "title": "Healthy Aging Month",
+      "rule_type": "month_scope",
+      "month": 9,
+      "category": "health"
+    },
+    {
+      "title": "Self-Improvement Month",
+      "rule_type": "month_scope",
+      "month": 9,
+      "category": "awareness"
+    },
+    {
+      "title": "Civic Awareness Month",
+      "rule_type": "month_scope",
+      "month": 9,
+      "category": "awareness"
+    },
+    {
+      "title": "National Honey Month",
+      "rule_type": "month_scope",
+      "month": 9,
+      "category": "environment"
+    },
+    {
+      "title": "National Sewing Month",
+      "rule_type": "month_scope",
+      "month": 9,
+      "category": "education"
+    },
+    {
+      "title": "National Bourbon Heritage Month",
+      "rule_type": "month_scope",
+      "month": 9,
+      "category": "heritage"
+    },
+    {
+      "title": "National Preparedness Month",
+      "rule_type": "month_scope",
+      "month": 9,
+      "category": "health"
+    },
+    {
+      "title": "National Prostate Health Month",
+      "rule_type": "month_scope",
+      "month": 9,
+      "category": "health"
+    },
+    {
+      "title": "National Yoga Month",
+      "rule_type": "month_scope",
+      "month": 9,
+      "category": "health"
+    },
+    {
+      "title": "Pain Awareness Month",
+      "rule_type": "month_scope",
+      "month": 9,
+      "category": "health"
+    },
+    {
+      "title": "National Recovery Month",
+      "rule_type": "month_scope",
+      "month": 9,
+      "category": "health"
+    },
+    {
+      "title": "National Grandparents Day",
+      "rule_type": "nth_weekday",
+      "month": 9,
+      "category": "seasonal",
+      "nth": 2,
+      "weekday": 0
+    },
+    {
+      "title": "World Suicide Prevention Day",
+      "rule_type": "fixed_date",
+      "month": 9,
+      "category": "health",
+      "day": 10
+    },
+    {
+      "title": "Positive Thinking Day",
+      "rule_type": "fixed_date",
+      "month": 9,
+      "category": "awareness",
+      "day": 13
+    },
+    {
+      "title": "International Chocolate Day",
+      "rule_type": "fixed_date",
+      "month": 9,
+      "category": "seasonal",
+      "day": 13
+    },
+    {
+      "title": "World Car-Free Day",
+      "rule_type": "fixed_date",
+      "month": 9,
+      "category": "environment",
+      "day": 22
+    },
+    {
+      "title": "Native American Day",
+      "rule_type": "fixed_date",
+      "month": 9,
+      "category": "heritage",
+      "day": 27
+    },
+    {
+      "title": "Breast Cancer Awareness Month",
+      "rule_type": "month_scope",
+      "month": 10,
+      "category": "health"
+    },
+    {
+      "title": "Filipino American Heritage Month",
+      "rule_type": "month_scope",
+      "month": 10,
+      "category": "heritage"
+    },
+    {
+      "title": "Italian American Heritage and Culture Month",
+      "rule_type": "month_scope",
+      "month": 10,
+      "category": "heritage"
+    },
+    {
+      "title": "National Arts and Humanities Month",
+      "rule_type": "month_scope",
+      "month": 10,
+      "category": "education"
+    },
+    {
+      "title": "National Bullying Prevention Month",
+      "rule_type": "month_scope",
+      "month": 10,
+      "category": "awareness"
+    },
+    {
+      "title": "National Cybersecurity Awareness Month",
+      "rule_type": "month_scope",
+      "month": 10,
+      "category": "education"
+    },
+    {
+      "title": "National Disability Employment Awareness Month",
+      "rule_type": "month_scope",
+      "month": 10,
+      "category": "awareness"
+    },
+    {
+      "title": "National Hispanic Heritage Month",
+      "rule_type": "date_range_fixed",
+      "month": 9,
+      "category": "heritage",
+      "start_month": 9,
+      "end_month": 10,
+      "start_day": 15,
+      "end_day": 15
+    },
+    {
+      "title": "National Pizza Month",
+      "rule_type": "month_scope",
+      "month": 10,
+      "category": "seasonal"
+    },
+    {
+      "title": "Domestic Violence Awareness Month",
+      "rule_type": "month_scope",
+      "month": 10,
+      "category": "awareness"
+    },
+    {
+      "title": "Armenian Culture Month",
+      "rule_type": "month_scope",
+      "month": 10,
+      "category": "heritage"
+    },
+    {
+      "title": "World Vegetarian Day",
+      "rule_type": "fixed_date",
+      "month": 10,
+      "category": "health",
+      "day": 1
+    },
+    {
+      "title": "World Mental Health Day",
+      "rule_type": "fixed_date",
+      "month": 10,
+      "category": "health",
+      "day": 10
+    },
+    {
+      "title": "National Coming Out Day",
+      "rule_type": "fixed_date",
+      "month": 10,
+      "category": "awareness",
+      "day": 11
+    },
+    {
+      "title": "Boss's Day",
+      "rule_type": "fixed_date",
+      "month": 10,
+      "category": "seasonal",
+      "day": 16
+    },
+    {
+      "title": "Sweetest Day",
+      "rule_type": "nth_weekday",
+      "month": 10,
+      "category": "seasonal",
+      "nth": 3,
+      "weekday": 6
+    },
+    {
+      "title": "United Nations Day",
+      "rule_type": "fixed_date",
+      "month": 10,
+      "category": "international",
+      "day": 24
+    },
+    {
+      "title": "National Cat Day",
+      "rule_type": "fixed_date",
+      "month": 10,
+      "category": "seasonal",
+      "day": 29
+    },
+    {
+      "title": "Mischief Night",
+      "rule_type": "fixed_date",
+      "month": 10,
+      "category": "seasonal",
+      "day": 30
+    },
+    {
+      "title": "COPD Awareness Month",
+      "rule_type": "month_scope",
+      "month": 11,
+      "category": "health"
+    },
+    {
+      "title": "Men's Health Awareness Month",
+      "rule_type": "month_scope",
+      "month": 11,
+      "category": "health"
+    },
+    {
+      "title": "Native American and Alaska Native Heritage Month",
+      "rule_type": "month_scope",
+      "month": 11,
+      "category": "heritage"
+    },
+    {
+      "title": "National Education Month",
+      "rule_type": "month_scope",
+      "month": 11,
+      "category": "education"
+    },
+    {
+      "title": "American Education Week",
+      "rule_type": "date_range_fixed",
+      "month": 11,
+      "category": "education",
+      "start_month": 11,
+      "end_month": 11,
+      "start_day": 18,
+      "end_day": 22
+    },
+    {
+      "title": "World Vegan Day",
+      "rule_type": "fixed_date",
+      "month": 11,
+      "category": "health",
+      "day": 1
+    },
+    {
+      "title": "All Saints' Day",
+      "rule_type": "fixed_date",
+      "month": 11,
+      "category": "religious",
+      "day": 1
+    },
+    {
+      "title": "All Souls' Day",
+      "rule_type": "fixed_date",
+      "month": 11,
+      "category": "religious",
+      "day": 2
+    },
+    {
+      "title": "Veterans Day",
+      "rule_type": "fixed_date",
+      "month": 11,
+      "category": "national",
+      "day": 11
+    },
+    {
+      "title": "International Men's Day",
+      "rule_type": "fixed_date",
+      "month": 11,
+      "category": "awareness",
+      "day": 19
+    },
+    {
+      "title": "JFK Assassination Remembrance",
+      "rule_type": "fixed_date",
+      "month": 11,
+      "category": "history",
+      "day": 22
+    },
+    {
+      "title": "Black Friday",
+      "rule_type": "nth_weekday",
+      "month": 11,
+      "category": "seasonal",
+      "nth": 4,
+      "weekday": 5
+    },
+    {
+      "title": "Cyber Monday",
+      "rule_type": "nth_weekday",
+      "month": 12,
+      "category": "seasonal",
+      "nth": 1,
+      "weekday": 1
+    },
+    {
+      "title": "Pearl Harbor Remembrance Day",
+      "rule_type": "fixed_date",
+      "month": 12,
+      "category": "history",
+      "day": 7
+    },
+    {
+      "title": "Human Rights Day",
+      "rule_type": "fixed_date",
+      "month": 12,
+      "category": "international",
+      "day": 10
+    },
+    {
+      "title": "December Solstice",
+      "rule_type": "manual_text",
+      "month": 12,
+      "category": "seasonal"
+    },
+    {
+      "title": "Festivus",
+      "rule_type": "fixed_date",
+      "month": 12,
+      "category": "seasonal",
+      "day": 23
+    },
+    {
+      "title": "Christmas Eve",
+      "rule_type": "fixed_date",
+      "month": 12,
+      "category": "religious",
+      "day": 24
+    },
+    {
+      "title": "Christmas Day",
+      "rule_type": "fixed_date",
+      "month": 12,
+      "category": "religious",
+      "day": 25
+    },
+    {
+      "title": "Kwanzaa",
+      "rule_type": "date_range_fixed",
+      "month": 12,
+      "category": "heritage",
+      "start_month": 12,
+      "end_month": 1,
+      "start_day": 26,
+      "end_day": 1
+    },
+    {
+      "title": "New Year's Eve",
+      "rule_type": "fixed_date",
+      "month": 12,
+      "category": "seasonal",
+      "day": 31
+    }
+  ]
+}

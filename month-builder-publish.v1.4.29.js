@@ -57,6 +57,50 @@
     return res.json();
   }
 
+  // Title casing is an imported display value. Preserve the original ProTrack
+  // title for scheduling identity, existing marks and source comparison.
+  let approvedTitleMap = {};
+  function approvedTitleKey(value) {
+    return String(value || '').toLowerCase().replace(/&/g, ' and ').replace(/[^a-z0-9]+/g, ' ').trim();
+  }
+  function approvedTitleCompact(value) {
+    return String(value || '').toLowerCase().replace(/&/g, 'and').replace(/[^a-z0-9]+/g, '');
+  }
+  function standardTitleCase(value) {
+    const little = new Set(['a','an','and','as','at','but','by','for','from','in','into','nor','of','on','or','per','the','to','vs','with']);
+    const acronyms = new Set(['PBS','BBC','WNMU','NMU','NOVA','POV','USA','TV','DW','NPR','APT']);
+    const words = String(value || '').trim().replace(/\s+/g, ' ').toLowerCase().split(' ');
+    return words.map((word, index) => {
+      const alpha = word.replace(/[^a-z0-9]/g, '').toUpperCase();
+      if (acronyms.has(alpha)) return alpha;
+      if (index > 0 && index < words.length - 1 && little.has(word)) return word;
+      return word.replace(/(^|[-(\[/])([a-z])/g, (_, prefix, ch) => prefix + ch.toUpperCase());
+    }).join(' ');
+  }
+  function importedDisplayTitle(raw) {
+    const title = String(raw || '').trim();
+    return approvedTitleMap[approvedTitleKey(title)] ||
+      approvedTitleMap[approvedTitleCompact(title)] || standardTitleCase(title);
+  }
+  async function loadApprovedTitleMappings() {
+    approvedTitleMap = {};
+    try {
+      const rows = await restSelect('/rest/v1/wnmu_monthly_title_corrections?select=raw_title,raw_title_key,compact_title_key,corrected_title&is_active=eq.true&order=updated_at.desc&limit=1000');
+      for (const row of rows || []) {
+        const corrected = String(row.corrected_title || '').trim();
+        if (!corrected) continue;
+        const key = row.raw_title_key || approvedTitleKey(row.raw_title);
+        const compactKey = row.compact_title_key || approvedTitleCompact(row.raw_title);
+        if (key) approvedTitleMap[key] = corrected;
+        if (compactKey) approvedTitleMap[compactKey] = corrected;
+      }
+    } catch (err) {
+      console.warn('Approved title-correction lookup unavailable; using normal Title Case during import.', err);
+      try { approvedTitleMap = JSON.parse(localStorage.getItem('wnmu_sales_title_corrections_v1') || '{}') || {}; }
+      catch { approvedTitleMap = {}; }
+    }
+  }
+
   function normalizeText(text) {
     return String(text || '').replace(/\u0019/g, "'").replace(/\u00a0/g, ' ').replace(/\u2019/g, "'");
   }
@@ -609,7 +653,7 @@
         for (let slot = start / 30; slot < Math.min(48, start / 30 + slotCount); slot += 1) { if (occupied[slot] !== null) overlap.push(slot); occupied[slot] = true; }
         const endTime = endTimeFromMinutes(start + slotCount * 30);
         const inferredDuration = !explicitLooksUsable;
-        return { date: dateKey, day: dayName, dayName, time: entry.time, title: entry.title, episode: entry.episode, seasonStart: inferSeasonStart(entry.episode), endTime, durationMin: slotCount * 30, slotCount, sourceStartTime: entry.sourceStartTime || '', sourceStartToken: entry.sourceStartToken || '', sourceDurationMin: entry.sourceDurationMin || null, sourceDurationToken: entry.sourceDurationToken || '', durationSource: explicitLooksUsable ? 'explicit-pdf-duration-start-pair' : 'inferred-to-next-program', inferredDuration };
+        return { date: dateKey, day: dayName, dayName, time: entry.time, title: entry.title, displayTitle: importedDisplayTitle(entry.title), episode: entry.episode, seasonStart: inferSeasonStart(entry.episode), endTime, durationMin: slotCount * 30, slotCount, sourceStartTime: entry.sourceStartTime || '', sourceStartToken: entry.sourceStartToken || '', sourceDurationMin: entry.sourceDurationMin || null, sourceDurationToken: entry.sourceDurationToken || '', durationSource: explicitLooksUsable ? 'explicit-pdf-duration-start-pair' : 'inferred-to-next-program', inferredDuration };
       });
       const missingSlots = occupied.map((value, idx) => value ? null : idx).filter(value => value !== null);
       days.push({ date: dateKey, day: dayName, dayName, entries: normalizedEntries, coveredSlots: 48 - missingSlots.length, missingSlots, continuous: missingSlots.length === 0, overlapSlots: Array.from(new Set(overlap)).sort((a, b) => a - b) });
@@ -750,6 +794,7 @@
   async function parseSelectedReports() {
     if (!window.pdfjsLib) { setStatus('PDF.js did not load, so the builder cannot parse PDFs right now.', 'bad'); return; }
     setStatus('Parsing selected reports with restored parser and fixed-day grid…');
+    await loadApprovedTitleMappings();
     const parsedNow = {};
     for (const channelCode of Object.keys(CHANNELS)) {
       const input = el(CHANNELS[channelCode].inputId), file = input?.files?.[0];

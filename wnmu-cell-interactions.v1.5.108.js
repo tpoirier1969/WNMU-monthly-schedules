@@ -191,6 +191,29 @@
   }
 
 
+  function normalizeMonthlyTopicName(value) {
+    const title = String(value || '').trim().slice(0, 160);
+    // The scheduling picker groups these two Library observances under
+    // one editorial topic; leave unrelated events (Christmas in July) alone.
+    return /^christmas (?:eve|day)$/i.test(title) ? 'Christmas' : title;
+  }
+  function monthlyTopicLabel(note) {
+    return normalizeMonthlyTopicName(note?.monthlyTopicLabel || note?.monthly_topic_label || note?.rectNote?.monthlyTopicLabel);
+  }
+  function menuTopicLabel(menu) {
+    return normalizeMonthlyTopicName(menu?.querySelector('#wnmuMonthTopicValue')?.value ||
+      menu?.dataset?.wnmuSelectedMonthlyTopic);
+  }
+  function topicLabelForTarget(target) {
+    const stored = storedRecordForTarget(target);
+    const canonical = readCanonicalRecord(target?.key);
+    return monthlyTopicLabel(stored) || monthlyTopicLabel(canonical) ||
+      normalizeMonthlyTopicName(target?.cell?.dataset?.wnmuMonthlyTopicLabel);
+  }
+  function monthlyTagLabel(tag, label) {
+    // Use the selected topic as the full pill text, not a category prefix.
+    return tag === 'monthlyTopic' && label ? normalizeMonthlyTopicName(label) : tagMeta(tag).label || tag;
+  }
   function noteOtherLabel(note) {
     return cleanOtherLabel(note?.otherLabel || note?.planningOtherLabel || note?.customPlanningLabel || note?.customTagLabel || note?.otherText || note?.rectNote?.otherLabel || note?.rectNote?.planningOtherLabel || '');
   }
@@ -200,7 +223,7 @@
     const otherLabel = noteOtherLabel(note);
     const tags = normalizeTagsForStorage(note.tags || {});
     if (otherLabel) tags[OTHER_KEY] = true;
-    return { ...note, tags, otherLabel, planningOtherLabel: otherLabel, customPlanningLabel: otherLabel, customTagLabel: otherLabel };
+    return { ...note, tags, otherLabel, monthlyTopicLabel: monthlyTopicLabel(note), planningOtherLabel: otherLabel, customPlanningLabel: otherLabel, customTagLabel: otherLabel };
   }
 
   function normalizeTagsForExplicitStorage(tags, otherLabel = '') {
@@ -272,7 +295,7 @@
       const tags = normalizeTagsForExplicitStorage(explicit.tags || {}, otherLabel);
       if (otherLabel) tags[OTHER_KEY] = true;
       tags[SATELLITE_KEY] = effectiveSatelliteForTarget(target);
-      return { tags, otherLabel, explicit: true };
+      return { tags, otherLabel, monthlyTopicLabel: monthlyTopicLabel(explicit) || monthlyTopicLabel(note), explicit: true };
     }
 
     let tags = null;
@@ -284,7 +307,7 @@
     if (note?.tags && hasAnyExplicitTagState(note.tags)) tags = normalizeTagsForExplicitStorage(note.tags, otherLabel);
     if (otherLabel) tags[OTHER_KEY] = true;
     tags[SATELLITE_KEY] = effectiveSatelliteForTarget(target);
-    return { tags, otherLabel, explicit: false };
+    return { tags, otherLabel, monthlyTopicLabel: monthlyTopicLabel(explicit) || monthlyTopicLabel(note), explicit: false };
   }
 
   function ensureProgramTagsWrap(cell) {
@@ -449,7 +472,7 @@
     const base = readBaseRecord(target.key);
     if (!base || !base.cellOverrideV15) return null;
     if (base.cleared) return { cleared: true };
-    return { text: base.text || base.rectNote?.text || '', durationMin: base.durationMin || base.rectNote?.durationMin || 30, tags: base.tags || {}, otherLabel: cleanOtherLabel(base.otherLabel || base.planningOtherLabel || base.customPlanningLabel || base.customTagLabel || base.otherText || ''), canonical: true, baseCanonical: true };
+    return { text: base.text || base.rectNote?.text || '', durationMin: base.durationMin || base.rectNote?.durationMin || 30, tags: base.tags || {}, otherLabel: cleanOtherLabel(base.otherLabel || base.planningOtherLabel || base.customPlanningLabel || base.customTagLabel || base.otherText || ''), monthlyTopicLabel: monthlyTopicLabel(base), canonical: true, baseCanonical: true };
   }
   function writeCanonicalRecord(target, note) {
     const duration = nearestDuration(note.durationMin || 30);
@@ -457,7 +480,7 @@
     let cleanTags = normalizeTagsForExplicitStorage(note.tags || {}, otherLabel);
     const previous = readCanonicalRecord(target.key);
     const originalProgramMarkSnapshot = note.originalProgramMarkSnapshot || (!previous?.cleared ? previous?.originalProgramMarkSnapshot : null) || null;
-    const record = { originalProgramMarkSnapshot, channelCode: channelCode(), monthKey: monthKey() || target.date.slice(0, 7), date: target.date, time: target.time, sourceType: target.sourceType, sourceEntryId: target.entryId || '', text: note.text || '', durationMin: duration, tags: cleanTags, otherLabel, planningOtherLabel: otherLabel, customPlanningLabel: otherLabel, customTagLabel: otherLabel, cleared: !!note.cleared, updatedAt: new Date().toISOString() };
+    const record = { monthlyTopicLabel: note.tags?.monthlyTopic ? monthlyTopicLabel(note) : '', originalProgramMarkSnapshot, channelCode: channelCode(), monthKey: monthKey() || target.date.slice(0, 7), date: target.date, time: target.time, sourceType: target.sourceType, sourceEntryId: target.entryId || '', text: note.text || '', durationMin: duration, tags: cleanTags, otherLabel, planningOtherLabel: otherLabel, customPlanningLabel: otherLabel, customTagLabel: otherLabel, cleared: !!note.cleared, updatedAt: new Date().toISOString() };
     const store = readCanonicalStore();
     store[target.key] = record;
     writeJson(canonicalStoreKey(), store);
@@ -471,7 +494,7 @@
         const existing = main[target.entryId] && typeof main[target.entryId] === 'object' ? main[target.entryId] : {};
         // Replace the tag state, do not merge. Merging is what made old wrong tags
         // such as Fundraiser impossible to clear from the new menu.
-        main[target.entryId] = { ...existing, tags: cleanTags, otherLabel, planningOtherLabel: otherLabel, customPlanningLabel: otherLabel, customTagLabel: otherLabel, rectNote: record.cleared ? null : { x: 4, y: 4, w: 92, h: 92, text: record.text, durationMin: duration, anchor: 'left', cellOverrideV15: true, otherLabel, planningOtherLabel: otherLabel, customPlanningLabel: otherLabel, customTagLabel: otherLabel } };
+        main[target.entryId] = { ...existing, monthlyTopicLabel: record.monthlyTopicLabel, tags: cleanTags, otherLabel, planningOtherLabel: otherLabel, customPlanningLabel: otherLabel, customTagLabel: otherLabel, rectNote: record.cleared ? null : { x: 4, y: 4, w: 92, h: 92, text: record.text, durationMin: duration, anchor: 'left', cellOverrideV15: true, otherLabel, planningOtherLabel: otherLabel, customPlanningLabel: otherLabel, customTagLabel: otherLabel } };
       }
       writeJson(mainKey, main);
     }
@@ -515,7 +538,7 @@
   function readEffectiveNote(target) {
     if (!target) return null;
     const canon = readCanonicalRecord(target.key) || canonicalFromBase(target);
-    if (canon) return canon.cleared ? null : normalizeNoteForDisplay({ text: canon.text || '', durationMin: nearestDuration(canon.durationMin || 30), tags: canon.tags || {}, otherLabel: noteOtherLabel(canon), canonical: true });
+    if (canon) return canon.cleared ? null : normalizeNoteForDisplay({ text: canon.text || '', durationMin: nearestDuration(canon.durationMin || 30), tags: canon.tags || {}, otherLabel: noteOtherLabel(canon), monthlyTopicLabel: monthlyTopicLabel(canon), canonical: true });
     return normalizeNoteForDisplay(legacyBlankNote(target) || legacyProgramNote(target));
   }
 
@@ -541,15 +564,19 @@
   }
   function activeTagKeys(tags, includeSatellite = true) { return allMenuTags().filter(tag => !!(tags && tags[tag]) && (includeSatellite || tag !== SATELLITE_KEY)); }
   function dominantTag(tags) { const active = activeTagKeys(tags, false); const base = Array.isArray(cfg().tagPriority) ? cfg().tagPriority : tagOrderBase(); const priority = ['highlight', ...base.filter(tag => tag !== 'highlight')]; return priority.find(tag => active.includes(tag)) || active[0] || ''; }
-  function tagPillHtml(tag, otherLabel = '') {
-    const label = tagDisplayLabel(tag, otherLabel);
+  function tagPillHtml(tag, otherLabel = '', selectedTopic = '') {
+    const label = tag === 'monthlyTopic' ? monthlyTagLabel(tag, selectedTopic) : tagDisplayLabel(tag, otherLabel);
     const customAttr = tag === OTHER_KEY && cleanOtherLabel(otherLabel) ? ` data-wnmu-custom-tag-label="${esc(cleanOtherLabel(otherLabel))}"` : '';
-    return `<span class="tag-pill"${customAttr} style="--tag-color:${esc(tagMeta(tag).color || '#ddd')}">${esc(label)}</span>`;
+    return `<span class="tag-pill" data-wnmu-planning-tag="${esc(tag)}"${customAttr} style="--tag-color:${esc(tagMeta(tag).color || '#ddd')}">${esc(label)}</span>`;
   }
-  function applyCellTagVisual(target, tags, otherLabel = '') {
+  function applyCellTagVisual(target, tags, otherLabel = '', selectedTopic = '') {
     const cell = target?.cell;
     if (!cell) return;
     let cleanTags = normalizeTagsForStorage(tags || {});
+    const topicName = cleanTags.monthlyTopic
+      ? normalizeMonthlyTopicName(selectedTopic || topicLabelForTarget(target)) : '';
+    if (topicName) cell.dataset.wnmuMonthlyTopicLabel = topicName;
+    else delete cell.dataset.wnmuMonthlyTopicLabel;
     const otherText = cleanOtherLabel(otherLabel);
     if (otherText) {
       cleanTags[OTHER_KEY] = true;
@@ -576,7 +603,7 @@
       if (active.length) {
         const wrap = document.createElement('div');
         wrap.className = 'program-tags';
-        wrap.innerHTML = active.slice(0, 6).map(tag => tagPillHtml(tag, otherText)).join('');
+        wrap.innerHTML = active.slice(0, 6).map(tag => tagPillHtml(tag, otherText, topicName)).join('');
         content.appendChild(wrap);
       }
     }
@@ -672,7 +699,16 @@
     box.style.width = `${Math.max(44, rect.width - 8)}px`;
     box.style.height = `${durationHeightFromRows(target.cell, normalized.durationMin)}px`;
     const tags = Object.keys(noteTags || {}).filter(tag => noteTags[tag] && (tag !== OTHER_KEY || customLabel));
-    const pills = tags.length ? `<div class="wnmu-cell-override-tags">${tags.map(tag => `<span data-wnmu-overlay-tag="${esc(tag)}">${esc(tagDisplayLabel(tag, customLabel))}</span>`).join('')}</div>` : '';
+    // A staged replacement represents its own program. Give the box the same
+    // dominant planning-tag color as a committed program, immediately on save.
+    // Never tint the underlying imported entry in lieu of the visible box.
+    const primaryTag = dominantTag(noteTags);
+    if (primaryTag && tags.includes(primaryTag)) {
+      box.style.backgroundColor = tagMeta(primaryTag).color || '#fff';
+      box.dataset.wnmuDominantTag = primaryTag;
+    }
+    const selectedTopic = monthlyTopicLabel(normalized);
+    const pills = tags.length ? `<div class="wnmu-cell-override-tags">${tags.map(tag => `<span data-wnmu-overlay-tag="${esc(tag)}">${esc(tag === 'monthlyTopic' && selectedTopic ? selectedTopic : tagDisplayLabel(tag, customLabel))}</span>`).join('')}</div>` : '';
     const text = normalized.text ? `<div class="wnmu-cell-override-text">${esc(normalized.text)}</div>` : '';
     box.innerHTML = `${pills}${text}<div class="wnmu-cell-override-duration">${nearestDuration(normalized.durationMin || 30)} min</div>`;
     layer.appendChild(box);
@@ -681,6 +717,110 @@
   function removeOverlay(target) { if (!target) return; removeOverlayElementsForKey(target.key); target.cell?.classList.remove('wnmu-has-cell-override'); }
   function buildDurationRadios(selected, name) { const chosen = nearestDuration(selected || 30); return DURATIONS.map(min => `<label class="wnmu-cell-pill"><input type="radio" name="${name}" value="${min}" ${min === chosen ? 'checked' : ''}><span>${min}</span></label>`).join(''); }
   function cellTitle(target) { return target?.cell?.querySelector?.('.program-title')?.textContent?.trim() || (target?.sourceType === 'program' ? 'Scheduled program cell' : 'Blank schedule cell'); }
+  function originalCellTitle(target) {
+    const title = target?.cell?.querySelector?.('.program-title');
+    return String(title?.dataset?.wnmuOriginalTitle || title?.textContent || '').trim();
+  }
+
+  let monthlyTopicCatalogPromise = null;
+  function topicsForScheduleMonth(date) {
+    if (!monthlyTopicCatalogPromise) {
+      monthlyTopicCatalogPromise = fetch('wnmu-monthly-topic-catalog.v1.json?v=20261110', { cache: 'force-cache' })
+        .then(response => { if (!response.ok) throw new Error('Monthly topic catalog unavailable'); return response.json(); })
+        .then(data => {
+          const original = Array.isArray(data.observances) ? data.observances : [];
+          // Present Christmas Eve (Dec 24) and Christmas Day (Dec 25)
+          // as one scheduling topic, without modifying the Library catalog.
+          let christmasAdded = false;
+          return original.flatMap(item => {
+            if (!/^christmas (?:eve|day)$/i.test(String(item.title || '').trim())) return [item];
+            if (christmasAdded) return [];
+            christmasAdded = true;
+            return [{
+              ...item, title: 'Christmas', rule_type: 'date_range_fixed',
+              month: 12, start_month: 12, end_month: 12,
+              start_day: 24, end_day: 25
+            }];
+          });
+        })
+        .catch(err => { monthlyTopicCatalogPromise = null; throw err; });
+    }
+    const month = Number(String(date || '').slice(5, 7));
+    return monthlyTopicCatalogPromise.then(entries => entries.filter(item => {
+      const start = Number(item.start_month || item.month);
+      const end = Number(item.end_month || item.month);
+      return start <= end ? month >= start && month <= end : month >= start || month <= end;
+    }).sort((a,b) => {
+      const rank = item => item.rule_type === 'month_scope' ? 0 : item.rule_type === 'date_range_fixed' ? 1 : 2;
+      return rank(a) - rank(b) || String(a.title).localeCompare(String(b.title));
+    }));
+  }
+  function setMonthlyTopicInMenu(menu, value) {
+    const label = normalizeMonthlyTopicName(value);
+    if (menu) menu.dataset.wnmuSelectedMonthlyTopic = label;
+    const input = menu?.querySelector('#wnmuMonthTopicValue');
+    if (input) input.value = label;
+    const chosen = menu?.querySelector('#wnmuMonthTopicChosen');
+    if (chosen) chosen.textContent = label || 'No topic chosen';
+    const change = menu?.querySelector('#wnmuChangeMonthTopicBtn');
+    if (change) change.textContent = label ? 'Change topic' : 'Choose topic';
+    markMenuPlanningDirty(menu);
+  }
+  async function openMonthlyTopicPicker(menu, date) {
+    const dialog = menu?.querySelector('#wnmuMonthTopicDialog');
+    const options = menu?.querySelector('#wnmuMonthTopicOptions');
+    const queryInput = menu?.querySelector('#wnmuMonthTopicSearch');
+    if (!dialog || !options) return;
+    const month = String(date || '').slice(0, 7);
+    const caption = menu.querySelector('#wnmuMonthTopicMonth');
+    if (caption) caption.textContent = /^\d{4}-\d{2}$/.test(month)
+      ? new Date(Number(month.slice(0,4)), Number(month.slice(5,7)) - 1, 1).toLocaleDateString('en-US',{month:'long',year:'numeric'})
+      : 'the selected month';
+    options.textContent = 'Loading monthly topics…';
+    if (queryInput) queryInput.value = '';
+    if (!dialog.open) dialog.showModal();
+    try {
+      const topics = await topicsForScheduleMonth(date);
+      if (!dialog.open) return;
+      function display(needle = '') {
+        options.replaceChildren();
+        const matches = topics.filter(topic => String(topic.title).toLowerCase().includes(needle.toLowerCase()));
+        const fragment = document.createDocumentFragment();
+        if (!matches.length) {
+          const empty = document.createElement('p'); empty.textContent = 'No matching topics. You can enter another topic below.';
+          fragment.appendChild(empty);
+        }
+        matches.forEach(topic => {
+          const button = document.createElement('button');
+          button.type = 'button';
+          button.className = 'wnmu-month-topic-option';
+          button.textContent = topic.title;
+          button.dataset.topic = topic.title;
+          const category = document.createElement('small');
+          category.textContent = topic.rule_type === 'month_scope' ? 'Whole month' :
+            topic.rule_type === 'date_range_fixed' ? 'Multi-day observance' : 'Holiday or event';
+          button.appendChild(category);
+          button.addEventListener('click', () => {
+            setMonthlyTopicInMenu(menu, topic.title);
+            const flag = menu.querySelector('input[name="monthlyTopic"]'); if (flag) flag.checked = true;
+            dialog.close();
+            // Selection is a complete planning-tag edit.
+            const saved = savePlanningTagsOnlyFromMenu(menu);
+            const status = menu.querySelector('#wnmuCellStatus');
+            if (status) status.textContent = saved
+              ? `Monthly Topic saved: ${menuTopicLabel(menu)}.`
+              : 'Monthly Topic was not saved. Please try again.';
+          });
+          fragment.appendChild(button);
+        });
+        options.replaceChildren(fragment);
+      }
+      display();
+      if (queryInput) queryInput.oninput = () => display(queryInput.value);
+    } catch(err) {
+      if (dialog.open) options.textContent = 'Topic list could not be loaded. Enter a topic below.';
+    }
+  }
 
   function cellMenuHtml(target, note) {
     const tags = { ...(note?.tags || {}) };
@@ -688,9 +828,14 @@
     const otherLabel = cleanOtherLabel(note?.otherLabel || note?.planningOtherLabel || note?.customPlanningLabel || note?.customTagLabel || note?.otherText || '');
     const tagRows = allMenuTags().filter(tag => tag !== OTHER_KEY).map(tag => `<label class="check-row ${esc(tagClassName(tag))}"><input type="checkbox" name="${esc(tag)}" ${tags[tag] ? 'checked' : ''}> <span>${esc(tagMeta(tag).label || tag)}</span></label>`).join('');
     const typeLabel = target.sourceType === 'program' ? `Program: ${cellTitle(target)}` : 'Blank schedule slot';
+    const rawTitle = originalCellTitle(target);
+    const editTitle = target.sourceType === 'program' && rawTitle ?
+      `<div class="wnmu-menu-title-tools"><button type="button" class="btn ghost" id="wnmuEditProgramTitleBtn">Edit title</button><div id="wnmuTitleEditor" class="wnmu-menu-title-editor" hidden><label for="wnmuTitleCorrectedInput">Corrected program title</label><input id="wnmuTitleCorrectedInput" type="text" maxlength="240" value="${esc(cellTitle(target))}"><div class="wnmu-menu-title-actions"><button type="button" class="btn" id="wnmuSaveProgramTitleBtn">Save title correction</button><button type="button" class="btn ghost" id="wnmuCancelProgramTitleBtn">Cancel</button></div><div class="manual-rect-help">This changes the displayed title wherever the imported name occurs. The original imported record and saved tags remain intact.</div></div></div>` : '';
     const noteSource = note?.canonical ? 'saved v1.5 note' : (note?.legacy ? `older ${note.legacy} note` : 'no saved note yet');
     const defaultDuration = note?.durationMin || Math.max(30, Number(target.cell?.rowSpan || 1) * 30);
-    return `<div class="context-menu-head"><div><h3>Schedule cell note</h3><div class="context-menu-meta">${esc(typeLabel)} • ${esc(target.date)} • ${esc(target.time)} • ${esc(noteSource)}</div></div><button type="button" class="menu-close" id="wnmuCellCloseBtn" aria-label="Close">×</button></div><form class="wnmu-cell-form" id="wnmuCellForm"><div class="wnmu-cell-tag-block"><div class="manual-rect-label">Planning tags</div><div class="wnmu-cell-tag-grid">${tagRows}</div></div><div class="wnmu-cell-custom-block"><label class="manual-rect-label" for="wnmuCellCustomTagText">Custom planning tag</label><div class="wnmu-custom-tag-row"><input id="wnmuCellCustomTagText" data-wnmu-custom-tag-input="true" class="manual-rect-text wnmu-custom-tag-input" type="text" maxlength="64" placeholder="Type custom tag…" value="${esc(otherLabel)}"><button type="button" class="btn ghost" id="wnmuCustomTagClearBtn">Clear custom tag</button></div><div class="manual-rect-help">This custom label shows as its own planning tag on the grid. Clear the field to remove it.</div></div><fieldset class="wnmu-cell-note-tools"><legend>White override box</legend><label class="manual-rect-label" for="wnmuCellText">Box note text</label><textarea id="wnmuCellText" class="manual-rect-text" rows="3" placeholder="Type what should show in this schedule slot">${esc(note?.text || '')}</textarea><div class="manual-rect-label wnmu-duration-label">Box size / length</div><div class="wnmu-cell-duration-options" role="radiogroup" aria-label="Box note length">${buildDurationRadios(defaultDuration, 'wnmuCellDuration')}</div><div class="manual-rect-help">Choose how many minutes the white box should cover. This controls the drawn box height.</div></fieldset><div class="rect-actions wnmu-unified-actions"><button type="button" class="btn ghost" id="wnmuCommitProgramBtn">Commit to Schedule</button><button type="button" class="btn ghost" id="wnmuCellSaveBtn">Save box note</button><button type="button" class="btn ghost" id="wnmuCellClearBtn">Clear box note</button><button type="button" class="btn ghost" id="wnmuRemoveCommittedProgramBtn" hidden>Remove committed program</button></div><div id="wnmuCellStatus" class="blank-save-status" aria-live="polite"></div></form>`;
+    const topicSelection = monthlyTopicLabel(note);
+    const topicUi = `<div class="wnmu-month-topic-chosen"><input type="hidden" id="wnmuMonthTopicValue" value="${esc(topicSelection)}"><span id="wnmuMonthTopicChosen">${esc(topicSelection || 'No topic chosen')}</span><button type="button" class="btn ghost" id="wnmuChangeMonthTopicBtn">${topicSelection ? 'Change topic' : 'Choose topic'}</button></div><dialog id="wnmuMonthTopicDialog" class="wnmu-month-topic-dialog" aria-label="Choose Monthly Topic"><h4>Choose Monthly Topic — <span id="wnmuMonthTopicMonth"></span></h4><input id="wnmuMonthTopicSearch" type="search" placeholder="Filter topics…" aria-label="Filter monthly topics"><div id="wnmuMonthTopicOptions" class="wnmu-month-topic-options"></div><div class="wnmu-month-topic-custom"><input id="wnmuMonthTopicCustom" type="text" maxlength="160" placeholder="Or enter another topic"><button type="button" id="wnmuMonthTopicUseCustom">Use custom</button></div><button type="button" class="btn ghost" id="wnmuMonthTopicCancel">Cancel</button></dialog>`;
+    return `<div class="context-menu-head"><div><h3>Schedule cell note</h3><div class="context-menu-meta">${esc(typeLabel)} • ${esc(target.date)} • ${esc(target.time)} • ${esc(noteSource)}</div>${editTitle}</div><button type="button" class="menu-close" id="wnmuCellCloseBtn" aria-label="Close">×</button></div><form class="wnmu-cell-form" id="wnmuCellForm"><div class="wnmu-cell-tag-block"><div class="manual-rect-label">Planning tags</div><div class="wnmu-cell-tag-grid">${tagRows}</div>${topicUi}</div><div class="wnmu-cell-custom-block"><label class="manual-rect-label" for="wnmuCellCustomTagText">Custom planning tag</label><div class="wnmu-custom-tag-row"><input id="wnmuCellCustomTagText" data-wnmu-custom-tag-input="true" class="manual-rect-text wnmu-custom-tag-input" type="text" maxlength="64" placeholder="Type custom tag…" value="${esc(otherLabel)}"><button type="button" class="btn ghost" id="wnmuCustomTagClearBtn">Clear custom tag</button></div><div class="manual-rect-help">This custom label shows as its own planning tag on the grid. Clear the field to remove it.</div></div><fieldset class="wnmu-cell-note-tools"><legend>White override box</legend><label class="manual-rect-label" for="wnmuCellText">Box note text</label><textarea id="wnmuCellText" class="manual-rect-text" rows="3" placeholder="Type what should show in this schedule slot">${esc(note?.text || '')}</textarea><div class="manual-rect-label wnmu-duration-label">Box size / length</div><div class="wnmu-cell-duration-options" role="radiogroup" aria-label="Box note length">${buildDurationRadios(defaultDuration, 'wnmuCellDuration')}</div><div class="manual-rect-help">Choose how many minutes the white box should cover. This controls the drawn box height.</div></fieldset><div class="rect-actions wnmu-unified-actions"><button type="button" class="btn ghost" id="wnmuCommitProgramBtn">Commit to Schedule</button><button type="button" class="btn ghost" id="wnmuCellSaveBtn">Save box note</button><button type="button" class="btn ghost" id="wnmuCellClearBtn">Clear box note</button><button type="button" class="btn ghost" id="wnmuRemoveCommittedProgramBtn" hidden>Remove committed program</button></div><div id="wnmuCellStatus" class="blank-save-status" aria-live="polite"></div></form>`;
   }
   function ensureCellMenu() {
     let menu = document.getElementById('wnmuCellMenu');
@@ -781,25 +926,25 @@
       old.style.display = 'none';
     }
   }
-  function syncWhiteOverridePlanning(target, tags, otherLabel) {
+  function syncWhiteOverridePlanning(target, tags, otherLabel, selectedTopic = '') {
     if (!target?.key) return;
     const canonical = readCanonicalStore();
     const note = canonical[target.key];
     if (!note || note.cleared || !note.text) return;
-    const next = { ...note, tags: { ...tags }, otherLabel, planningOtherLabel: otherLabel,
+    const next = { ...note, monthlyTopicLabel: tags?.monthlyTopic ? selectedTopic : '', tags: { ...tags }, otherLabel, planningOtherLabel: otherLabel,
       customPlanningLabel: otherLabel, customTagLabel: otherLabel, updatedAt: new Date().toISOString() };
     canonical[target.key] = next;
     writeJson(canonicalStoreKey(), canonical);
     const main = readJson(storageKey(), {});
     if (main[target.key]?.cellOverrideV15) {
-      main[target.key] = { ...main[target.key], tags: { ...tags }, otherLabel,
+      main[target.key] = { ...main[target.key], monthlyTopicLabel: tags?.monthlyTopic ? selectedTopic : '', tags: { ...tags }, otherLabel,
         planningOtherLabel: otherLabel, customPlanningLabel: otherLabel, customTagLabel: otherLabel };
       writeJson(storageKey(), main);
     }
     paintOverlay(target, next);
   }
 
-  function writeProgramPlanningTags(target, tags, otherLabel) {
+  function writeProgramPlanningTags(target, tags, otherLabel, selectedTopic = '') {
     const key = storageKey();
     if (!key || !target) return false;
     const entryId = target?.entryId || target?.cell?.dataset?.entryId || '';
@@ -808,6 +953,7 @@
     delete rawTags[SATELLITE_KEY];
     const cleanOther = cleanOtherLabel(otherLabel || '');
     const cleanTags = normalizeTagsForExplicitStorage(rawTags, cleanOther);
+    const topicName = cleanTags.monthlyTopic ? String(selectedTopic || '').trim().slice(0, 160) : '';
 
     if (entryId) {
       const all = readJson(key, {});
@@ -815,6 +961,7 @@
       const next = {
         ...existing,
         tags: cleanTags,
+        monthlyTopicLabel: topicName,
         otherLabel: cleanOther,
         planningOtherLabel: cleanOther,
         customPlanningLabel: cleanOther,
@@ -832,10 +979,10 @@
       if (target.cell) {
         if (cleanOther) target.cell.dataset.wnmuOtherLabel = cleanOther;
         else { delete target.cell.dataset.wnmuOtherLabel; delete target.cell.dataset.wnmuCustomPlanningTag; }
-        applyCellTagVisual(target, cleanTags, cleanOther);
+        applyCellTagVisual(target, cleanTags, cleanOther, topicName);
         forceCustomTagDisplayForCell(target.cell, cleanOther);
       }
-      syncWhiteOverridePlanning(target, cleanTags, cleanOther);
+      syncWhiteOverridePlanning(target, cleanTags, cleanOther, topicName);
       repaintSatelliteFeedsSoon(30, target.entryId || '');
       window.dispatchEvent(new CustomEvent('wnmu:cell-planning-tags-saved', { detail: { entryId, cellKey: target.key, version: VERSION } }));
       return true;
@@ -849,6 +996,7 @@
     const next = {
       ...existing,
       tags: cleanTags,
+      monthlyTopicLabel: topicName,
       otherLabel: cleanOther,
       planningOtherLabel: cleanOther,
       customPlanningLabel: cleanOther,
@@ -869,10 +1017,10 @@
         delete target.cell.dataset.wnmuOtherLabel;
         delete target.cell.dataset.wnmuCustomPlanningTag;
       }
-      applyCellTagVisual(target, cleanTags, cleanOther);
+      applyCellTagVisual(target, cleanTags, cleanOther, topicName);
       forceCustomTagDisplayForCell(target.cell, cleanOther);
     }
-    syncWhiteOverridePlanning(target, cleanTags, cleanOther);
+    syncWhiteOverridePlanning(target, cleanTags, cleanOther, topicName);
     repaintSatelliteFeedsSoon(30, target.entryId || '');
     window.dispatchEvent(new CustomEvent('wnmu:cell-planning-tags-saved', { detail: { cellKey: target.key, version: VERSION } }));
     return true;
@@ -884,7 +1032,7 @@
     const normalized = {};
     allMenuTags().forEach(tag => { if (tag !== SATELLITE_KEY) normalized[tag] = !!tags[tag]; });
     normalized[OTHER_KEY] = !!otherLabel;
-    return JSON.stringify({ tags: normalized, otherLabel });
+    return JSON.stringify({ tags: normalized, otherLabel, monthlyTopicLabel: normalized.monthlyTopic ? menuTopicLabel(menu) : '' });
   }
   function rememberMenuPlanningState(menu) {
     if (!menu) return '';
@@ -906,7 +1054,7 @@
     const otherLabel = readCustomOtherLabelFromMenu(menu);
     tags[OTHER_KEY] = !!otherLabel;
     window.WNMU_MENU_BULK_EDIT_ACTIVE_UNTIL = Date.now() + 1200;
-    const ok = writeProgramPlanningTags(target, tags, otherLabel);
+    const ok = writeProgramPlanningTags(target, tags, otherLabel, menuTopicLabel(menu));
     if (ok && target?.cell) {
       if (otherLabel) {
         target.cell.dataset.wnmuOtherLabel = otherLabel;
@@ -915,7 +1063,7 @@
         delete target.cell.dataset.wnmuOtherLabel;
         delete target.cell.dataset.wnmuCustomPlanningTag;
       }
-      applyCellTagVisual(target, tags, otherLabel);
+      applyCellTagVisual(target, tags, otherLabel, menuTopicLabel(menu));
       forceCustomTagDisplayForCell(target.cell, otherLabel);
     }
     if (ok) rememberMenuPlanningState(menu);
@@ -933,7 +1081,7 @@
     const menu = ensureCellMenu();
     const baseNote = readEffectiveNote(target) || { text: '', durationMin: Math.max(30, Number(target.cell?.rowSpan || 1) * 30), tags: {} };
     const planningState = readEffectivePlanningState(target, baseNote);
-    const note = { ...baseNote, tags: planningState.tags, otherLabel: planningState.otherLabel, planningOtherLabel: planningState.otherLabel, customPlanningLabel: planningState.otherLabel, customTagLabel: planningState.otherLabel };
+    const note = { ...baseNote, tags: planningState.tags, monthlyTopicLabel: planningState.monthlyTopicLabel, otherLabel: planningState.otherLabel, planningOtherLabel: planningState.otherLabel, customPlanningLabel: planningState.otherLabel, customTagLabel: planningState.otherLabel };
     menu.dataset.wnmuCellKey = target.key; menu.dataset.wnmuDate = target.date; menu.dataset.wnmuTime = target.time; menu.dataset.wnmuEntryId = target.entryId || '';
     menu.innerHTML = cellMenuHtml(target, note);
     hardenMenuForm(menu);
@@ -946,6 +1094,8 @@
       return false;
     });
     updateOtherMenuLabel(menu, planningState.otherLabel, { force: true });
+    setMonthlyTopicInMenu(menu, planningState.monthlyTopicLabel || '');
+    const topicField = menu.querySelector('#wnmuMonthTopicValue'); if (topicField) topicField.value = normalizeMonthlyTopicName(planningState.monthlyTopicLabel);
     rememberMenuPlanningState(menu);
     const customInput = customTagInput(menu);
     if (customInput) {
@@ -965,7 +1115,95 @@
       markMenuPlanningDirty(menu);
       customInput?.focus?.();
     });
-    menu.querySelector('.wnmu-cell-tag-grid')?.addEventListener('change', () => markMenuPlanningDirty(menu));
+    menu.querySelector('.wnmu-cell-tag-grid')?.addEventListener('change', event => {
+      markMenuPlanningDirty(menu);
+      const targetInput = event.target;
+      if (targetInput?.name === 'monthlyTopic') {
+        if (targetInput.checked) openMonthlyTopicPicker(menu, target.date);
+        else setMonthlyTopicInMenu(menu, '');
+      }
+    });
+    menu.querySelector('#wnmuChangeMonthTopicBtn')?.addEventListener('click', event => {
+      event.preventDefault();
+      const flag = menu.querySelector('input[name="monthlyTopic"]');
+      if (flag) flag.checked = true;
+      openMonthlyTopicPicker(menu, target.date);
+    });
+    menu.querySelector('#wnmuMonthTopicDialog')?.addEventListener('close', () => {
+      if (!menuTopicLabel(menu)) {
+        const flag = menu.querySelector('input[name="monthlyTopic"]');
+        if (flag) flag.checked = false;
+        markMenuPlanningDirty(menu);
+      }
+    });
+    menu.querySelector('#wnmuMonthTopicCancel')?.addEventListener('click', () => {
+      const dialog = menu.querySelector('#wnmuMonthTopicDialog');
+      if (dialog?.open) dialog.close();
+      if (!menuTopicLabel(menu)) {
+        const flag = menu.querySelector('input[name="monthlyTopic"]');
+        if (flag) flag.checked = false;
+      }
+      markMenuPlanningDirty(menu);
+    });
+    menu.querySelector('#wnmuMonthTopicUseCustom')?.addEventListener('click', () => {
+      const value = String(menu.querySelector('#wnmuMonthTopicCustom')?.value || '').trim();
+      if (!value) return;
+      setMonthlyTopicInMenu(menu, value);
+      const flag = menu.querySelector('input[name="monthlyTopic"]');
+      if (flag) flag.checked = true;
+      const dialog = menu.querySelector('#wnmuMonthTopicDialog');
+      if (dialog?.open) dialog.close();
+      const saved = savePlanningTagsOnlyFromMenu(menu);
+      const status = menu.querySelector('#wnmuCellStatus');
+      if (status) status.textContent = saved
+        ? `Monthly Topic saved: ${menuTopicLabel(menu)}.`
+        : 'Monthly Topic was not saved. Please try again.';
+    });
+    menu.querySelector('#wnmuEditProgramTitleBtn')?.addEventListener('click', event => {
+      event.preventDefault(); event.stopPropagation();
+      const editor = menu.querySelector('#wnmuTitleEditor');
+      if (!editor) return;
+      editor.hidden = false;
+      const input = menu.querySelector('#wnmuTitleCorrectedInput');
+      input?.focus();
+      input?.select();
+      positionMenu(menu, event.clientX, event.clientY);
+    });
+    menu.querySelector('#wnmuCancelProgramTitleBtn')?.addEventListener('click', event => {
+      event.preventDefault(); event.stopPropagation();
+      const editor = menu.querySelector('#wnmuTitleEditor');
+      if (editor) editor.hidden = true;
+    });
+    menu.querySelector('#wnmuSaveProgramTitleBtn')?.addEventListener('click', async event => {
+      event.preventDefault(); event.stopPropagation(); event.stopImmediatePropagation();
+      const source = originalCellTitle(target);
+      const input = menu.querySelector('#wnmuTitleCorrectedInput');
+      const correction = String(input?.value || '').trim().replace(/\s+/g, ' ');
+      const status = menu.querySelector('#wnmuCellStatus');
+      const button = menu.querySelector('#wnmuSaveProgramTitleBtn');
+      if (!source || !correction) {
+        if (status) status.textContent = 'Enter a corrected program title.';
+        return;
+      }
+      const save = window.WNMU_TITLE_REVIEW_API?.saveApprovedTitle;
+      if (typeof save !== 'function') {
+        if (status) status.textContent = 'Title correction service is not available on this page.';
+        return;
+      }
+      button.disabled = true;
+      try {
+        const result = await save(source, correction);
+        if (status) status.textContent = result.unchanged ? 'Title unchanged.' : 'Title correction approved and saved.';
+        const type = menu.querySelector('.context-menu-meta');
+        if (type) type.textContent = `Program: ${correction} • ${target.date} • ${target.time} • approved title`;
+        const editor = menu.querySelector('#wnmuTitleEditor');
+        if (editor) editor.hidden = true;
+      } catch (err) {
+        if (status) status.textContent = `Title was not saved: ${err.message || err}`;
+      } finally {
+        button.disabled = false;
+      }
+    });
     menu.querySelector('#wnmuCellCloseBtn')?.addEventListener('click', event => { event.preventDefault(); event.stopPropagation(); closeCellMenuAndPersist(); });
     menu.querySelector('#wnmuCellSaveBtn')?.addEventListener('click', event => { event.preventDefault(); event.stopPropagation(); event.stopImmediatePropagation(); saveFromCellMenu(); });
     menu.querySelector('#wnmuCellClearBtn')?.addEventListener('click', event => { event.preventDefault(); event.stopPropagation(); event.stopImmediatePropagation(); clearFromCellMenu(); });
@@ -992,13 +1230,13 @@
       existed: Object.prototype.hasOwnProperty.call(beforeMarks, target.entryId),
       value: beforeMarks[target.entryId] ? JSON.parse(JSON.stringify(beforeMarks[target.entryId])) : null
     } : null);
-    writeProgramPlanningTags(target, tags, otherLabel);
+    writeProgramPlanningTags(target, tags, otherLabel, menuTopicLabel(menu));
     try {
-      writeCanonicalRecord(target, { text, durationMin: duration, tags, otherLabel, originalProgramMarkSnapshot });
+      writeCanonicalRecord(target, { text, durationMin: duration, tags, otherLabel, monthlyTopicLabel: menuTopicLabel(menu), originalProgramMarkSnapshot });
       const reread = readEffectiveNote(target);
       removeOverlayElementsForDateTime(target.date, target.time);
-      paintOverlay(target, { text, durationMin: duration, tags, otherLabel, planningOtherLabel: otherLabel });
-      applyCellTagVisual(target, tags, otherLabel);
+      paintOverlay(target, { text, durationMin: duration, tags, otherLabel, monthlyTopicLabel: menuTopicLabel(menu), planningOtherLabel: otherLabel });
+      applyCellTagVisual(target, tags, otherLabel, menuTopicLabel(menu));
       forceCustomTagDisplayForCell(target.cell, otherLabel);
       window.WNMU_LAST_CELL_NOTE_SAVE = { target: { key: target.key, date: target.date, time: target.time, entryId: target.entryId || '', sourceType: target.sourceType }, text, durationMin: duration, tags, reread, savedAt: new Date().toISOString() };
       rememberMenuPlanningState(menu);
@@ -1087,7 +1325,7 @@
   function injectStyles() {
     if (document.getElementById('wnmuCellInteractionsV1512Styles')) return;
     const style = document.createElement('style'); style.id = 'wnmuCellInteractionsV1512Styles';
-    style.textContent = `td.program-cell[data-wnmu-actionable="false"]{background:#fff!important}.program-cell[data-wnmu-actionable="false"] .program-tags,.program-cell[data-wnmu-actionable="false"]>.draw-rect-note,.program-cell[data-wnmu-actionable="false"]>.wnmu-blank-slot-content{display:none!important}.week-grid-wrap,.screen-host{position:relative}.wnmu-cell-override-layer{position:absolute;left:0;top:0;right:0;bottom:0;z-index:20;pointer-events:none;overflow:visible}.screen-host>.wnmu-cell-override-layer{z-index:20}.wnmu-cell-override-box{position:absolute;box-sizing:border-box;background:rgba(255,255,255,.96);border:2px solid rgba(12,18,32,.86);color:#111;border-radius:4px;box-shadow:0 2px 7px rgba(0,0,0,.22);padding:5px 6px 16px;overflow:hidden;font:12px/1.22 system-ui,sans-serif;pointer-events:auto}.wnmu-cell-override-text{white-space:normal;overflow:hidden;font-weight:700}.wnmu-cell-override-tags{display:flex;flex-wrap:wrap;gap:3px;margin-bottom:3px}.wnmu-cell-override-tags span{display:inline-flex;align-items:center;border:1px solid rgba(0,0,0,.25);border-radius:999px;padding:1px 5px;font-size:9px;font-weight:800;background:rgba(255,255,255,.72)}.wnmu-cell-override-box{cursor:context-menu}.wnmu-cell-override-duration{position:absolute;right:4px;bottom:2px;font-size:9px;opacity:.62}.program-cell.wnmu-has-cell-override>.draw-rect-note,.program-cell.wnmu-has-cell-override>.wnmu-blank-slot-content{display:none!important}#contextMenu{display:none!important;z-index:1}#wnmuCellMenu.wnmu-cell-menu{position:fixed;z-index:2147483647!important;min-width:420px;max-width:min(620px,calc(100vw - 24px));max-height:calc(100vh - 28px);overflow:auto;overscroll-behavior:contain;box-sizing:border-box}.wnmu-cell-form{display:flex;flex-direction:column;gap:7px}.wnmu-cell-tag-block,.wnmu-cell-custom-block{display:block}.wnmu-unified-actions{display:flex;align-items:center;gap:8px;flex-wrap:nowrap;margin:2px 0 0;padding:6px 0;border-top:1px solid #d7dee8;border-bottom:1px solid #d7dee8;background:#fff}.wnmu-unified-actions .btn{white-space:nowrap}#wnmuCommitProgramBtn{background:#17345f!important;border-color:#17345f!important;color:#fff!important;font-weight:850!important}@media(max-width:720px){#wnmuCellMenu .wnmu-cell-tag-grid{grid-template-columns:1fr!important}#wnmuCellMenu .wnmu-unified-actions{flex-wrap:wrap!important}}.wnmu-cell-tag-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px;margin:6px 0}.wnmu-cell-tag-grid .check-row{min-height:26px;margin:0;box-sizing:border-box;display:flex;align-items:center;gap:8px;border-radius:7px;border:1px solid rgba(17,17,17,.16);padding:4px 6px}.wnmu-cell-note-tools{border:2px solid rgba(255,255,255,.32);border-radius:10px;padding:8px;margin:0;background:rgba(255,255,255,.08);display:flex;flex-direction:column;gap:5px}.wnmu-cell-note-tools legend{font-weight:800}.wnmu-cell-duration-options{display:flex;flex-wrap:wrap;gap:5px;margin:0 0 4px}.wnmu-cell-pill{display:inline-flex;align-items:center;gap:4px;font-size:12px;border:1px solid rgba(255,255,255,.3);border-radius:999px;padding:5px 8px;cursor:pointer;background:rgba(255,255,255,.08)}.wnmu-cell-pill input{margin:0}.manual-rect-text{width:100%;box-sizing:border-box;border-radius:8px;border:1px solid rgba(255,255,255,.28);padding:7px;resize:vertical;font:13px/1.3 system-ui,sans-serif;color:#111;background:#fff}.wnmu-custom-tag-row{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;margin:6px 0 2px;padding:8px;border:2px solid rgba(17,52,95,.38);border-radius:10px;background:rgba(255,255,255,.92)}.wnmu-custom-tag-input{border:2px solid #17345f!important;background:#fff!important;box-shadow:inset 0 1px 2px rgba(15,23,42,.12)!important}.wnmu-custom-tag-input:focus{outline:3px solid rgba(49,95,140,.22)!important;outline-offset:1px!important}.manual-rect-label{font-size:12px;font-weight:800;margin:3px 0 3px}.manual-rect-help{margin-top:6px;font-size:11px;opacity:.75;line-height:1.25}table.screen-week-grid thead th{z-index:100}.panel-head,.topbar,.flagbar{position:relative;z-index:120}.wnmu-diag-panel{z-index:2147483200!important}.wnmu-component-versions{z-index:2147483000!important}@media print{.wnmu-cell-override-layer{display:none!important}}`;
+    style.textContent = `td.program-cell[data-wnmu-actionable="false"]{background:#fff!important}.program-cell[data-wnmu-actionable="false"] .program-tags,.program-cell[data-wnmu-actionable="false"]>.draw-rect-note,.program-cell[data-wnmu-actionable="false"]>.wnmu-blank-slot-content{display:none!important}.week-grid-wrap,.screen-host{position:relative}.wnmu-cell-override-layer{position:absolute;left:0;top:0;right:0;bottom:0;z-index:20;pointer-events:none;overflow:visible}.screen-host>.wnmu-cell-override-layer{z-index:20}.wnmu-cell-override-box{position:absolute;box-sizing:border-box;background:rgba(255,255,255,.96);border:2px solid rgba(12,18,32,.86);color:#111;border-radius:4px;box-shadow:0 2px 7px rgba(0,0,0,.22);padding:5px 6px 16px;overflow:hidden;font:12px/1.22 system-ui,sans-serif;pointer-events:auto}.wnmu-cell-override-text{white-space:normal;overflow:hidden;font-weight:700}.wnmu-cell-override-tags{display:flex;flex-wrap:wrap;gap:3px;margin-bottom:3px}.wnmu-cell-override-tags span{display:inline-flex;align-items:center;border:1px solid rgba(0,0,0,.25);border-radius:999px;padding:1px 5px;font-size:9px;font-weight:800;background:rgba(255,255,255,.72)}.wnmu-cell-override-box{cursor:context-menu}.wnmu-cell-override-duration{position:absolute;right:4px;bottom:2px;font-size:9px;opacity:.62}.program-cell.wnmu-has-cell-override>.draw-rect-note,.program-cell.wnmu-has-cell-override>.wnmu-blank-slot-content{display:none!important}#contextMenu{display:none!important;z-index:1}#wnmuCellMenu.wnmu-cell-menu{position:fixed;z-index:2147483647!important;min-width:420px;max-width:min(620px,calc(100vw - 24px));max-height:calc(100vh - 28px);overflow:auto;overscroll-behavior:contain;box-sizing:border-box}.wnmu-month-topic-chosen{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:5px 0}.wnmu-month-topic-chosen span{font-weight:700;font-size:12px}.wnmu-month-topic-dialog{max-width:min(500px,92vw);width:420px;border:1px solid #99abc0;border-radius:10px;box-shadow:0 12px 45px #0005;padding:17px;background:#fff;color:#10243c;max-height:85vh}.wnmu-month-topic-dialog::backdrop{background:rgba(0,0,0,.43)}.wnmu-month-topic-dialog h4{margin:0 0 10px}.wnmu-month-topic-dialog input{box-sizing:border-box;width:100%;padding:9px;margin-bottom:9px;border:1px solid #b0bfd0;border-radius:6px}.wnmu-month-topic-options{display:grid;gap:4px;max-height:42vh;overflow-y:auto;margin-bottom:10px}.wnmu-month-topic-option{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px;border:1px solid #dbe3ec;background:#f8fafc;color:#142d49;border-radius:5px;cursor:pointer;text-align:left;font-weight:600}.wnmu-month-topic-option:hover{background:#eaf3fb}.wnmu-month-topic-option small{font-size:10px;color:#687789;font-weight:400}.wnmu-month-topic-custom{display:flex;gap:6px}.wnmu-month-topic-custom input{flex:1;min-width:100px}.wnmu-month-topic-custom button{white-space:nowrap;height:38px;border:1px solid #0d4f38;background:#0d4f38;color:#fff;border-radius:6px;padding:0 10px}.wnmu-month-topic-dialog #wnmuMonthTopicCancel{display:block;margin-left:auto}.wnmu-menu-title-tools{margin-top:5px}.wnmu-menu-title-tools #wnmuEditProgramTitleBtn{font-size:12px;padding:2px 9px}.wnmu-menu-title-editor{display:flex;flex-direction:column;gap:5px;padding:8px;margin-top:5px;background:#f6f8fc;border:1px solid #bfcbd8;border-radius:6px}.wnmu-menu-title-editor[hidden]{display:none!important}.wnmu-menu-title-editor label{font-size:12px;font-weight:700}.wnmu-menu-title-editor input{box-sizing:border-box;width:100%;font:14px system-ui;padding:7px 8px;border:1px solid #a9bad0;border-radius:4px}.wnmu-menu-title-actions{display:flex;gap:6px;flex-wrap:wrap}.wnmu-cell-form{display:flex;flex-direction:column;gap:7px}.wnmu-cell-tag-block,.wnmu-cell-custom-block{display:block}.wnmu-unified-actions{display:flex;align-items:center;gap:8px;flex-wrap:nowrap;margin:2px 0 0;padding:6px 0;border-top:1px solid #d7dee8;border-bottom:1px solid #d7dee8;background:#fff}.wnmu-unified-actions .btn{white-space:nowrap}#wnmuCommitProgramBtn{background:#17345f!important;border-color:#17345f!important;color:#fff!important;font-weight:850!important}@media(max-width:720px){#wnmuCellMenu .wnmu-cell-tag-grid{grid-template-columns:1fr!important}#wnmuCellMenu .wnmu-unified-actions{flex-wrap:wrap!important}}.wnmu-cell-tag-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px;margin:6px 0}.wnmu-cell-tag-grid .check-row{min-height:26px;margin:0;box-sizing:border-box;display:flex;align-items:center;gap:8px;border-radius:7px;border:1px solid rgba(17,17,17,.16);padding:4px 6px}.wnmu-cell-note-tools{border:2px solid rgba(255,255,255,.32);border-radius:10px;padding:8px;margin:0;background:rgba(255,255,255,.08);display:flex;flex-direction:column;gap:5px}.wnmu-cell-note-tools legend{font-weight:800}.wnmu-cell-duration-options{display:flex;flex-wrap:wrap;gap:5px;margin:0 0 4px}.wnmu-cell-pill{display:inline-flex;align-items:center;gap:4px;font-size:12px;border:1px solid rgba(255,255,255,.3);border-radius:999px;padding:5px 8px;cursor:pointer;background:rgba(255,255,255,.08)}.wnmu-cell-pill input{margin:0}.manual-rect-text{width:100%;box-sizing:border-box;border-radius:8px;border:1px solid rgba(255,255,255,.28);padding:7px;resize:vertical;font:13px/1.3 system-ui,sans-serif;color:#111;background:#fff}.wnmu-custom-tag-row{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;margin:6px 0 2px;padding:8px;border:2px solid rgba(17,52,95,.38);border-radius:10px;background:rgba(255,255,255,.92)}.wnmu-custom-tag-input{border:2px solid #17345f!important;background:#fff!important;box-shadow:inset 0 1px 2px rgba(15,23,42,.12)!important}.wnmu-custom-tag-input:focus{outline:3px solid rgba(49,95,140,.22)!important;outline-offset:1px!important}.manual-rect-label{font-size:12px;font-weight:800;margin:3px 0 3px}.manual-rect-help{margin-top:6px;font-size:11px;opacity:.75;line-height:1.25}table.screen-week-grid thead th{z-index:100}.panel-head,.topbar,.flagbar{position:relative;z-index:120}.wnmu-diag-panel{z-index:2147483200!important}.wnmu-component-versions{z-index:2147483000!important}@media print{.wnmu-cell-override-layer{display:none!important}}`;
     document.head.appendChild(style);
   }
   function relayoutVisibleOverlays() {
@@ -1141,6 +1379,12 @@
     installGlobalNoSubmitGuard();
     hardenMenuForm(document.getElementById('wnmuCellMenu'));
     window.WNMU_CELL_INTERACTIONS_VERSION = VERSION;
+    // Preload the small, versioned observance list once while the user is
+    // reading the grid, rather than waiting for the first popup click.
+    window.setTimeout(() => {
+      const key = window.WNMU_CURRENT_MONTH_META?.monthKey || '2026-01';
+      topicsForScheduleMonth(key).catch(() => {});
+    }, 120);
     window.addEventListener('resize', () => scheduleRelayoutVisibleOverlays(220), { passive: true });
     window.addEventListener('wnmu:remote-storage-loaded', () => {
       const menu = document.getElementById('wnmuCellMenu');

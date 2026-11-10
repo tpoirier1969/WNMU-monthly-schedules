@@ -1,8 +1,8 @@
 (function () {
   'use strict';
 
-  const PACKAGE_VERSION = 'v1.5.110';
-  const PACKAGE_LABEL = 'PDF print layout and responsive export fixes';
+  const PACKAGE_VERSION = 'v1.5.111';
+  const PACKAGE_LABEL = 'Title cleanup, Monthly Topic and smarter planning tags';
   const FLAG_TEXT = `${PACKAGE_VERSION} • ${PACKAGE_LABEL}`;
 
   function removeComponentVersionPanel() {
