@@ -251,14 +251,41 @@
     return scheduleIndexCache;
   }
 
+  function normalizedEpisodeNumber(episode){
+    return String(episode || '').replace(/\D/g, '');
+  }
+  function previousMonthEntriesFor(entry){
+    const prior = window.WNMU_PREVIOUS_MONTH_PREMIERE_CONTEXT;
+    if (!prior?.available || prior.channelCode !== channelCode() ||
+      prior.currentMonth !== monthKey() || !Array.isArray(prior.entries)) return [];
+    const title = normTitle(entry.title);
+    return prior.entries.filter(item => normTitle(item.title) === title);
+  }
+  function airedEarlierInCurrentMonth(entry, index){
+    const episode = normalizedEpisodeNumber(entry.episode);
+    if (!episode) return false;
+    const title = normTitle(entry.title);
+    return index.entries.some(prior => prior !== entry &&
+      normTitle(prior.title) === title &&
+      normalizedEpisodeNumber(prior.episode) === episode &&
+      (prior.date < entry.date || (prior.date === entry.date && prior.time < entry.time)));
+  }
   function isNewSeasonCandidate(entry, index){
     if (!entry || !entry.seasonStart || !shouldAutoNewSeries(entry)) return false;
-    const priorDate = addDays(entry.date, -7); if (!priorDate) return false;
-    return !!index.byDateTimeTitle.get(`${priorDate}__${entry.time}__${normTitle(entry.title)}`);
+    // The previous month is authoritative for a series returning at a month boundary.
+    const priorAirings = previousMonthEntriesFor(entry);
+    if (priorAirings.length) return true;
+    const priorDate = addDays(entry.date, -7);
+    return !!(priorDate && index.byDateTimeTitle.get(`${priorDate}__${entry.time}__${normTitle(entry.title)}`));
   }
 
   function classifyAutoPremiereTag(entry, index){
     if (!entry || !entry.seasonStart || !shouldAutoNewSeries(entry)) return '';
+    const episode = normalizedEpisodeNumber(entry.episode);
+    // A reairing of episode 01 is not a new series or a new season.
+    if (airedEarlierInCurrentMonth(entry, index)) return '';
+    const priorAirings = previousMonthEntriesFor(entry);
+    if (episode && priorAirings.some(item => normalizedEpisodeNumber(item.episode) === episode)) return '';
     return isNewSeasonCandidate(entry, index) ? 'newSeason' : 'newSeries';
   }
 
@@ -302,32 +329,59 @@
     const key = storageKey(); const schedule = readCachedSchedule();
     if (!key || !schedule || !Array.isArray(schedule.days)) return;
     const marks = readJson(key, {}); const disabled = readJson(disabledKey(), {});
-    const candidates = detectAutoPremiereEntries(); const ids = new Set(); const tagById = new Map();
+    const previousState = readJson(autoStateKey(), {});
+    const previousIds = new Map();
+    (previousState.newSeriesEntryIds || []).forEach(id => previousIds.set(id, 'newSeries'));
+    (previousState.newSeasonEntryIds || []).forEach(id => previousIds.set(id, 'newSeason'));
+    const candidates = detectAutoPremiereEntries();
+    const ids = new Set(); const tagById = new Map(); let modified = false;
     const autoState = { version: VERSION, at: new Date().toISOString(), newSeriesEntryIds: [], newSeasonEntryIds: [] };
     candidates.forEach(({ entry, tag }) => {
       const id = entryId(entry); if (!id) return;
       ids.add(id); tagById.set(id, tag);
-      if (tag === 'newSeason') autoState.newSeasonEntryIds.push(id);
-      else if (tag === 'newSeries') autoState.newSeriesEntryIds.push(id);
-      const existing = marks[id] || {}; const disabledTags = disabled[id] || {};
-      if (disabledTags[tag] === true || (hasExplicitTag(existing, tag) && tagsObject(existing)[tag] === false)) return;
+      autoState[tag === 'newSeason' ? 'newSeasonEntryIds' : 'newSeriesEntryIds'].push(id);
+    });
+    const touched = new Set([...ids, ...previousIds.keys()]);
+    touched.forEach(id => {
+      const tag = tagById.get(id) || '';
+      const previousTag = previousIds.get(id) || '';
+      const existing = marks[id] || {};
+      const before = JSON.stringify(existing);
+      const existingTags = tagsObject(existing);
+      // Preserve deliberate edits. Legacy automatically generated marks contain
+      // only the two premiere booleans; user edits add other keys/metadata.
+      const onlyPremiereFields = Object.keys(existing).every(k => k === 'tags' || k === 'autoPremiereSource') &&
+        Object.keys(existingTags).every(k => k === 'newSeries' || k === 'newSeason');
+      const autoOwned = !!existing.autoPremiereSource || (previousTag && onlyPremiereFields);
       let next = existing;
-      if (tag === 'newSeason') {
-        if (!hasExplicitTag(existing, 'newSeason')) next = setTag(next, 'newSeason', true);
-        if (!hasExplicitTag(existing, 'newSeries')) next = setTag(next, 'newSeries', false);
-      } else if (tag === 'newSeries') {
-        if (!hasExplicitTag(existing, 'newSeries')) next = setTag(next, 'newSeries', true);
-        if (!hasExplicitTag(existing, 'newSeason')) next = setTag(next, 'newSeason', false);
+      if (autoOwned && previousTag && previousTag !== tag &&
+        existingTags[previousTag] === true && disabled[id]?.[previousTag] !== true) {
+        next = setTag(next, previousTag, false);
       }
-      marks[id] = next;
+      if (tag && disabled[id]?.[tag] !== true) {
+        const targetTags = tagsObject(next);
+        if (!hasExplicitTag(next, tag) || (autoOwned && targetTags[tag] !== true &&
+            disabled[id]?.[tag] !== true && previousTag && previousTag !== tag)) {
+          next = setTag(next, tag, true);
+        }
+        const opposite = tag === 'newSeason' ? 'newSeries' : 'newSeason';
+        if (!hasExplicitTag(next, opposite) || (autoOwned && previousTag === opposite)) {
+          next = setTag(next, opposite, false);
+        }
+        if (autoOwned || !Object.keys(existing).length) next = { ...next, autoPremiereSource: VERSION };
+      }
+      if (JSON.stringify(next) !== before) {
+        marks[id] = next;
+        modified = true;
+      }
     });
     lastAutoEntryIds = ids; lastAutoTagsByEntryId = tagById;
-    writeJson(autoStateKey(), autoState); writeJson(key, marks);
+    writeJson(autoStateKey(), autoState);
+    if (modified) writeJson(key, marks);
     window.WNMU_AUTO_TAG_HELPERS_STATUS = {
-      version: VERSION,
+      version: VERSION, previousMonthHistoryAvailable: !!window.WNMU_PREVIOUS_MONTH_PREMIERE_CONTEXT?.available,
       newSeriesCount: autoState.newSeriesEntryIds.length,
-      newSeasonCount: autoState.newSeasonEntryIds.length,
-      storageKey: key,
+      newSeasonCount: autoState.newSeasonEntryIds.length, storageKey: key,
       at: new Date().toISOString()
     };
   }
