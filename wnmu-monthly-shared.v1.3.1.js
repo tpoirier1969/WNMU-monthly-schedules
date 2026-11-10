@@ -660,6 +660,7 @@
     const skip = new Array(7).fill(0);
     for (let slot = 0; slot < 48; slot++) {
       const tr = document.createElement('tr');
+      tr.className = slot % 2 === 0 ? 'hour-start' : 'half-hour-start';
       const slotTime = slot % 2 === 0 ? `${String(Math.floor(slot / 2)).padStart(2, '0')}:00` : `${String(Math.floor(slot / 2)).padStart(2, '0')}:30`;
       const timeTd = document.createElement('td');
       timeTd.className = 'time-col';
