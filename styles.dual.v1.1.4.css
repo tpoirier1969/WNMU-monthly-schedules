@@ -39,6 +39,18 @@ body { margin: 0; font-family: Calibri, Arial, sans-serif; background: var(--bg)
 .week-grid-wrap h3 { margin: 0; color: var(--brand); }
 .week-grid { width: 100%; border-collapse: collapse; table-layout: fixed; font-size: 12px; }
 .screen-week-grid { display: table; }
+/* Each half-hour has space for a title, episode/time detail and one planning
+   tag. Rowspanned hour-long programs naturally occupy multiple slot heights. */
+.screen-week-grid { --wnmu-half-hour-min-height: 86px; }
+.screen-week-grid tbody tr { height: var(--wnmu-half-hour-min-height); }
+.screen-week-grid tbody > tr.hour-start:not(:first-child) > td {
+  border-top: 2px solid #9daec4;
+}
+.screen-week-grid tbody > tr.hour-start:not(:first-child) > td.program-cell::before {
+  border-top: 2px solid #9daec4;
+}
+/* These changes apply to the editable screen grid only; the compact printed
+   schedule keeps its existing pagination and row sizing. */
 .print-week-grid { display: none; }
 .week-grid th, .week-grid td { border: 1px solid var(--line); padding: 6px; vertical-align: top; }
 .week-grid th { background: var(--brand-soft); color: var(--brand); }
