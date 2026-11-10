@@ -25,6 +25,14 @@
     return String(row.raw_title_key || row.id || row.entry_key || row.original_title || row.title || '');
   };
   const matches = (u, row) => ['channel_code','month_key','storage_key','entry_key'].every(k => !query(u,k) || row[k] === query(u,k));
+  function keysFromQuery(u, table) {
+    const out = {};
+    const keys = table === 'wnmu_monthly_schedules_imported_months' ? ['channel_code','month_key'] :
+      table === 'wnmu_monthly_schedules_shared_marks' ? ['channel_code','month_key','entry_key'] :
+      table === 'wnmu_monthly_local_storage' ? ['storage_key'] : ['raw_title_key','id'];
+    for (const key of keys) if (query(u,key)) out[key] = query(u,key);
+    return out;
+  }
   function storeRow(table, row) {
     const id = rowId(table, row);
     if (!id) return;
@@ -40,9 +48,11 @@
     let rows = null;
     try { rows = await real.clone().json(); } catch {}
     if (!Array.isArray(rows)) return real;
+    const urlKeys = keysFromQuery(u, table);
     let result = rows.map(row => {
-      const shadow = read(table + '::' + rowId(table,row));
-      return shadow ? { ...row, ...shadow } : row;
+      const keyedRow = { ...urlKeys, ...row };
+      const shadow = read(table + '::' + rowId(table,keyedRow));
+      return shadow ? { ...keyedRow, ...shadow } : keyedRow;
     }).filter(row => !row.__previewDeleted);
     const known = new Set(result.map(row => rowId(table,row)));
     for (const id of read(table + '::index') || []) {
@@ -67,11 +77,9 @@
     let rows = Array.isArray(body) ? body : (body && typeof body === 'object' ? [body] : []);
     const saved = [];
     for (const original of rows) {
-      const row = { ...original };
-      if (table === 'wnmu_monthly_schedules_imported_months') {
-        row.channel_code = row.channel_code || query(u,'channel_code');
-        row.month_key = row.month_key || query(u,'month_key');
-      }
+      // PATCH bodies contain only modified fields. The key is supplied by
+      // channel_code/month_key in the URL, not in the JSON payload.
+      const row = { ...keysFromQuery(u, table), ...original };
       storeRow(table,row);
       saved.push(row);
     }
