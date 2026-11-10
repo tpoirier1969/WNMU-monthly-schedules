@@ -541,6 +541,10 @@
   function monthlyTopicLabelForCell(cell) {
     const records = recordsForCell(cell);
     for (const record of records) {
+      if (typeof record?.tags?.monthlyTopic === 'boolean') {
+        if (record.tags.monthlyTopic === false) return '';
+        return String(record.monthlyTopicLabel || record.monthly_topic_label || '').trim();
+      }
       const label = String(record?.monthlyTopicLabel || record?.monthly_topic_label || '').trim();
       if (label) return label;
     }
