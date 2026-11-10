@@ -549,13 +549,17 @@
   }
 
   function monthlyTopicLabelForCell(cell) {
+    const normalize = value => {
+      const label = String(value || '').trim();
+      return /^christmas (?:eve|day)$/i.test(label) ? 'Christmas' : label;
+    };
     const records = recordsForCell(cell);
     for (const record of records) {
       if (typeof record?.tags?.monthlyTopic === 'boolean') {
         if (record.tags.monthlyTopic === false) return '';
-        return String(record.monthlyTopicLabel || record.monthly_topic_label || '').trim();
+        return normalize(record.monthlyTopicLabel || record.monthly_topic_label);
       }
-      const label = String(record?.monthlyTopicLabel || record?.monthly_topic_label || '').trim();
+      const label = normalize(record?.monthlyTopicLabel || record?.monthly_topic_label);
       if (label) return label;
     }
     return '';
@@ -596,7 +600,7 @@
       wrap.className = 'program-tags';
       const pills = activeTagList(clean, true).filter(tag => tag !== OTHER_KEY || otherLabel).slice(0, 6);
       wrap.innerHTML = pills.map(tag => {
-        const label = tag === 'monthlyTopic' && topicLabel ? 'Monthly Topic: ' + topicLabel : tagLabel(tag, otherLabel);
+        const label = tag === 'monthlyTopic' && topicLabel ? topicLabel : tagLabel(tag, otherLabel);
         const customAttr = tag === OTHER_KEY && otherLabel ? ` data-wnmu-custom-tag-label="${escAttr(otherLabel)}"` : '';
         return `<span class="tag-pill"${customAttr} style="--tag-color:${colorFor(tag)}">${escAttr(label)}</span>`;
       }).join('');
