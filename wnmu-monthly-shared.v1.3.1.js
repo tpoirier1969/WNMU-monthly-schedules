@@ -359,11 +359,15 @@
     banner.innerHTML = `<strong>Read-only archive:</strong> ${escapeHtml(row.archive_name || 'Untitled archive')} • ${escapeHtml(row.channel_label || '')} • ${new Date(row.created_at).toLocaleString()}${row.archive_note ? ` • ${escapeHtml(row.archive_note)}` : ''}`;
   }
 
+  function formattedMonthlyTopic(topic) {
+    const name = String(topic || '').trim();
+    return /^christmas (?:eve|day)$/i.test(name) ? 'Christmas' : name;
+  }
   function createTagPill(tagKey, selectedTopic = '') {
     const pill = document.createElement('span');
     pill.className = 'tag-pill';
     pill.style.setProperty('--tag-color', TAG_META[tagKey].color);
-    pill.textContent = tagKey === 'monthlyTopic' && selectedTopic ? 'Monthly Topic: ' + selectedTopic : TAG_META[tagKey].label;
+    pill.textContent = tagKey === 'monthlyTopic' && selectedTopic ? formattedMonthlyTopic(selectedTopic) : TAG_META[tagKey].label;
     return pill;
   }
 
@@ -403,7 +407,7 @@
   }
   function rollupTagLabels(tags, otherLabel, selectedTopic = '') {
     return [...new Set([...TAG_ORDER, 'other'])].filter(tag => tag !== 'satelliteFeed' && tags?.[tag] === true && (tag !== 'other' || otherLabel))
-      .map(tag => tag === 'other' ? otherLabel : tag === 'monthlyTopic' && selectedTopic ? 'Monthly Topic: ' + selectedTopic : (TAG_META[tag]?.label || tag));
+      .map(tag => tag === 'other' ? otherLabel : tag === 'monthlyTopic' && selectedTopic ? formattedMonthlyTopic(selectedTopic) : (TAG_META[tag]?.label || tag));
   }
   function dayRollupEntries(date) {
     const imported = appState.dateMap[date]?.entries || [];
