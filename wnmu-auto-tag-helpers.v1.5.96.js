@@ -367,7 +367,7 @@
       // only the two premiere booleans; user edits add other keys/metadata.
       const onlyPremiereFields = Object.keys(existing).every(k => k === 'tags' || k === 'autoPremiereSource') &&
         Object.keys(existingTags).every(k => k === 'newSeries' || k === 'newSeason');
-      const autoOwned = !!existing.autoPremiereSource || (previousTag && onlyPremiereFields);
+      const autoOwned = !!previousTag && onlyPremiereFields;
       let next = existing;
       if (autoOwned && previousTag && previousTag !== tag &&
         existingTags[previousTag] === true && disabled[id]?.[previousTag] !== true) {
