@@ -287,13 +287,19 @@
       const m = compactGroups.get(k); m.set(item.title, (m.get(item.title) || 0) + 1);
     });
 
+    const approvedMap = readCorrections();
+    const hasApproved = title => !!(approvedMap[norm(title)] || approvedMap[compact(title)]);
+    let alreadyApprovedCount = 0;
+    countsByTitle.forEach((count, title) => { if (hasApproved(title)) alreadyApprovedCount += 1; });
     const variants = [];
     compactGroups.forEach(counts => {
       if (counts.size <= 1) return;
       const keys = new Set(Array.from(counts.keys()).map(simpleCaseKey));
       if (keys.size <= 1) return; // ignore all-caps/title-case differences only
       const variantsList = Array.from(counts.entries()).sort((a,b)=>b[1]-a[1]).map(([title,count])=>({ title, count, samples: samplesByTitle.get(title) || [] }));
-      variants.push({ preferred: variantsList[0].title, variants: variantsList });
+      const preferred = variantsList[0].title;
+      const outstanding = variantsList.filter(v => v.title !== preferred && !hasApproved(v.title));
+      if (outstanding.length) variants.push({ preferred, variants: [variantsList[0], ...outstanding] });
     });
 
     const known = [];
@@ -301,7 +307,7 @@
     const seenKnown = new Set();
     titles.forEach(item => {
       const fixed = built[norm(item.title)] || built[compact(item.title)];
-      if (fixed && fixed !== item.title) {
+      if (fixed && fixed !== item.title && !hasApproved(item.title)) {
         const sig = `${item.title}=>${fixed}`;
         if (!seenKnown.has(sig)) {
           seenKnown.add(sig);
@@ -310,7 +316,7 @@
       }
     });
 
-    return { titles, variants, known, row, channel: row?.channel_code || channelCode(), month: row?.month_key || '' };
+    return { titles, variants, known, alreadyApprovedCount, row, channel: row?.channel_code || channelCode(), month: row?.month_key || '' };
   }
   function savedCorrections() {
     const meta = readCorrectionMeta();
@@ -474,13 +480,18 @@
     lastResult = result || lastResult;
     lastMessage = note || lastMessage;
     const root = document.getElementById('titleReviewOutput'); if (!root) return;
-    let html = note ? `<div id="titleReviewStatus" class="title-review-status info" aria-live="polite">${esc(note)}</div>` : '<div id="titleReviewStatus" class="title-review-status info" aria-live="polite"></div>';
-    html += `<div class="title-review-toolbar"><button type="button" id="scanTitleReviewBtnInline">Rescan ${esc(channelLabel())}</button><button type="button" id="downloadTitleCorrectionsBtn">Download correction file</button><label class="title-review-import-btn">Import correction file<input type="file" id="importTitleCorrectionsFile" accept="application/json,.json" hidden></label><span>Click a title below to edit it. Corrections save quietly and then disappear from this review list unless they still need attention.</span></div>`;
+    const outstandingCount = result ? result.known.length +
+      result.variants.reduce((sum, group) => sum + Math.max(0, group.variants.length - 1), 0) : 0;
+    const complete = !!result && outstandingCount === 0;
+    let html = complete ?
+      `<div id="titleReviewStatus" class="title-review-status good" aria-live="polite">Title review complete for ${esc(result.month)}. No corrections awaiting approval. ${result.alreadyApprovedCount || 0} previously approved title variants already handled.</div>` :
+      (note ? `<div id="titleReviewStatus" class="title-review-status info" aria-live="polite">${esc(note)}</div>` : '<div id="titleReviewStatus" class="title-review-status info" aria-live="polite"></div>');
+    if (!complete) html += `<div class="title-review-toolbar"><button type="button" id="scanTitleReviewBtnInline">Rescan ${esc(channelLabel())}</button><button type="button" id="downloadTitleCorrectionsBtn">Download correction file</button><label class="title-review-import-btn">Import correction file<input type="file" id="importTitleCorrectionsFile" accept="application/json,.json" hidden></label><span>Check Yes to approve suggested titles, then Apply Selected, or click a title to edit it.</span></div>`;
 
-    if (result) {
-      html += `<details class="title-review-group" open><summary>Known corrections found (${result.known.length})</summary>`;
+    if (result && !complete) {
+      html += `<details class="title-review-group" open><summary>Suggested corrections awaiting approval (${result.known.length})</summary>`;
       if (result.known.length) {
-        html += '<div class="title-review-list">' + result.known.slice(0,120).map(item => `<div class="title-review-row known"><button type="button" class="title-review-title" ${rowButtonAttrs(item.from, item.to)}>${esc(item.from)}</button><span class="title-review-count">${item.count}×</span><span class="title-review-arrow">→</span><strong>${esc(item.to)}</strong>${samplesHtml(item.samples)}</div>`).join('') + '</div>';
+        html += '<div class="title-review-list">' + result.known.slice(0,120).map(item => `<div class="title-review-row known"><label class="title-review-confirm"><input type="checkbox" class="title-review-yes" data-title-from="${esc(item.from)}" data-title-to="${esc(item.to)}" aria-label="Approve ${esc(item.from)} as ${esc(item.to)}"><span>Yes</span></label><button type="button" class="title-review-title" ${rowButtonAttrs(item.from, item.to)}>${esc(item.from)}</button><span class="title-review-count">${item.count}×</span><span class="title-review-arrow">→</span><strong>${esc(item.to)}</strong>${samplesHtml(item.samples)}</div>`).join('') + '</div><div class="title-review-selection-actions"><button type="button" id="titleReviewApplySelectedBtn" disabled>Apply Selected (0)</button></div>';
       } else html += '<p class="title-review-muted">No known corrections found for this channel/month.</p>';
       html += '</details>';
 
@@ -499,7 +510,7 @@
         html += '</div>';
       } else html += '<p class="title-review-muted">No spelling/punctuation variants beyond all-caps/title-case differences found.</p>';
       html += '</details>';
-    } else {
+    } else if (!complete) {
       html += '<p class="title-review-muted">Scan this channel to see possible title cleanup items.</p>';
     }
     root.innerHTML = html;
@@ -532,6 +543,37 @@
   }
   function bindInside(root) {
     root.querySelector('#scanTitleReviewBtnInline')?.addEventListener('click', () => scanCurrent().catch(err => renderResult(lastResult, `Title review scan failed: ${err.message || err}`)));
+    function refreshSelectedButton() {
+      const selected = root.querySelectorAll('.title-review-yes:checked').length;
+      const apply = root.querySelector('#titleReviewApplySelectedBtn');
+      if (apply) {
+        apply.textContent = `Apply Selected (${selected})`;
+        apply.disabled = selected === 0;
+      }
+    }
+    root.querySelectorAll('.title-review-yes').forEach(checkbox =>
+      checkbox.addEventListener('change', refreshSelectedButton));
+    root.querySelector('#titleReviewApplySelectedBtn')?.addEventListener('click', async event => {
+      const button = event.currentTarget;
+      const selected = Array.from(root.querySelectorAll('.title-review-yes:checked')).map(el => ({
+        from: el.dataset.titleFrom, to: el.dataset.titleTo
+      }));
+      if (!selected.length) return;
+      button.disabled = true;
+      let applied = 0; const failed = [];
+      for (const item of selected) {
+        try {
+          // Persist remotely before marking it approved in this browser.
+          await saveCorrectionRemote(item.from, item.to);
+          if (!saveCorrection(item.from, item.to)) throw new Error('Could not save correction locally');
+          applied += 1;
+        } catch (err) { failed.push(`${item.from}: ${err.message || err}`); }
+      }
+      await scanCurrent();
+      setStatusMessage(`Approved ${applied} correction${applied === 1 ? '' : 's'} across future months.` +
+        (failed.length ? ` ${failed.length} could not be saved to Supabase: ${failed.join('; ')}` : ''),
+        failed.length ? 'bad' : 'good');
+    });
     root.querySelector('#downloadTitleCorrectionsBtn')?.addEventListener('click', () => downloadCorrectionFile());
     root.querySelector('#importTitleCorrectionsFile')?.addEventListener('change', event => {
       const file = event.target.files && event.target.files[0];
@@ -625,7 +667,7 @@
     const style = document.createElement('style');
     style.id = 'wnmuTitleReviewStyles';
     style.textContent = `
-      .title-review-panel{margin-bottom:1rem}.title-review-head{display:flex;justify-content:space-between;align-items:flex-start;gap:1rem}.title-review-head p{margin:.25rem 0 0;color:#536176}.title-review-output{font:14px/1.35 system-ui,sans-serif}.title-review-status{margin:.55rem 0;padding:.55rem .7rem;border-radius:.55rem;border:1px solid #ccd7e3;background:#f5f8fc;color:#34445a;font-weight:700}.title-review-status.good{background:#eaf8ef;border-color:#a7d7b8;color:#245536}.title-review-status.bad{background:#fff1f1;border-color:#e4aaaa;color:#7b1e1e}.title-review-status.info{background:#f5f8fc}.title-review-row.saved-now{outline:2px solid #9fd1b1;background:#edf8f1}.title-review-row-feedback{font-weight:800;color:#245536;background:#dff2e6;border-radius:.45rem;padding:.2rem .45rem}.title-review-toolbar{display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;margin:.65rem 0}.title-review-toolbar button,#scanTitleReviewBtn,.title-review-import-btn{padding:.5rem .75rem;border:1px solid #0d4f38;background:#0d4f38;color:#fff;border-radius:.5rem;font-weight:700;cursor:pointer}.title-review-import-btn{display:inline-flex;align-items:center}.title-review-auto-download{display:inline-flex;align-items:center;gap:.3rem;font-weight:700;color:#34445a}.title-review-group{border:1px solid #d2dbe7;border-radius:.7rem;background:#fff;margin:.75rem 0;padding:.55rem .75rem}.title-review-group summary{font-weight:800;cursor:pointer}.title-review-list{display:grid;gap:.35rem;margin:.65rem 0}.title-review-row{display:flex;align-items:center;gap:.45rem;flex-wrap:wrap;padding:.35rem .45rem;border-radius:.5rem;background:#f6f8fb}.title-review-row.saved{background:#eef7f1}.title-review-row.known{background:#fff9e8}.title-review-row.preferred{background:#edf7f0}.title-review-title{border:0;background:transparent;text-decoration:underline;cursor:pointer;color:#123c69;font-weight:700;text-align:left;padding:.15rem}.title-review-count{font-size:.85em;color:#536176}.title-review-arrow{color:#536176}.title-review-samples{font-size:.85em;color:#66758b}.title-review-variant{border:1px solid #e1e7f0;border-radius:.6rem;padding:.45rem;margin:.45rem 0;background:#fbfcfe}.title-review-preferred{font-size:.92em;margin-bottom:.35rem;display:flex;align-items:center;justify-content:space-between;gap:.75rem;flex-wrap:wrap}.title-review-apply-all{border:1px solid #0d4f38;background:#0d4f38;color:#fff;border-radius:.45rem;padding:.35rem .6rem;font-weight:800;cursor:pointer}.title-review-apply-all:disabled{opacity:.65;cursor:wait}.title-review-inline-editor{display:grid;grid-template-columns:minmax(220px,1fr) minmax(220px,1fr) auto auto;gap:.45rem;align-items:end;width:100%;padding:.55rem;background:#fff;border:1px solid #b8c3d2;border-radius:.55rem}.title-review-inline-editor label{display:flex;flex-direction:column;font-weight:700;font-size:.9em;gap:.2rem}.title-review-inline-editor input{padding:.5rem;border:1px solid #b8c3d2;border-radius:.45rem}.title-review-inline-editor button,.title-review-remove{border:1px solid #b8c3d2;background:#fff;border-radius:.45rem;padding:.45rem .55rem;cursor:pointer}.title-review-save-inline{background:#0d4f38!important;color:#fff!important;border-color:#0d4f38!important}.title-review-muted,.title-review-note{color:#536176}.title-review-remove{margin-left:auto}@media(max-width:850px){.title-review-head{display:block}.title-review-inline-editor{grid-template-columns:1fr}.title-review-remove{margin-left:0}}@media print{.title-review-panel{display:none!important}}
+      .title-review-panel{margin-bottom:1rem}.title-review-head{display:flex;justify-content:space-between;align-items:flex-start;gap:1rem}.title-review-head p{margin:.25rem 0 0;color:#536176}.title-review-output{font:14px/1.35 system-ui,sans-serif}.title-review-status{margin:.55rem 0;padding:.55rem .7rem;border-radius:.55rem;border:1px solid #ccd7e3;background:#f5f8fc;color:#34445a;font-weight:700}.title-review-status.good{background:#eaf8ef;border-color:#a7d7b8;color:#245536}.title-review-status.bad{background:#fff1f1;border-color:#e4aaaa;color:#7b1e1e}.title-review-status.info{background:#f5f8fc}.title-review-row.saved-now{outline:2px solid #9fd1b1;background:#edf8f1}.title-review-row-feedback{font-weight:800;color:#245536;background:#dff2e6;border-radius:.45rem;padding:.2rem .45rem}.title-review-toolbar{display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;margin:.65rem 0}.title-review-toolbar button,#scanTitleReviewBtn,.title-review-import-btn{padding:.5rem .75rem;border:1px solid #0d4f38;background:#0d4f38;color:#fff;border-radius:.5rem;font-weight:700;cursor:pointer}.title-review-import-btn{display:inline-flex;align-items:center}.title-review-auto-download{display:inline-flex;align-items:center;gap:.3rem;font-weight:700;color:#34445a}.title-review-group{border:1px solid #d2dbe7;border-radius:.7rem;background:#fff;margin:.75rem 0;padding:.55rem .75rem}.title-review-group summary{font-weight:800;cursor:pointer}.title-review-list{display:grid;gap:.35rem;margin:.65rem 0}.title-review-confirm{display:inline-flex;align-items:center;gap:.25rem;font-weight:700;color:#34445a;cursor:pointer}.title-review-confirm input{width:17px;height:17px;accent-color:#0d4f38}.title-review-selection-actions{display:flex;justify-content:flex-end;margin:.3rem 0}.title-review-selection-actions button{padding:.55rem .9rem;border:1px solid #0d4f38;background:#0d4f38;color:#fff;border-radius:.5rem;font-weight:800;cursor:pointer}.title-review-selection-actions button:disabled{opacity:.45;cursor:default}.title-review-row{display:flex;align-items:center;gap:.45rem;flex-wrap:wrap;padding:.35rem .45rem;border-radius:.5rem;background:#f6f8fb}.title-review-row.saved{background:#eef7f1}.title-review-row.known{background:#fff9e8}.title-review-row.preferred{background:#edf7f0}.title-review-title{border:0;background:transparent;text-decoration:underline;cursor:pointer;color:#123c69;font-weight:700;text-align:left;padding:.15rem}.title-review-count{font-size:.85em;color:#536176}.title-review-arrow{color:#536176}.title-review-samples{font-size:.85em;color:#66758b}.title-review-variant{border:1px solid #e1e7f0;border-radius:.6rem;padding:.45rem;margin:.45rem 0;background:#fbfcfe}.title-review-preferred{font-size:.92em;margin-bottom:.35rem;display:flex;align-items:center;justify-content:space-between;gap:.75rem;flex-wrap:wrap}.title-review-apply-all{border:1px solid #0d4f38;background:#0d4f38;color:#fff;border-radius:.45rem;padding:.35rem .6rem;font-weight:800;cursor:pointer}.title-review-apply-all:disabled{opacity:.65;cursor:wait}.title-review-inline-editor{display:grid;grid-template-columns:minmax(220px,1fr) minmax(220px,1fr) auto auto;gap:.45rem;align-items:end;width:100%;padding:.55rem;background:#fff;border:1px solid #b8c3d2;border-radius:.55rem}.title-review-inline-editor label{display:flex;flex-direction:column;font-weight:700;font-size:.9em;gap:.2rem}.title-review-inline-editor input{padding:.5rem;border:1px solid #b8c3d2;border-radius:.45rem}.title-review-inline-editor button,.title-review-remove{border:1px solid #b8c3d2;background:#fff;border-radius:.45rem;padding:.45rem .55rem;cursor:pointer}.title-review-save-inline{background:#0d4f38!important;color:#fff!important;border-color:#0d4f38!important}.title-review-muted,.title-review-note{color:#536176}.title-review-remove{margin-left:auto}@media(max-width:850px){.title-review-head{display:block}.title-review-inline-editor{grid-template-columns:1fr}.title-review-remove{margin-left:0}}@media print{.title-review-panel{display:none!important}}
     `;
     document.head.appendChild(style);
   }
@@ -634,9 +676,10 @@
     const btn = document.getElementById('scanTitleReviewBtn');
     if (btn) btn.addEventListener('click', () => scanCurrent().catch(err => renderResult(lastResult, `Title review scan failed: ${err.message || err}`)));
     renderResult(null, `Review ${channelLabel()} title cleanup here before creating the Sales View.`);
-    loadRemoteCorrections().then(result => {
-      if (result.ok && result.count) renderResult(lastResult, `Loaded ${result.count} shared title correction${result.count === 1 ? '' : 's'} from Supabase.`);
-    }).catch(() => {});
+    window.addEventListener('wnmu:month-ready', () =>
+      scanCurrent().catch(err => renderResult(lastResult, `Automatic title review failed: ${err.message || err}`)));
+    // The loader announces the exact selected month after its schedule is ready.
+    // Do not trigger another scan merely for unrelated local-storage changes.
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init, { once:true }); else init();
   window.WNMU_TITLE_REVIEW_VERSION = VERSION;
