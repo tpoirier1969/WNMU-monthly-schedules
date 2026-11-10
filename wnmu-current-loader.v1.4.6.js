@@ -509,9 +509,31 @@
       host.appendChild(panel);
     }, 2500);
   }
+  async function preloadPriorMonthPremiereHistory() {
+    // Read-only prior-month history is loaded before auto-tagging the current month.
+    const current = window.WNMU_CURRENT_MONTH_META?.monthKey || activeMonthKey || '';
+    if (!/^\d{4}-\d{2}$/.test(current)) return;
+    const [year, month] = current.split('-').map(Number);
+    const prior = new Date(year, month - 2, 1);
+    const previousMonth = prior.getFullYear() + '-' + String(prior.getMonth() + 1).padStart(2,'0');
+    const base = { channelCode: CONFIG.channelCode, currentMonth: current, previousMonth, available: false, entries: [] };
+    window.WNMU_PREVIOUS_MONTH_PREMIERE_CONTEXT = base;
+    try {
+      const rows = await restSelect(`/rest/v1/${TABLES.importedMonths}?select=schedule_json&channel_code=eq.${encodeURIComponent(CONFIG.channelCode)}&month_key=eq.${encodeURIComponent(previousMonth)}&limit=1`);
+      const schedule = Array.isArray(rows) && rows[0]?.schedule_json;
+      if (!schedule || !Array.isArray(schedule.days)) return;
+      base.entries = schedule.days.flatMap(day => (day.entries || []).map(entry => ({
+        date: entry.date || day.date, time: entry.time, title: entry.title, episode: entry.episode || ''
+      })));
+      base.available = true;
+    } catch (err) {
+      console.warn('Previous-month program history unavailable; current-month premiere heuristics will be used.', err);
+    }
+  }
+
   function loadRenderer() {
     const script = document.createElement('script');
-    script.src = `${CONFIG.sharedRendererFile}?loader=${BUILD_VERSION}&release=1.5.110`;
+    script.src = `${CONFIG.sharedRendererFile}?loader=${BUILD_VERSION}&release=title-preview-20261110`;
     script.defer = true;
     document.body.appendChild(script);
   }
@@ -541,7 +563,13 @@
       console.warn('Shared marks preload failed; continuing schedule render.', err);
     }
 
-    if (monthLoaded) loadRenderer();
+    if (monthLoaded) {
+      await preloadPriorMonthPremiereHistory();
+      window.dispatchEvent(new CustomEvent('wnmu:month-ready', {
+        detail: { channelCode: CONFIG.channelCode, monthKey: window.WNMU_CURRENT_MONTH_META?.monthKey }
+      }));
+      loadRenderer();
+    }
 
     try {
       installSharedMarksSync();
