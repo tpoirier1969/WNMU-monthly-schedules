@@ -72,7 +72,21 @@
   }
   let cachedTitleCorrectionRaw = null;
   let cachedTitleCorrections = {};
-  function effectiveDisplayTitle(raw) {
+  function standardTitleCase(raw) {
+    const little = new Set(['a','an','and','as','at','but','by','for','from','in','into','nor','of','on','or','per','the','to','vs','with']);
+    const acronyms = new Set(['PBS','BBC','WNMU','NMU','NOVA','POV','USA','TV','DW','NPR','APT']);
+    const words = String(raw || '').trim().replace(/\s+/g, ' ').toLowerCase().split(' ');
+    return words.map((word, index) => {
+      const alpha = word.replace(/[^a-z0-9]/g, '').toUpperCase();
+      if (acronyms.has(alpha)) return alpha;
+      if (index > 0 && index < words.length - 1 && little.has(word)) return word;
+      return word.replace(/(^|[-(\[/])([a-z])/g, (_, prefix, ch) => prefix + ch.toUpperCase());
+    }).join(' ');
+  }
+  function effectiveDisplayTitle(raw, entry) {
+    const unmodified = String(raw || '');
+    // User-entered replacement titles are intentional: preserve their casing.
+    if (entry?._wnmuReplacement || entry?.durationSource === 'manual-schedule-overwrite') return unmodified;
     try {
       const serialized = localStorage.getItem('wnmu_sales_title_corrections_v1') || '{}';
       if (serialized !== cachedTitleCorrectionRaw) {
@@ -81,8 +95,9 @@
       }
       const norm = str => String(str || '').toLowerCase().replace(/&/g, ' and ').replace(/[^a-z0-9]+/g, ' ').trim();
       const compact = str => String(str || '').toLowerCase().replace(/&/g, 'and').replace(/[^a-z0-9]+/g, '');
-      return cachedTitleCorrections[norm(raw)] || cachedTitleCorrections[compact(raw)] || String(raw || '');
-    } catch { return String(raw || ''); }
+      return cachedTitleCorrections[norm(raw)] || cachedTitleCorrections[compact(raw)] ||
+        String(entry?.displayTitle || '') || standardTitleCase(unmodified);
+    } catch { return String(entry?.displayTitle || '') || standardTitleCase(unmodified); }
   }
   function fmtTime(timeStr) {
     const [hh, mm] = String(timeStr).split(':').map(Number);
@@ -360,9 +375,9 @@
     const rectNote = entry._wnmuReplacement ? null : getRectNoteForEntry(entry);
     const notePart = rectNote?.text ? ` • Box note: ${escapeHtml(rectNote.text)}` : (rectNote ? ' • Box note' : '');
     if (includeFullMeta) {
-      line.innerHTML = `<strong>${fmtDateLabel(entry.date, { weekday: 'short', month: 'short', day: 'numeric' })}</strong> • ${fmtTime(entry.time)} • ${entry.durationMin} min • <strong>${escapeHtml(effectiveDisplayTitle(entry.title))}</strong>${episodePart ? ` <span class="meta">${escapeHtml(episodePart)}</span>` : ''}${active ? ` <span class="meta">• ${escapeHtml(active)}</span>` : ''}${notePart ? ` <span class="meta">${notePart}</span>` : ''}`;
+      line.innerHTML = `<strong>${fmtDateLabel(entry.date, { weekday: 'short', month: 'short', day: 'numeric' })}</strong> • ${fmtTime(entry.time)} • ${entry.durationMin} min • <strong>${escapeHtml(effectiveDisplayTitle(entry.title, entry))}</strong>${episodePart ? ` <span class="meta">${escapeHtml(episodePart)}</span>` : ''}${active ? ` <span class="meta">• ${escapeHtml(active)}</span>` : ''}${notePart ? ` <span class="meta">${notePart}</span>` : ''}`;
     } else {
-      line.innerHTML = `<strong>${fmtTime(entry.time)}</strong> • ${escapeHtml(effectiveDisplayTitle(entry.title))}${active ? ` <span class="meta">(${escapeHtml(active)})</span>` : ''}${notePart ? ` <span class="meta">${notePart}</span>` : ''}`;
+      line.innerHTML = `<strong>${fmtTime(entry.time)}</strong> • ${escapeHtml(effectiveDisplayTitle(entry.title, entry))}${active ? ` <span class="meta">(${escapeHtml(active)})</span>` : ''}${notePart ? ` <span class="meta">${notePart}</span>` : ''}`;
     }
     return line;
   }
@@ -575,8 +590,10 @@
         content.className = 'program-content';
         const title = document.createElement('div');
         title.className = 'program-title';
-        title.textContent = effectiveDisplayTitle(entry.title);
+        title.textContent = effectiveDisplayTitle(entry.title, entry);
         title.dataset.wnmuOriginalTitle = entry.title;
+        title.dataset.wnmuImportedDisplayTitle = entry.displayTitle || '';
+        title.dataset.wnmuManualTitle = entry.durationSource === 'manual-schedule-overwrite' ? '1' : '0';
         content.appendChild(title);
         if (entry.episode) {
           const episode = document.createElement('div');
@@ -679,8 +696,10 @@
         content.className = 'program-content';
         const title = document.createElement('div');
         title.className = 'program-title';
-        title.textContent = effectiveDisplayTitle(entry.title);
+        title.textContent = effectiveDisplayTitle(entry.title, entry);
         title.dataset.wnmuOriginalTitle = entry.title;
+        title.dataset.wnmuImportedDisplayTitle = entry.displayTitle || '';
+        title.dataset.wnmuManualTitle = entry.durationSource === 'manual-schedule-overwrite' ? '1' : '0';
         content.appendChild(title);
         if (entry.episode) {
           const episode = document.createElement('div');
@@ -1056,7 +1075,10 @@
     window.addEventListener('wnmu:remote-storage-loaded', refreshAllRollups, { signal: instanceEvents.signal });
     window.addEventListener('wnmu:title-corrections-changed', () => {
       document.querySelectorAll('.program-title[data-wnmu-original-title]').forEach(title => {
-        title.textContent = effectiveDisplayTitle(title.dataset.wnmuOriginalTitle);
+        title.textContent = effectiveDisplayTitle(title.dataset.wnmuOriginalTitle, {
+          displayTitle: title.dataset.wnmuImportedDisplayTitle,
+          durationSource: title.dataset.wnmuManualTitle === '1' ? 'manual-schedule-overwrite' : ''
+        });
       });
       refreshAllRollups();
       appState.printDirty = true;
