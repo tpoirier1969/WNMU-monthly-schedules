@@ -755,10 +755,11 @@
 
   function closeMenuBeforeRendererReset() {
     try {
-      const closeBtn = document.getElementById('closeMenuBtn');
-      if (closeBtn) closeBtn.click();
-      const menu = document.getElementById('contextMenu') || document.getElementById('wnmuCellMenu');
-      if (menu) {
+      // Both menus exist in the DOM. Choosing the legacy menu with || leaves
+      // the active White Override menu open over the refreshed schedule.
+      for (const id of ['wnmuCellMenu', 'contextMenu']) {
+        const menu = document.getElementById(id);
+        if (!menu) continue;
         menu.classList.add('hidden');
         menu.setAttribute('aria-hidden', 'true');
       }
