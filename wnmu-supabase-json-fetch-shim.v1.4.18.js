@@ -91,5 +91,17 @@
     }
   };
 
+  // Manual Commit to Schedule must invalidate this in-memory month cache
+  // before loading the new renderer, otherwise it reuses the OLD schedule.
+  window.WNMU_SUPABASE_JSON_FETCH_SHIM_CLEAR = function (channelCode, monthKey) {
+    if (channelCode && monthKey) {
+      cache.delete(`${channelCode}::${monthKey}`);
+    } else if (channelCode) {
+      for (const key of cache.keys()) if (key.startsWith(channelCode + '::')) cache.delete(key);
+    } else {
+      cache.clear();
+    }
+  };
+
   window.WNMU_SUPABASE_JSON_FETCH_SHIM_VERSION = VERSION;
 })();
