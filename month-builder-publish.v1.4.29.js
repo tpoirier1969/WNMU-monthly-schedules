@@ -67,8 +67,15 @@
     return String(value || '').toLowerCase().replace(/&/g, 'and').replace(/[^a-z0-9]+/g, '');
   }
   function standardTitleCase(value) {
-    return String(value || '').trim().replace(/\s+/g, ' ').toLowerCase()
-      .replace(/(^|[\s\-\/:([{])([a-z])/g, (match, before, letter) => before + letter.toUpperCase());
+    const little = new Set(['a','an','and','as','at','but','by','for','from','in','into','nor','of','on','or','per','the','to','vs','with']);
+    const acronyms = new Set(['PBS','BBC','WNMU','NMU','NOVA','POV','USA','TV','DW','NPR','APT']);
+    const words = String(value || '').trim().replace(/\s+/g, ' ').toLowerCase().split(' ');
+    return words.map((word, index) => {
+      const alpha = word.replace(/[^a-z0-9]/g, '').toUpperCase();
+      if (acronyms.has(alpha)) return alpha;
+      if (index > 0 && index < words.length - 1 && little.has(word)) return word;
+      return word.replace(/(^|[-(\[/])([a-z])/g, (_, prefix, ch) => prefix + ch.toUpperCase());
+    }).join(' ');
   }
   function importedDisplayTitle(raw) {
     const title = String(raw || '').trim();
