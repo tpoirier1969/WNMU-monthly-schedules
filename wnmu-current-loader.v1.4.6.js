@@ -533,7 +533,7 @@
 
   function loadRenderer() {
     const script = document.createElement('script');
-    script.src = `${CONFIG.sharedRendererFile}?loader=${BUILD_VERSION}&release=monthly-topic-20261110`;
+    script.src = `${CONFIG.sharedRendererFile}?loader=${BUILD_VERSION}&release=feature-preview-20261110e`;
     script.defer = true;
     document.body.appendChild(script);
   }
