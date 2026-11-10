@@ -333,6 +333,21 @@
     const previousIds = new Map();
     (previousState.newSeriesEntryIds || []).forEach(id => previousIds.set(id, 'newSeries'));
     (previousState.newSeasonEntryIds || []).forEach(id => previousIds.set(id, 'newSeason'));
+    // Existing browsers may have auto-only marks synced from Supabase without
+    // the locally stored auto-state index. Infer ownership only for bare,
+    // two-boolean premiere marks; never infer it for a user's full tag record.
+    buildScheduleIndex().entries.forEach(entry => {
+      if (!entry.seasonStart) return;
+      const id = entryId(entry);
+      if (!id || previousIds.has(id)) return;
+      const mark = marks[id] || {};
+      const tags = tagsObject(mark);
+      const bare = Object.keys(mark).every(k => k === 'tags' || k === 'autoPremiereSource') &&
+        Object.keys(tags).every(k => k === 'newSeries' || k === 'newSeason');
+      if (!bare) return;
+      if (tags.newSeries === true && tags.newSeason === false) previousIds.set(id, 'newSeries');
+      else if (tags.newSeason === true && tags.newSeries === false) previousIds.set(id, 'newSeason');
+    });
     const candidates = detectAutoPremiereEntries();
     const ids = new Set(); const tagById = new Map(); let modified = false;
     const autoState = { version: VERSION, at: new Date().toISOString(), newSeriesEntryIds: [], newSeasonEntryIds: [] };
