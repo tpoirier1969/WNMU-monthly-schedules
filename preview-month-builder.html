@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <title>TEST COPY | WNMU Month Builder</title>
+  <link rel="icon" href="favicon.ico" sizes="any">
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="manifest" href="site.webmanifest">
+  <meta name="theme-color" content="#0d4f38">
+  <link rel="stylesheet" href="assets/month-builder.v1.4.1.css?v=1.4.1">
+</head>
+<body>
+  <main class="wrap">
+    <div class="topline"><a href="index.html?v=1.5.63">← Home</a></div>
+    <h1>WNMU month builder <span class="badge">v1.4.29 restored parser + fixed-day grid</span></h1>
+    <p class="lede">Drop in one or both weekly-grid PDFs, parse them locally in your browser, then publish the imported month directly to the app-specific Supabase tables. This version restores the parser path that was producing the most complete months, then reconstructs the rotated ProTrack grid into fixed Sunday-through-Saturday day columns before parsing. It preserves episode numbers by day, handles repeated weekday titles without merging them into one bogus title, keeps sparse Saturday programs in Saturday, reads duration/start-time pairs, allows valid visible schedule holes, and supports drag/drop onto the 13.1 and 13.3 PDF boxes. Notes, tags, and rectangle notes are not modified by this import tool.</p>
+    <section class="panel">
+      <h2>Reports</h2>
+      <div class="grid">
+        <label class="dropzone"><span class="label">13.1 / WNMU1HD PDF</span><input id="pdf131" type="file" accept="application/pdf"><span class="hint">Click to choose, or drag the main HD weekly-grid PDF here.</span></label>
+        <label class="dropzone"><span class="label">13.3 / WNMU3PL PDF</span><input id="pdf133" type="file" accept="application/pdf"><span class="hint">Click to choose, or drag the secondary channel weekly-grid PDF here.</span></label>
+      </div>
+      <div class="actions">
+        <button id="parseBtn" type="button">Parse selected reports</button>
+        <button id="publishBtn" type="button" disabled>Publish imported month(s) live</button>
+        <button id="verifyBtn" type="button">Verify Supabase months</button>
+      </div>
+      <div id="statusBox" class="status">Waiting for PDFs.</div>
+    </section>
+    <section class="panel">
+      <h2>Detected output</h2>
+      <div id="summaryGrid" class="summary-grid">
+        <div class="summary-card"><h3>13.1</h3><div id="summary131" class="summary-body">No PDF loaded yet.</div></div>
+        <div class="summary-card"><h3>13.3</h3><div id="summary133" class="summary-body">No PDF loaded yet.</div></div>
+      </div>
+    </section>
+    <section class="panel smallprint">
+      <h2>What this builder changes</h2>
+      <ul>
+        <li>Writes imported month schedule and verification JSON directly to Supabase.</li>
+        <li>Marks the imported month current only for the channel you publish.</li>
+        <li>Blocks partial-month parses and hidden-hole guesses; visible holes must remain visible.</li>
+        <li>Does not touch existing notes, tags, rectangle notes, archives, or backups.</li>
+        <li>After publishing, review title cleanup on the 13.1 and 13.3 schedule pages before creating a Sales View.</li>
+      </ul>
+    </section>
+  </main>
+  <script src="config.js"></script>
+<script src="wnmu-preview-sandbox.js?v=20261110b"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script>window.pdfjsLib && (window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js');</script>
+  <script src="month-builder-publish.v1.4.29.js?v=20261110b"></script>
+  <script src="wnmu-version-flag.v1.5.107.js?v=1.5.107" defer></script>
+</body>
+</html>
