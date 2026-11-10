@@ -338,7 +338,19 @@
     const result = replaceScheduleRange(originalSchedule, imported.verification_json || {}, row);
     validateOverwrite(originalSchedule, result, row);
     try { const backupKey = `wnmu_manual_overwrite_backup::${channelCode()}::${row.month_key || monthKey()}::${row.date}::${rowTime(row)}::${Date.now()}`; localStorage.setItem(backupKey, JSON.stringify({ version: VERSION, row, importedRowUpdatedAt: imported.updated_at || '', schedule_json: originalSchedule, verification_json: imported.verification_json || {} })); } catch (err) { console.warn('Local pre-overwrite backup skipped.', err); }
-    await patchImportedMonth(row, result.schedule, result.verification);
+    const saved = await patchImportedMonth(row, result.schedule, result.verification);
+    // An HTTP 200 with zero affected rows is not a successful commit. Confirm
+    // the actual database representation contains the new replacement first.
+    const savedDay = saved?.schedule_json?.days?.find(day => day.date === row.date);
+    const savedEntry = savedDay?.entries?.find(entry =>
+      entry.time === result.manualEntry.time &&
+      entry.title === result.manualEntry.title &&
+      Number(entry.durationMin) === Number(result.manualEntry.durationMin) &&
+      entry.manualScheduleOverwrite === true);
+    if (!savedEntry) throw new Error(
+      'Commit was not confirmed in the database. The staged box has been kept. ' +
+      'No cleanup was performed; please retry or check the error before continuing.');
+    clearSupabaseJsonFetchShimCache(row);
     clearJsonCachesForMonth(row.channel_code || channelCode(), row.month_key || monthKey() || String(row.date).slice(0, 7));
     const newEntryKey = scheduleEntryId(result.manualEntry);
     window.WNMU_LAST_MANUAL_SCHEDULE_OVERWRITE = { version: VERSION, row, newEntryKey, replacedCount: result.replaced.length, preservedSplitCount: result.preserved.length, at: new Date().toISOString() };
