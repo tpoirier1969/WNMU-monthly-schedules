@@ -1332,6 +1332,12 @@
     installGlobalNoSubmitGuard();
     hardenMenuForm(document.getElementById('wnmuCellMenu'));
     window.WNMU_CELL_INTERACTIONS_VERSION = VERSION;
+    // Preload the small, versioned observance list once while the user is
+    // reading the grid, rather than waiting for the first popup click.
+    window.setTimeout(() => {
+      const key = window.WNMU_CURRENT_MONTH_META?.monthKey || '2026-01';
+      topicsForScheduleMonth(key).catch(() => {});
+    }, 120);
     window.addEventListener('resize', () => scheduleRelayoutVisibleOverlays(220), { passive: true });
     window.addEventListener('wnmu:remote-storage-loaded', () => {
       const menu = document.getElementById('wnmuCellMenu');
