@@ -684,6 +684,14 @@
     box.style.width = `${Math.max(44, rect.width - 8)}px`;
     box.style.height = `${durationHeightFromRows(target.cell, normalized.durationMin)}px`;
     const tags = Object.keys(noteTags || {}).filter(tag => noteTags[tag] && (tag !== OTHER_KEY || customLabel));
+    // A staged replacement represents its own program. Give the box the same
+    // dominant planning-tag color as a committed program, immediately on save.
+    // Never tint the underlying imported entry in lieu of the visible box.
+    const primaryTag = dominantTag(noteTags);
+    if (primaryTag && tags.includes(primaryTag)) {
+      box.style.backgroundColor = tagMeta(primaryTag).color || '#fff';
+      box.dataset.wnmuDominantTag = primaryTag;
+    }
     const selectedTopic = monthlyTopicLabel(normalized);
     const pills = tags.length ? `<div class="wnmu-cell-override-tags">${tags.map(tag => `<span data-wnmu-overlay-tag="${esc(tag)}">${esc(tag === 'monthlyTopic' && selectedTopic ? 'Monthly Topic: ' + selectedTopic : tagDisplayLabel(tag, customLabel))}</span>`).join('')}</div>` : '';
     const text = normalized.text ? `<div class="wnmu-cell-override-text">${esc(normalized.text)}</div>` : '';
