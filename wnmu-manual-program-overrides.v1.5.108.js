@@ -326,7 +326,8 @@
     tags.other = !!otherLabel;
     // Also save explicit false values: a deliberately unchecked automatic tag
     // must stay off on the committed replacement.
-    const markJson = { tags, otherLabel, planningOtherLabel: otherLabel, customPlanningLabel: otherLabel, customTagLabel: otherLabel };
+    const monthlyTopicLabel = tags.monthlyTopic ? String(row.tags_json?.monthlyTopicLabel || '').trim().slice(0,160) : '';
+    const markJson = { tags, monthlyTopicLabel, otherLabel, planningOtherLabel: otherLabel, customPlanningLabel: otherLabel, customTagLabel: otherLabel };
     try { const key = storageKey(); if (key) { const stateObj = readJson(key, {}); stateObj[entryKey] = { ...(stateObj[entryKey] || {}), ...markJson }; writeJson(key, stateObj); } } catch (err) { console.warn('Manual overwrite tag local save skipped.', err); }
     try { await upsertSharedMark(entryKey, markJson, 'manual-schedule-overwrite-commit'); } catch (err) { console.warn('Manual overwrite tag shared save skipped.', err); }
     return entryKey;
@@ -465,7 +466,7 @@
     const text = String(menu.querySelector('#wnmuCellText')?.value || staged?.text || '').trim();
     if (!text) throw new Error('Type a program title/replacement text before committing.');
     const duration = nearestDuration(menu.querySelector('input[name="wnmuCellDuration"]:checked')?.value || staged?.durationMin || 30);
-    return { channel_code: channelCode(), month_key: monthKey() || commitDate.slice(0, 7), entry_key: canonicalKeyFor(commitDate, commitTime), date: commitDate, slot_time: commitTime, duration_min: duration, source_entry_id: menu.dataset.wnmuEntryId || staged?.sourceEntryId || '', override_type: 'manual_program', title_text: text, tags_json: readTagsFromMenu(menu), other_label: String(menu.querySelector('#wnmuCellCustomTagText')?.value || menu.dataset.wnmuOtherLabel || '').trim(), is_active: true, updated_by: 'schedule-page-commit' };
+    return { channel_code: channelCode(), month_key: monthKey() || commitDate.slice(0, 7), entry_key: canonicalKeyFor(commitDate, commitTime), date: commitDate, slot_time: commitTime, duration_min: duration, source_entry_id: menu.dataset.wnmuEntryId || staged?.sourceEntryId || '', override_type: 'manual_program', title_text: text, tags_json: { ...readTagsFromMenu(menu), monthlyTopicLabel: String(menu.querySelector('#wnmuMonthTopicValue')?.value || '').trim().slice(0,160) }, other_label: String(menu.querySelector('#wnmuCellCustomTagText')?.value || menu.dataset.wnmuOtherLabel || '').trim(), is_active: true, updated_by: 'schedule-page-commit' };
   }
 
   function sameSlot(row, date, time) { return String(row.date) === String(date) && String(row.slot_time || row.time) === String(time); }
