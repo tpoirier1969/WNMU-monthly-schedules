@@ -147,7 +147,10 @@
     if (cleanOtherLabel(attr)) return cleanOtherLabel(attr);
     const known = new Set(Object.values(tagMeta()).map(meta => String(meta?.label || '').trim()).filter(Boolean));
     known.add('Satellite Feed'); known.add('PBS Feed'); known.add('New Season'); known.add('Custom');
-    const labels = Array.from(cell.querySelectorAll?.('.tag-pill') || []).map(el => cleanOtherLabel(el.textContent || '')).filter(Boolean);
+    const labels = Array.from(cell.querySelectorAll?.('.tag-pill') || [])
+      // Named Monthly Topic pills must never be misread as a custom planning tag.
+      .filter(el => !el.dataset?.wnmuPlanningTag || el.dataset.wnmuPlanningTag === OTHER_KEY)
+      .map(el => cleanOtherLabel(el.textContent || '')).filter(Boolean);
     return labels.find(label => !known.has(label)) || '';
   }
   function customOtherLabelForCell(cell){
@@ -555,14 +558,13 @@
     };
     const records = recordsForCell(cell);
     for (const record of records) {
-      if (typeof record?.tags?.monthlyTopic === 'boolean') {
-        if (record.tags.monthlyTopic === false) return '';
-        return normalize(record.monthlyTopicLabel || record.monthly_topic_label);
-      }
+      if (record?.tags?.monthlyTopic === false) return '';
       const label = normalize(record?.monthlyTopicLabel || record?.monthly_topic_label);
       if (label) return label;
+      // A legacy cell-level record can have monthlyTopic:true but no label.
+      // Check subsequent records before returning the generic category.
     }
-    return '';
+    return normalize(cell?.dataset?.wnmuMonthlyTopicLabel);
   }
   function renderTags(cell, tags){
     if (!cell) return;
@@ -602,7 +604,7 @@
       wrap.innerHTML = pills.map(tag => {
         const label = tag === 'monthlyTopic' && topicLabel ? topicLabel : tagLabel(tag, otherLabel);
         const customAttr = tag === OTHER_KEY && otherLabel ? ` data-wnmu-custom-tag-label="${escAttr(otherLabel)}"` : '';
-        return `<span class="tag-pill"${customAttr} style="--tag-color:${colorFor(tag)}">${escAttr(label)}</span>`;
+        return `<span class="tag-pill" data-wnmu-planning-tag="${escAttr(tag)}"${customAttr} style="--tag-color:${colorFor(tag)}">${escAttr(label)}</span>`;
       }).join('');
       content.appendChild(wrap);
     }
@@ -657,6 +659,10 @@
     const entryId = cell.dataset.entryId || ''; const cellKey = menu?.dataset?.wnmuCellKey || '';
     const marks = readJson(key, {}); let clean = normalizedMenuTags(tags);
     const pendingOtherLabel = cleanOtherLabel(readCustomOtherLabelFromMenu(menu));
+    const chosenTopic = clean.monthlyTopic
+      ? String(menu.querySelector('#wnmuMonthTopicValue')?.value ||
+          cell.dataset?.wnmuMonthlyTopicLabel || '').trim().slice(0,160)
+      : '';
     if (pendingOtherLabel) clean[OTHER_KEY] = true;
     const writeRecord = (recordKey) => {
       if (!recordKey) return;
@@ -665,7 +671,9 @@
       const rectNote = existing.rectNote && typeof existing.rectNote === 'object'
         ? { ...existing.rectNote, otherLabel, planningOtherLabel: otherLabel, customPlanningLabel: otherLabel, customTagLabel: otherLabel }
         : existing.rectNote;
-      marks[recordKey] = { ...existing, tags: { ...clean }, otherLabel, planningOtherLabel: otherLabel, customPlanningLabel: otherLabel, customTagLabel: otherLabel, rectNote };
+      marks[recordKey] = { ...existing, tags: { ...clean },
+        monthlyTopicLabel: chosenTopic || (clean.monthlyTopic ? existing.monthlyTopicLabel || '' : ''),
+        otherLabel, planningOtherLabel: otherLabel, customPlanningLabel: otherLabel, customTagLabel: otherLabel, rectNote };
     };
     writeRecord(entryId); writeRecord(cellKey);
     const savedOtherLabel = otherLabelFromRecord(marks[entryId]) || otherLabelFromRecord(marks[cellKey]);
@@ -674,6 +682,8 @@
     suppressStorageSanitize += 1;
     try { writeJson(key, marks); } finally { suppressStorageSanitize = Math.max(0, suppressStorageSanitize - 1); }
     invalidateStoreCache();
+    if (clean.monthlyTopic && chosenTopic) cell.dataset.wnmuMonthlyTopicLabel = chosenTopic;
+    else if (!clean.monthlyTopic) delete cell.dataset.wnmuMonthlyTopicLabel;
     renderTags(cell, clean);
     forceCustomTagDisplayForCell(cell, savedOtherLabel);
     window.WNMU_LAST_TAG_MENU_SYNC = { version: VERSION, entryId, cellKey, tags: clean, at: new Date().toISOString() };
