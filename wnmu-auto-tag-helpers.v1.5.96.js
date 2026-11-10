@@ -538,6 +538,14 @@
     }
   }
 
+  function monthlyTopicLabelForCell(cell) {
+    const records = recordsForCell(cell);
+    for (const record of records) {
+      const label = String(record?.monthlyTopicLabel || record?.monthly_topic_label || '').trim();
+      if (label) return label;
+    }
+    return '';
+  }
   function renderTags(cell, tags){
     if (!cell) return;
     const clean = normalizedMenuTags(tags || {});
@@ -548,7 +556,8 @@
     if (otherLabel) { clean[OTHER_KEY] = true; cell.dataset.wnmuOtherLabel = otherLabel; cell.dataset.wnmuCustomPlanningTag = otherLabel; }
     else { delete cell.dataset.wnmuOtherLabel; delete cell.dataset.wnmuCustomPlanningTag; }
     const active = activeTagList(clean, false).filter(tag => tag !== OTHER_KEY || otherLabel);
-    const signature = active.join('|') + `::other=${otherLabel}`;
+    const topicLabel = active.includes('monthlyTopic') ? monthlyTopicLabelForCell(cell) : '';
+    const signature = active.join('|') + `::other=${otherLabel}::topic=${topicLabel}`;
     if (cell.dataset.wnmuAutoTagRenderSig === signature) return;
     cell.dataset.wnmuAutoTagRenderSig = signature;
     cell.querySelectorAll('.program-tags').forEach(el => el.remove());
@@ -573,9 +582,9 @@
       wrap.className = 'program-tags';
       const pills = activeTagList(clean, true).filter(tag => tag !== OTHER_KEY || otherLabel).slice(0, 6);
       wrap.innerHTML = pills.map(tag => {
-        const label = tagLabel(tag, otherLabel);
+        const label = tag === 'monthlyTopic' && topicLabel ? 'Monthly Topic: ' + topicLabel : tagLabel(tag, otherLabel);
         const customAttr = tag === OTHER_KEY && otherLabel ? ` data-wnmu-custom-tag-label="${escAttr(otherLabel)}"` : '';
-        return `<span class="tag-pill"${customAttr} style="--tag-color:${colorFor(tag)}">${label}</span>`;
+        return `<span class="tag-pill"${customAttr} style="--tag-color:${colorFor(tag)}">${escAttr(label)}</span>`;
       }).join('');
       content.appendChild(wrap);
     }
