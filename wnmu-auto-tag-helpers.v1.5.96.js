@@ -493,8 +493,14 @@
     const otherLabel = customOtherLabelForCell(cell);
     const stored = storedTagsForCell(cell);
     if (hasAnyExplicitStoredTag(stored)) {
-      const out = {};
-      allTagKeys().forEach(tag => { out[tag] = stored[tag] === true; });
+      // Preserve each user-saved true/false independently. Unset tags may still
+      // receive new derived defaults (e.g. fundraiser from an episode ending $).
+      // A saved mark for Highlight should not suppress unrelated auto-tags.
+      const defaults = defaultTagsForEntryId(entryId);
+      const out = { ...defaults };
+      allTagKeys().forEach(tag => {
+        if (typeof stored[tag] === 'boolean') out[tag] = stored[tag];
+      });
       if (otherLabel) out[OTHER_KEY] = true;
       return out;
     }
