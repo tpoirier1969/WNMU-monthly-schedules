@@ -359,11 +359,11 @@
     banner.innerHTML = `<strong>Read-only archive:</strong> ${escapeHtml(row.archive_name || 'Untitled archive')} • ${escapeHtml(row.channel_label || '')} • ${new Date(row.created_at).toLocaleString()}${row.archive_note ? ` • ${escapeHtml(row.archive_note)}` : ''}`;
   }
 
-  function createTagPill(tagKey) {
+  function createTagPill(tagKey, selectedTopic = '') {
     const pill = document.createElement('span');
     pill.className = 'tag-pill';
     pill.style.setProperty('--tag-color', TAG_META[tagKey].color);
-    pill.textContent = TAG_META[tagKey].label;
+    pill.textContent = tagKey === 'monthlyTopic' && selectedTopic ? 'Monthly Topic: ' + selectedTopic : TAG_META[tagKey].label;
     return pill;
   }
 
@@ -401,9 +401,9 @@
   function rollupOtherLabel(mark) {
     return String(mark?.otherLabel || mark?.planningOtherLabel || mark?.customPlanningLabel || mark?.customTagLabel || '').trim();
   }
-  function rollupTagLabels(tags, otherLabel) {
+  function rollupTagLabels(tags, otherLabel, selectedTopic = '') {
     return [...new Set([...TAG_ORDER, 'other'])].filter(tag => tag !== 'satelliteFeed' && tags?.[tag] === true && (tag !== 'other' || otherLabel))
-      .map(tag => tag === 'other' ? otherLabel : (TAG_META[tag]?.label || tag));
+      .map(tag => tag === 'other' ? otherLabel : tag === 'monthlyTopic' && selectedTopic ? 'Monthly Topic: ' + selectedTopic : (TAG_META[tag]?.label || tag));
   }
   function dayRollupEntries(date) {
     const imported = appState.dateMap[date]?.entries || [];
@@ -432,7 +432,7 @@
       if (other) tags.other = true;
       const duration = Number(mark.durationMin || mark.rectNote?.durationMin || 30);
       return { date, time: mark.time, title: String(mark.text), durationMin: duration, episode: '',
-        _wnmuReplacement: true, _wnmuRollupLabels: rollupTagLabels(tags, other),
+        _wnmuReplacement: true, _wnmuRollupLabels: rollupTagLabels(tags, other, mark.monthlyTopicLabel || (base && appState.marks[base._id]?.monthlyTopicLabel) || ''),
         _startSlot: slot, _endSlot: slot + Math.max(1, Math.round(duration / 30)) };
     });
     const normal = imported.filter(entry => {
@@ -444,7 +444,7 @@
     }).map(entry => {
       const mark = appState.marks[entry._id] || {};
       const other = rollupOtherLabel(mark);
-      return { ...entry, _wnmuRollupLabels: rollupTagLabels({ ...getTagsForEntry(entry), other: !!other }, other) };
+      return { ...entry, _wnmuRollupLabels: rollupTagLabels({ ...getTagsForEntry(entry), other: !!other }, other, mark.monthlyTopicLabel || '') };
     });
     // A manually checked blank slot has no imported program entry. It should
     // still be listed by day, without manufacturing a schedule airing.
@@ -461,7 +461,7 @@
       });
       if (isCovered || overlays.some(note => slot >= note._startSlot && slot < note._endSlot)) return;
       const other = rollupOtherLabel(mark);
-      const labels = rollupTagLabels({ ...(mark.tags || {}), other: !!other }, other);
+      const labels = rollupTagLabels({ ...(mark.tags || {}), other: !!other }, other, mark.monthlyTopicLabel || '');
       if (!labels.length) return;
       blank.push({ date, time, title: '(Blank schedule slot)', durationMin: 30,
         episode: '', _wnmuReplacement: true, _wnmuRollupLabels: labels });
@@ -613,7 +613,7 @@
         if (activeTags.length || (customLabel && savedMark.tags?.other)) {
           const tags = document.createElement('div');
           tags.className = 'program-tags';
-          activeTags.slice(0, 5).forEach(tagKey => tags.appendChild(createTagPill(tagKey)));
+          activeTags.slice(0, 5).forEach(tagKey => tags.appendChild(createTagPill(tagKey, savedMark.monthlyTopicLabel || '')));
           if (customLabel && savedMark.tags?.other) {
             const custom = document.createElement('span');
             custom.className = 'tag-pill';
@@ -715,7 +715,7 @@
         if (activeTags.length) {
           const tags = document.createElement('div');
           tags.className = 'program-tags';
-          activeTags.slice(0, 5).forEach(tagKey => tags.appendChild(createTagPill(tagKey)));
+          activeTags.slice(0, 5).forEach(tagKey => tags.appendChild(createTagPill(tagKey, appState.marks[entry._id]?.monthlyTopicLabel || '')));
           content.appendChild(tags);
         }
         td.appendChild(content);
