@@ -201,7 +201,8 @@
     return normalizeMonthlyTopicName(note?.monthlyTopicLabel || note?.monthly_topic_label || note?.rectNote?.monthlyTopicLabel);
   }
   function menuTopicLabel(menu) {
-    return normalizeMonthlyTopicName(menu?.querySelector('#wnmuMonthTopicValue')?.value);
+    return normalizeMonthlyTopicName(menu?.querySelector('#wnmuMonthTopicValue')?.value ||
+      menu?.dataset?.wnmuSelectedMonthlyTopic);
   }
   function topicLabelForTarget(target) {
     const stored = storedRecordForTarget(target);
@@ -756,6 +757,7 @@
   }
   function setMonthlyTopicInMenu(menu, value) {
     const label = normalizeMonthlyTopicName(value);
+    if (menu) menu.dataset.wnmuSelectedMonthlyTopic = label;
     const input = menu?.querySelector('#wnmuMonthTopicValue');
     if (input) input.value = label;
     const chosen = menu?.querySelector('#wnmuMonthTopicChosen');
@@ -803,7 +805,11 @@
             const flag = menu.querySelector('input[name="monthlyTopic"]'); if (flag) flag.checked = true;
             dialog.close();
             // Selection is a complete planning-tag edit.
-            savePlanningTagsOnlyFromMenu(menu);
+            const saved = savePlanningTagsOnlyFromMenu(menu);
+            const status = menu.querySelector('#wnmuCellStatus');
+            if (status) status.textContent = saved
+              ? `Monthly Topic saved: ${menuTopicLabel(menu)}.`
+              : 'Monthly Topic was not saved. Please try again.';
           });
           fragment.appendChild(button);
         });
@@ -1147,7 +1153,11 @@
       if (flag) flag.checked = true;
       const dialog = menu.querySelector('#wnmuMonthTopicDialog');
       if (dialog?.open) dialog.close();
-      savePlanningTagsOnlyFromMenu(menu);
+      const saved = savePlanningTagsOnlyFromMenu(menu);
+      const status = menu.querySelector('#wnmuCellStatus');
+      if (status) status.textContent = saved
+        ? `Monthly Topic saved: ${menuTopicLabel(menu)}.`
+        : 'Monthly Topic was not saved. Please try again.';
     });
     menu.querySelector('#wnmuEditProgramTitleBtn')?.addEventListener('click', event => {
       event.preventDefault(); event.stopPropagation();
