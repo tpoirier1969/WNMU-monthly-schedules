@@ -494,15 +494,15 @@
 
   function installObserver() {
     const host = document.getElementById('weekGrids') || document.body;
+    // Planning-tag pills, menu UI and note overlays are frequent DOM edits.
+    // They are not new schedule airings and must not repaint the entire month.
+    const isScheduleContent = node => node?.nodeType === 1 &&
+      (node.matches?.('table.screen-week-grid,.screen-host,.week-grid-wrap,td.program-cell[data-entry-id]') ||
+       node.querySelector?.('table.screen-week-grid,td.program-cell[data-entry-id]'));
     const observer = new MutationObserver(mutations => {
-      let root = null;
-      for (const mutation of mutations) {
-        if (mutation.addedNodes && mutation.addedNodes.length) {
-          root = mutation.target;
-          break;
-        }
+      if (mutations.some(mutation => Array.from(mutation.addedNodes || []).some(isScheduleContent))) {
+        schedulePaint(host);
       }
-      if (root) schedulePaint(root);
     });
     observer.observe(host, { childList: true, subtree: true });
   }
@@ -510,7 +510,9 @@
   function installDelayedSweeps() {
     // The old renderer progressively builds weeks. These short sweeps catch
     // default/preselected Satellite Feed cells after each render chunk appears.
-    [150, 500, 1200, 2500, 5000, 9000, 15000].forEach(ms => {
+    // Structure observer and remote-load events cover ongoing additions.
+    // Keep two bounded startup safety passes, not seven full-month sweeps.
+    [300, 1600].forEach(ms => {
       window.setTimeout(() => schedulePaint(fullGridRoot()), ms);
     });
   }
