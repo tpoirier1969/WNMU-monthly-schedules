@@ -610,8 +610,9 @@
     sanitizeActive = true;
     try {
       document.querySelectorAll('table.screen-week-grid td.program-cell[data-entry-id]').forEach(cell => renderTags(cell, effectiveTagsForCell(cell)));
+      // Satellite Feed listens for wnmu:auto-tags-rendered and schedules one
+      // paint. Calling its global repaint again creates a redundant full scan.
       window.dispatchEvent(new CustomEvent('wnmu:auto-tags-rendered', { detail: { version: VERSION, at: new Date().toISOString() } }));
-      window.setTimeout(() => window.WNMU_REPAINT_SATELLITE_FEEDS?.(), 25);
     } finally {
       window.setTimeout(() => { sanitizeActive = false; }, 120);
     }
