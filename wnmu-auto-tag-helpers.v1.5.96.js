@@ -311,6 +311,10 @@
       // but true season-start signals should still remain visible.
       tagOrder().forEach(tag => { if (tag !== 'newSeries' && tag !== 'newSeason') out[tag] = false; });
     }
+    // ProTrack uses a trailing dollar sign in the episode field to designate
+    // fundraising. Only the episode code qualifies, never a program title.
+    // User-saved true/false values take precedence when effective tags merge.
+    if (/\$\s*$/.test(String(entry.episode || ''))) out.fundraiser = true;
     return out;
   }
 
