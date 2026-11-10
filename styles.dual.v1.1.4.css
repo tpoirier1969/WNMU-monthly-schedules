@@ -39,10 +39,16 @@ body { margin: 0; font-family: Calibri, Arial, sans-serif; background: var(--bg)
 .week-grid-wrap h3 { margin: 0; color: var(--brand); }
 .week-grid { width: 100%; border-collapse: collapse; table-layout: fixed; font-size: 12px; }
 .screen-week-grid { display: table; }
-/* Compact half-hour slot: title + episode/duration line + one tag. Rows grow
-   naturally when a title wraps or multiple tag lines are necessary. */
-.screen-week-grid { --wnmu-half-hour-min-height: 68px; }
+/* Compact half-hour slot: one title line, one episode/duration line and
+   one tag. Expanded titles or extra tags grow naturally, not by padding. */
+.screen-week-grid { --wnmu-half-hour-min-height: 64px; }
 .screen-week-grid tbody tr { height: var(--wnmu-half-hour-min-height); }
+.screen-week-grid td.program-cell { min-height: 0; padding: 4px 5px; }
+.screen-week-grid .program-title { margin-bottom: 2px; }
+.screen-week-grid .program-episode,
+.screen-week-grid .program-duration { display: inline; }
+.screen-week-grid .program-episode + .program-duration::before { content: ' • '; }
+.screen-week-grid .program-tags { margin-top: 4px; }
 .screen-week-grid tbody > tr.hour-start:not(:first-child) > td {
   border-top: 2px solid #9daec4;
 }
