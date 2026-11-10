@@ -191,17 +191,24 @@
   }
 
 
+  function normalizeMonthlyTopicName(value) {
+    const title = String(value || '').trim().slice(0, 160);
+    // The scheduling picker groups these two Library observances under
+    // one editorial topic; leave unrelated events (Christmas in July) alone.
+    return /^christmas (?:eve|day)$/i.test(title) ? 'Christmas' : title;
+  }
   function monthlyTopicLabel(note) {
-    return String(note?.monthlyTopicLabel || note?.monthly_topic_label || note?.rectNote?.monthlyTopicLabel || '').trim().slice(0, 160);
+    return normalizeMonthlyTopicName(note?.monthlyTopicLabel || note?.monthly_topic_label || note?.rectNote?.monthlyTopicLabel);
   }
   function menuTopicLabel(menu) {
-    return String(menu?.querySelector('#wnmuMonthTopicValue')?.value || '').trim().slice(0, 160);
+    return normalizeMonthlyTopicName(menu?.querySelector('#wnmuMonthTopicValue')?.value);
   }
   function topicLabelForTarget(target) {
     return monthlyTopicLabel(storedRecordForTarget(target) || readCanonicalRecord(target?.key));
   }
   function monthlyTagLabel(tag, label) {
-    return tag === 'monthlyTopic' && label ? 'Monthly Topic: ' + label : tagMeta(tag).label || tag;
+    // Use the selected topic as the full pill text, not a category prefix.
+    return tag === 'monthlyTopic' && label ? normalizeMonthlyTopicName(label) : tagMeta(tag).label || tag;
   }
   function noteOtherLabel(note) {
     return cleanOtherLabel(note?.otherLabel || note?.planningOtherLabel || note?.customPlanningLabel || note?.customTagLabel || note?.otherText || note?.rectNote?.otherLabel || note?.rectNote?.planningOtherLabel || '');
@@ -693,7 +700,7 @@
       box.dataset.wnmuDominantTag = primaryTag;
     }
     const selectedTopic = monthlyTopicLabel(normalized);
-    const pills = tags.length ? `<div class="wnmu-cell-override-tags">${tags.map(tag => `<span data-wnmu-overlay-tag="${esc(tag)}">${esc(tag === 'monthlyTopic' && selectedTopic ? 'Monthly Topic: ' + selectedTopic : tagDisplayLabel(tag, customLabel))}</span>`).join('')}</div>` : '';
+    const pills = tags.length ? `<div class="wnmu-cell-override-tags">${tags.map(tag => `<span data-wnmu-overlay-tag="${esc(tag)}">${esc(tag === 'monthlyTopic' && selectedTopic ? selectedTopic : tagDisplayLabel(tag, customLabel))}</span>`).join('')}</div>` : '';
     const text = normalized.text ? `<div class="wnmu-cell-override-text">${esc(normalized.text)}</div>` : '';
     box.innerHTML = `${pills}${text}<div class="wnmu-cell-override-duration">${nearestDuration(normalized.durationMin || 30)} min</div>`;
     layer.appendChild(box);
@@ -712,7 +719,22 @@
     if (!monthlyTopicCatalogPromise) {
       monthlyTopicCatalogPromise = fetch('wnmu-monthly-topic-catalog.v1.json?v=20261110', { cache: 'force-cache' })
         .then(response => { if (!response.ok) throw new Error('Monthly topic catalog unavailable'); return response.json(); })
-        .then(data => Array.isArray(data.observances) ? data.observances : [])
+        .then(data => {
+          const original = Array.isArray(data.observances) ? data.observances : [];
+          // Present Christmas Eve (Dec 24) and Christmas Day (Dec 25)
+          // as one scheduling topic, without modifying the Library catalog.
+          let christmasAdded = false;
+          return original.flatMap(item => {
+            if (!/^christmas (?:eve|day)$/i.test(String(item.title || '').trim())) return [item];
+            if (christmasAdded) return [];
+            christmasAdded = true;
+            return [{
+              ...item, title: 'Christmas', rule_type: 'date_range_fixed',
+              month: 12, start_month: 12, end_month: 12,
+              start_day: 24, end_day: 25
+            }];
+          });
+        })
         .catch(err => { monthlyTopicCatalogPromise = null; throw err; });
     }
     const month = Number(String(date || '').slice(5, 7));
@@ -726,7 +748,7 @@
     }));
   }
   function setMonthlyTopicInMenu(menu, value) {
-    const label = String(value || '').trim().slice(0, 160);
+    const label = normalizeMonthlyTopicName(value);
     const input = menu?.querySelector('#wnmuMonthTopicValue');
     if (input) input.value = label;
     const chosen = menu?.querySelector('#wnmuMonthTopicChosen');
@@ -798,7 +820,7 @@
       `<div class="wnmu-menu-title-tools"><button type="button" class="btn ghost" id="wnmuEditProgramTitleBtn">Edit title</button><div id="wnmuTitleEditor" class="wnmu-menu-title-editor" hidden><label for="wnmuTitleCorrectedInput">Corrected program title</label><input id="wnmuTitleCorrectedInput" type="text" maxlength="240" value="${esc(cellTitle(target))}"><div class="wnmu-menu-title-actions"><button type="button" class="btn" id="wnmuSaveProgramTitleBtn">Save title correction</button><button type="button" class="btn ghost" id="wnmuCancelProgramTitleBtn">Cancel</button></div><div class="manual-rect-help">This changes the displayed title wherever the imported name occurs. The original imported record and saved tags remain intact.</div></div></div>` : '';
     const noteSource = note?.canonical ? 'saved v1.5 note' : (note?.legacy ? `older ${note.legacy} note` : 'no saved note yet');
     const defaultDuration = note?.durationMin || Math.max(30, Number(target.cell?.rowSpan || 1) * 30);
-    const topicSelection = String(note?.monthlyTopicLabel || '').trim();
+    const topicSelection = monthlyTopicLabel(note);
     const topicUi = `<div class="wnmu-month-topic-chosen"><input type="hidden" id="wnmuMonthTopicValue" value="${esc(topicSelection)}"><span id="wnmuMonthTopicChosen">${esc(topicSelection || 'No topic chosen')}</span><button type="button" class="btn ghost" id="wnmuChangeMonthTopicBtn">${topicSelection ? 'Change topic' : 'Choose topic'}</button></div><dialog id="wnmuMonthTopicDialog" class="wnmu-month-topic-dialog" aria-label="Choose Monthly Topic"><h4>Choose Monthly Topic — <span id="wnmuMonthTopicMonth"></span></h4><input id="wnmuMonthTopicSearch" type="search" placeholder="Filter topics…" aria-label="Filter monthly topics"><div id="wnmuMonthTopicOptions" class="wnmu-month-topic-options"></div><div class="wnmu-month-topic-custom"><input id="wnmuMonthTopicCustom" type="text" maxlength="160" placeholder="Or enter another topic"><button type="button" id="wnmuMonthTopicUseCustom">Use custom</button></div><button type="button" class="btn ghost" id="wnmuMonthTopicCancel">Cancel</button></dialog>`;
     return `<div class="context-menu-head"><div><h3>Schedule cell note</h3><div class="context-menu-meta">${esc(typeLabel)} • ${esc(target.date)} • ${esc(target.time)} • ${esc(noteSource)}</div>${editTitle}</div><button type="button" class="menu-close" id="wnmuCellCloseBtn" aria-label="Close">×</button></div><form class="wnmu-cell-form" id="wnmuCellForm"><div class="wnmu-cell-tag-block"><div class="manual-rect-label">Planning tags</div><div class="wnmu-cell-tag-grid">${tagRows}</div>${topicUi}</div><div class="wnmu-cell-custom-block"><label class="manual-rect-label" for="wnmuCellCustomTagText">Custom planning tag</label><div class="wnmu-custom-tag-row"><input id="wnmuCellCustomTagText" data-wnmu-custom-tag-input="true" class="manual-rect-text wnmu-custom-tag-input" type="text" maxlength="64" placeholder="Type custom tag…" value="${esc(otherLabel)}"><button type="button" class="btn ghost" id="wnmuCustomTagClearBtn">Clear custom tag</button></div><div class="manual-rect-help">This custom label shows as its own planning tag on the grid. Clear the field to remove it.</div></div><fieldset class="wnmu-cell-note-tools"><legend>White override box</legend><label class="manual-rect-label" for="wnmuCellText">Box note text</label><textarea id="wnmuCellText" class="manual-rect-text" rows="3" placeholder="Type what should show in this schedule slot">${esc(note?.text || '')}</textarea><div class="manual-rect-label wnmu-duration-label">Box size / length</div><div class="wnmu-cell-duration-options" role="radiogroup" aria-label="Box note length">${buildDurationRadios(defaultDuration, 'wnmuCellDuration')}</div><div class="manual-rect-help">Choose how many minutes the white box should cover. This controls the drawn box height.</div></fieldset><div class="rect-actions wnmu-unified-actions"><button type="button" class="btn ghost" id="wnmuCommitProgramBtn">Commit to Schedule</button><button type="button" class="btn ghost" id="wnmuCellSaveBtn">Save box note</button><button type="button" class="btn ghost" id="wnmuCellClearBtn">Clear box note</button><button type="button" class="btn ghost" id="wnmuRemoveCommittedProgramBtn" hidden>Remove committed program</button></div><div id="wnmuCellStatus" class="blank-save-status" aria-live="polite"></div></form>`;
   }
@@ -1060,7 +1082,7 @@
     });
     updateOtherMenuLabel(menu, planningState.otherLabel, { force: true });
     setMonthlyTopicInMenu(menu, planningState.monthlyTopicLabel || '');
-    const topicField = menu.querySelector('#wnmuMonthTopicValue'); if (topicField) topicField.value = planningState.monthlyTopicLabel || '';
+    const topicField = menu.querySelector('#wnmuMonthTopicValue'); if (topicField) topicField.value = normalizeMonthlyTopicName(planningState.monthlyTopicLabel);
     rememberMenuPlanningState(menu);
     const customInput = customTagInput(menu);
     if (customInput) {
