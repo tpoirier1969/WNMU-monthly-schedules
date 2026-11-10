@@ -702,7 +702,7 @@
   let monthlyTopicCatalogPromise = null;
   function topicsForScheduleMonth(date) {
     if (!monthlyTopicCatalogPromise) {
-      monthlyTopicCatalogPromise = fetch('wnmu-monthly-topic-catalog.v1.json?v=20261110', { cache: 'no-store' })
+      monthlyTopicCatalogPromise = fetch('wnmu-monthly-topic-catalog.v1.json?v=20261110', { cache: 'force-cache' })
         .then(response => { if (!response.ok) throw new Error('Monthly topic catalog unavailable'); return response.json(); })
         .then(data => Array.isArray(data.observances) ? data.observances : [])
         .catch(err => { monthlyTopicCatalogPromise = null; throw err; });
@@ -746,9 +746,10 @@
       function display(needle = '') {
         options.replaceChildren();
         const matches = topics.filter(topic => String(topic.title).toLowerCase().includes(needle.toLowerCase()));
+        const fragment = document.createDocumentFragment();
         if (!matches.length) {
           const empty = document.createElement('p'); empty.textContent = 'No matching topics. You can enter another topic below.';
-          options.appendChild(empty);
+          fragment.appendChild(empty);
         }
         matches.forEach(topic => {
           const button = document.createElement('button');
@@ -764,9 +765,12 @@
             setMonthlyTopicInMenu(menu, topic.title);
             const flag = menu.querySelector('input[name="monthlyTopic"]'); if (flag) flag.checked = true;
             dialog.close();
+            // Selection is a complete planning-tag edit.
+            savePlanningTagsOnlyFromMenu(menu);
           });
-          options.appendChild(button);
+          fragment.appendChild(button);
         });
+        options.replaceChildren(fragment);
       }
       display();
       if (queryInput) queryInput.oninput = () => display(queryInput.value);
@@ -1106,6 +1110,7 @@
       if (flag) flag.checked = true;
       const dialog = menu.querySelector('#wnmuMonthTopicDialog');
       if (dialog?.open) dialog.close();
+      savePlanningTagsOnlyFromMenu(menu);
     });
     menu.querySelector('#wnmuEditProgramTitleBtn')?.addEventListener('click', event => {
       event.preventDefault(); event.stopPropagation();
