@@ -698,6 +698,82 @@
     return String(title?.dataset?.wnmuOriginalTitle || title?.textContent || '').trim();
   }
 
+  let monthlyTopicCatalogPromise = null;
+  function topicsForScheduleMonth(date) {
+    if (!monthlyTopicCatalogPromise) {
+      monthlyTopicCatalogPromise = fetch('wnmu-monthly-topic-catalog.v1.json?v=20261110', { cache: 'no-store' })
+        .then(response => { if (!response.ok) throw new Error('Monthly topic catalog unavailable'); return response.json(); })
+        .then(data => Array.isArray(data.observances) ? data.observances : [])
+        .catch(err => { monthlyTopicCatalogPromise = null; throw err; });
+    }
+    const month = Number(String(date || '').slice(5, 7));
+    return monthlyTopicCatalogPromise.then(entries => entries.filter(item => {
+      const start = Number(item.start_month || item.month);
+      const end = Number(item.end_month || item.month);
+      return start <= end ? month >= start && month <= end : month >= start || month <= end;
+    }).sort((a,b) => {
+      const rank = item => item.rule_type === 'month_scope' ? 0 : item.rule_type === 'date_range_fixed' ? 1 : 2;
+      return rank(a) - rank(b) || String(a.title).localeCompare(String(b.title));
+    }));
+  }
+  function setMonthlyTopicInMenu(menu, value) {
+    const label = String(value || '').trim().slice(0, 160);
+    const input = menu?.querySelector('#wnmuMonthTopicValue');
+    if (input) input.value = label;
+    const chosen = menu?.querySelector('#wnmuMonthTopicChosen');
+    if (chosen) chosen.textContent = label || 'No topic chosen';
+    const change = menu?.querySelector('#wnmuChangeMonthTopicBtn');
+    if (change) change.textContent = label ? 'Change topic' : 'Choose topic';
+    markMenuPlanningDirty(menu);
+  }
+  async function openMonthlyTopicPicker(menu, date) {
+    const dialog = menu?.querySelector('#wnmuMonthTopicDialog');
+    const options = menu?.querySelector('#wnmuMonthTopicOptions');
+    const queryInput = menu?.querySelector('#wnmuMonthTopicSearch');
+    if (!dialog || !options) return;
+    const month = String(date || '').slice(0, 7);
+    const caption = menu.querySelector('#wnmuMonthTopicMonth');
+    if (caption) caption.textContent = /^\d{4}-\d{2}$/.test(month)
+      ? new Date(Number(month.slice(0,4)), Number(month.slice(5,7)) - 1, 1).toLocaleDateString('en-US',{month:'long',year:'numeric'})
+      : 'the selected month';
+    options.textContent = 'Loading monthly topics…';
+    if (queryInput) queryInput.value = '';
+    if (!dialog.open) dialog.showModal();
+    try {
+      const topics = await topicsForScheduleMonth(date);
+      if (!dialog.open) return;
+      function display(needle = '') {
+        options.replaceChildren();
+        const matches = topics.filter(topic => String(topic.title).toLowerCase().includes(needle.toLowerCase()));
+        if (!matches.length) {
+          const empty = document.createElement('p'); empty.textContent = 'No matching topics. You can enter another topic below.';
+          options.appendChild(empty);
+        }
+        matches.forEach(topic => {
+          const button = document.createElement('button');
+          button.type = 'button';
+          button.className = 'wnmu-month-topic-option';
+          button.textContent = topic.title;
+          button.dataset.topic = topic.title;
+          const category = document.createElement('small');
+          category.textContent = topic.rule_type === 'month_scope' ? 'Whole month' :
+            topic.rule_type === 'date_range_fixed' ? 'Multi-day observance' : 'Holiday or event';
+          button.appendChild(category);
+          button.addEventListener('click', () => {
+            setMonthlyTopicInMenu(menu, topic.title);
+            const flag = menu.querySelector('input[name="monthlyTopic"]'); if (flag) flag.checked = true;
+            dialog.close();
+          });
+          options.appendChild(button);
+        });
+      }
+      display();
+      queryInput?.addEventListener('input', () => display(queryInput.value), { signal: AbortSignal.timeout?.(600000) });
+    } catch(err) {
+      if (dialog.open) options.textContent = 'Topic list could not be loaded. Enter a topic below.';
+    }
+  }
+
   function cellMenuHtml(target, note) {
     const tags = { ...(note?.tags || {}) };
     tags[SATELLITE_KEY] = effectiveSatelliteForTarget(target);
@@ -709,7 +785,9 @@
       `<div class="wnmu-menu-title-tools"><button type="button" class="btn ghost" id="wnmuEditProgramTitleBtn">Edit title</button><div id="wnmuTitleEditor" class="wnmu-menu-title-editor" hidden><label for="wnmuTitleCorrectedInput">Corrected program title</label><input id="wnmuTitleCorrectedInput" type="text" maxlength="240" value="${esc(cellTitle(target))}"><div class="wnmu-menu-title-actions"><button type="button" class="btn" id="wnmuSaveProgramTitleBtn">Save title correction</button><button type="button" class="btn ghost" id="wnmuCancelProgramTitleBtn">Cancel</button></div><div class="manual-rect-help">This changes the displayed title wherever the imported name occurs. The original imported record and saved tags remain intact.</div></div></div>` : '';
     const noteSource = note?.canonical ? 'saved v1.5 note' : (note?.legacy ? `older ${note.legacy} note` : 'no saved note yet');
     const defaultDuration = note?.durationMin || Math.max(30, Number(target.cell?.rowSpan || 1) * 30);
-    return `<div class="context-menu-head"><div><h3>Schedule cell note</h3><div class="context-menu-meta">${esc(typeLabel)} • ${esc(target.date)} • ${esc(target.time)} • ${esc(noteSource)}</div>${editTitle}</div><button type="button" class="menu-close" id="wnmuCellCloseBtn" aria-label="Close">×</button></div><form class="wnmu-cell-form" id="wnmuCellForm"><div class="wnmu-cell-tag-block"><div class="manual-rect-label">Planning tags</div><div class="wnmu-cell-tag-grid">${tagRows}</div></div><div class="wnmu-cell-custom-block"><label class="manual-rect-label" for="wnmuCellCustomTagText">Custom planning tag</label><div class="wnmu-custom-tag-row"><input id="wnmuCellCustomTagText" data-wnmu-custom-tag-input="true" class="manual-rect-text wnmu-custom-tag-input" type="text" maxlength="64" placeholder="Type custom tag…" value="${esc(otherLabel)}"><button type="button" class="btn ghost" id="wnmuCustomTagClearBtn">Clear custom tag</button></div><div class="manual-rect-help">This custom label shows as its own planning tag on the grid. Clear the field to remove it.</div></div><fieldset class="wnmu-cell-note-tools"><legend>White override box</legend><label class="manual-rect-label" for="wnmuCellText">Box note text</label><textarea id="wnmuCellText" class="manual-rect-text" rows="3" placeholder="Type what should show in this schedule slot">${esc(note?.text || '')}</textarea><div class="manual-rect-label wnmu-duration-label">Box size / length</div><div class="wnmu-cell-duration-options" role="radiogroup" aria-label="Box note length">${buildDurationRadios(defaultDuration, 'wnmuCellDuration')}</div><div class="manual-rect-help">Choose how many minutes the white box should cover. This controls the drawn box height.</div></fieldset><div class="rect-actions wnmu-unified-actions"><button type="button" class="btn ghost" id="wnmuCommitProgramBtn">Commit to Schedule</button><button type="button" class="btn ghost" id="wnmuCellSaveBtn">Save box note</button><button type="button" class="btn ghost" id="wnmuCellClearBtn">Clear box note</button><button type="button" class="btn ghost" id="wnmuRemoveCommittedProgramBtn" hidden>Remove committed program</button></div><div id="wnmuCellStatus" class="blank-save-status" aria-live="polite"></div></form>`;
+    const topicSelection = String(note?.monthlyTopicLabel || '').trim();
+    const topicUi = `<div class="wnmu-month-topic-chosen"><input type="hidden" id="wnmuMonthTopicValue" value="${esc(topicSelection)}"><span id="wnmuMonthTopicChosen">${esc(topicSelection || 'No topic chosen')}</span><button type="button" class="btn ghost" id="wnmuChangeMonthTopicBtn">${topicSelection ? 'Change topic' : 'Choose topic'}</button></div><dialog id="wnmuMonthTopicDialog" class="wnmu-month-topic-dialog" aria-label="Choose Monthly Topic"><h4>Choose Monthly Topic — <span id="wnmuMonthTopicMonth"></span></h4><input id="wnmuMonthTopicSearch" type="search" placeholder="Filter topics…" aria-label="Filter monthly topics"><div id="wnmuMonthTopicOptions" class="wnmu-month-topic-options"></div><div class="wnmu-month-topic-custom"><input id="wnmuMonthTopicCustom" type="text" maxlength="160" placeholder="Or enter another topic"><button type="button" id="wnmuMonthTopicUseCustom">Use custom</button></div><button type="button" class="btn ghost" id="wnmuMonthTopicCancel">Cancel</button></dialog>`;
+    return `<div class="context-menu-head"><div><h3>Schedule cell note</h3><div class="context-menu-meta">${esc(typeLabel)} • ${esc(target.date)} • ${esc(target.time)} • ${esc(noteSource)}</div>${editTitle}</div><button type="button" class="menu-close" id="wnmuCellCloseBtn" aria-label="Close">×</button></div><form class="wnmu-cell-form" id="wnmuCellForm"><div class="wnmu-cell-tag-block"><div class="manual-rect-label">Planning tags</div><div class="wnmu-cell-tag-grid">${tagRows}</div>${topicUi}</div><div class="wnmu-cell-custom-block"><label class="manual-rect-label" for="wnmuCellCustomTagText">Custom planning tag</label><div class="wnmu-custom-tag-row"><input id="wnmuCellCustomTagText" data-wnmu-custom-tag-input="true" class="manual-rect-text wnmu-custom-tag-input" type="text" maxlength="64" placeholder="Type custom tag…" value="${esc(otherLabel)}"><button type="button" class="btn ghost" id="wnmuCustomTagClearBtn">Clear custom tag</button></div><div class="manual-rect-help">This custom label shows as its own planning tag on the grid. Clear the field to remove it.</div></div><fieldset class="wnmu-cell-note-tools"><legend>White override box</legend><label class="manual-rect-label" for="wnmuCellText">Box note text</label><textarea id="wnmuCellText" class="manual-rect-text" rows="3" placeholder="Type what should show in this schedule slot">${esc(note?.text || '')}</textarea><div class="manual-rect-label wnmu-duration-label">Box size / length</div><div class="wnmu-cell-duration-options" role="radiogroup" aria-label="Box note length">${buildDurationRadios(defaultDuration, 'wnmuCellDuration')}</div><div class="manual-rect-help">Choose how many minutes the white box should cover. This controls the drawn box height.</div></fieldset><div class="rect-actions wnmu-unified-actions"><button type="button" class="btn ghost" id="wnmuCommitProgramBtn">Commit to Schedule</button><button type="button" class="btn ghost" id="wnmuCellSaveBtn">Save box note</button><button type="button" class="btn ghost" id="wnmuCellClearBtn">Clear box note</button><button type="button" class="btn ghost" id="wnmuRemoveCommittedProgramBtn" hidden>Remove committed program</button></div><div id="wnmuCellStatus" class="blank-save-status" aria-live="polite"></div></form>`;
   }
   function ensureCellMenu() {
     let menu = document.getElementById('wnmuCellMenu');
@@ -968,6 +1046,7 @@
       return false;
     });
     updateOtherMenuLabel(menu, planningState.otherLabel, { force: true });
+    setMonthlyTopicInMenu(menu, planningState.monthlyTopicLabel || '');
     const topicField = menu.querySelector('#wnmuMonthTopicValue'); if (topicField) topicField.value = planningState.monthlyTopicLabel || '';
     rememberMenuPlanningState(menu);
     const customInput = customTagInput(menu);
@@ -988,7 +1067,38 @@
       markMenuPlanningDirty(menu);
       customInput?.focus?.();
     });
-    menu.querySelector('.wnmu-cell-tag-grid')?.addEventListener('change', () => markMenuPlanningDirty(menu));
+    menu.querySelector('.wnmu-cell-tag-grid')?.addEventListener('change', event => {
+      markMenuPlanningDirty(menu);
+      const targetInput = event.target;
+      if (targetInput?.name === 'monthlyTopic') {
+        if (targetInput.checked) openMonthlyTopicPicker(menu, target.date);
+        else setMonthlyTopicInMenu(menu, '');
+      }
+    });
+    menu.querySelector('#wnmuChangeMonthTopicBtn')?.addEventListener('click', event => {
+      event.preventDefault();
+      const flag = menu.querySelector('input[name="monthlyTopic"]');
+      if (flag) flag.checked = true;
+      openMonthlyTopicPicker(menu, target.date);
+    });
+    menu.querySelector('#wnmuMonthTopicCancel')?.addEventListener('click', () => {
+      const dialog = menu.querySelector('#wnmuMonthTopicDialog');
+      if (dialog?.open) dialog.close();
+      if (!menuTopicLabel(menu)) {
+        const flag = menu.querySelector('input[name="monthlyTopic"]');
+        if (flag) flag.checked = false;
+      }
+      markMenuPlanningDirty(menu);
+    });
+    menu.querySelector('#wnmuMonthTopicUseCustom')?.addEventListener('click', () => {
+      const value = String(menu.querySelector('#wnmuMonthTopicCustom')?.value || '').trim();
+      if (!value) return;
+      setMonthlyTopicInMenu(menu, value);
+      const flag = menu.querySelector('input[name="monthlyTopic"]');
+      if (flag) flag.checked = true;
+      const dialog = menu.querySelector('#wnmuMonthTopicDialog');
+      if (dialog?.open) dialog.close();
+    });
     menu.querySelector('#wnmuEditProgramTitleBtn')?.addEventListener('click', event => {
       event.preventDefault(); event.stopPropagation();
       const editor = menu.querySelector('#wnmuTitleEditor');
@@ -1155,7 +1265,7 @@
   function injectStyles() {
     if (document.getElementById('wnmuCellInteractionsV1512Styles')) return;
     const style = document.createElement('style'); style.id = 'wnmuCellInteractionsV1512Styles';
-    style.textContent = `td.program-cell[data-wnmu-actionable="false"]{background:#fff!important}.program-cell[data-wnmu-actionable="false"] .program-tags,.program-cell[data-wnmu-actionable="false"]>.draw-rect-note,.program-cell[data-wnmu-actionable="false"]>.wnmu-blank-slot-content{display:none!important}.week-grid-wrap,.screen-host{position:relative}.wnmu-cell-override-layer{position:absolute;left:0;top:0;right:0;bottom:0;z-index:20;pointer-events:none;overflow:visible}.screen-host>.wnmu-cell-override-layer{z-index:20}.wnmu-cell-override-box{position:absolute;box-sizing:border-box;background:rgba(255,255,255,.96);border:2px solid rgba(12,18,32,.86);color:#111;border-radius:4px;box-shadow:0 2px 7px rgba(0,0,0,.22);padding:5px 6px 16px;overflow:hidden;font:12px/1.22 system-ui,sans-serif;pointer-events:auto}.wnmu-cell-override-text{white-space:normal;overflow:hidden;font-weight:700}.wnmu-cell-override-tags{display:flex;flex-wrap:wrap;gap:3px;margin-bottom:3px}.wnmu-cell-override-tags span{display:inline-flex;align-items:center;border:1px solid rgba(0,0,0,.25);border-radius:999px;padding:1px 5px;font-size:9px;font-weight:800;background:rgba(255,255,255,.72)}.wnmu-cell-override-box{cursor:context-menu}.wnmu-cell-override-duration{position:absolute;right:4px;bottom:2px;font-size:9px;opacity:.62}.program-cell.wnmu-has-cell-override>.draw-rect-note,.program-cell.wnmu-has-cell-override>.wnmu-blank-slot-content{display:none!important}#contextMenu{display:none!important;z-index:1}#wnmuCellMenu.wnmu-cell-menu{position:fixed;z-index:2147483647!important;min-width:420px;max-width:min(620px,calc(100vw - 24px));max-height:calc(100vh - 28px);overflow:auto;overscroll-behavior:contain;box-sizing:border-box}.wnmu-menu-title-tools{margin-top:5px}.wnmu-menu-title-tools #wnmuEditProgramTitleBtn{font-size:12px;padding:2px 9px}.wnmu-menu-title-editor{display:flex;flex-direction:column;gap:5px;padding:8px;margin-top:5px;background:#f6f8fc;border:1px solid #bfcbd8;border-radius:6px}.wnmu-menu-title-editor[hidden]{display:none!important}.wnmu-menu-title-editor label{font-size:12px;font-weight:700}.wnmu-menu-title-editor input{box-sizing:border-box;width:100%;font:14px system-ui;padding:7px 8px;border:1px solid #a9bad0;border-radius:4px}.wnmu-menu-title-actions{display:flex;gap:6px;flex-wrap:wrap}.wnmu-cell-form{display:flex;flex-direction:column;gap:7px}.wnmu-cell-tag-block,.wnmu-cell-custom-block{display:block}.wnmu-unified-actions{display:flex;align-items:center;gap:8px;flex-wrap:nowrap;margin:2px 0 0;padding:6px 0;border-top:1px solid #d7dee8;border-bottom:1px solid #d7dee8;background:#fff}.wnmu-unified-actions .btn{white-space:nowrap}#wnmuCommitProgramBtn{background:#17345f!important;border-color:#17345f!important;color:#fff!important;font-weight:850!important}@media(max-width:720px){#wnmuCellMenu .wnmu-cell-tag-grid{grid-template-columns:1fr!important}#wnmuCellMenu .wnmu-unified-actions{flex-wrap:wrap!important}}.wnmu-cell-tag-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px;margin:6px 0}.wnmu-cell-tag-grid .check-row{min-height:26px;margin:0;box-sizing:border-box;display:flex;align-items:center;gap:8px;border-radius:7px;border:1px solid rgba(17,17,17,.16);padding:4px 6px}.wnmu-cell-note-tools{border:2px solid rgba(255,255,255,.32);border-radius:10px;padding:8px;margin:0;background:rgba(255,255,255,.08);display:flex;flex-direction:column;gap:5px}.wnmu-cell-note-tools legend{font-weight:800}.wnmu-cell-duration-options{display:flex;flex-wrap:wrap;gap:5px;margin:0 0 4px}.wnmu-cell-pill{display:inline-flex;align-items:center;gap:4px;font-size:12px;border:1px solid rgba(255,255,255,.3);border-radius:999px;padding:5px 8px;cursor:pointer;background:rgba(255,255,255,.08)}.wnmu-cell-pill input{margin:0}.manual-rect-text{width:100%;box-sizing:border-box;border-radius:8px;border:1px solid rgba(255,255,255,.28);padding:7px;resize:vertical;font:13px/1.3 system-ui,sans-serif;color:#111;background:#fff}.wnmu-custom-tag-row{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;margin:6px 0 2px;padding:8px;border:2px solid rgba(17,52,95,.38);border-radius:10px;background:rgba(255,255,255,.92)}.wnmu-custom-tag-input{border:2px solid #17345f!important;background:#fff!important;box-shadow:inset 0 1px 2px rgba(15,23,42,.12)!important}.wnmu-custom-tag-input:focus{outline:3px solid rgba(49,95,140,.22)!important;outline-offset:1px!important}.manual-rect-label{font-size:12px;font-weight:800;margin:3px 0 3px}.manual-rect-help{margin-top:6px;font-size:11px;opacity:.75;line-height:1.25}table.screen-week-grid thead th{z-index:100}.panel-head,.topbar,.flagbar{position:relative;z-index:120}.wnmu-diag-panel{z-index:2147483200!important}.wnmu-component-versions{z-index:2147483000!important}@media print{.wnmu-cell-override-layer{display:none!important}}`;
+    style.textContent = `td.program-cell[data-wnmu-actionable="false"]{background:#fff!important}.program-cell[data-wnmu-actionable="false"] .program-tags,.program-cell[data-wnmu-actionable="false"]>.draw-rect-note,.program-cell[data-wnmu-actionable="false"]>.wnmu-blank-slot-content{display:none!important}.week-grid-wrap,.screen-host{position:relative}.wnmu-cell-override-layer{position:absolute;left:0;top:0;right:0;bottom:0;z-index:20;pointer-events:none;overflow:visible}.screen-host>.wnmu-cell-override-layer{z-index:20}.wnmu-cell-override-box{position:absolute;box-sizing:border-box;background:rgba(255,255,255,.96);border:2px solid rgba(12,18,32,.86);color:#111;border-radius:4px;box-shadow:0 2px 7px rgba(0,0,0,.22);padding:5px 6px 16px;overflow:hidden;font:12px/1.22 system-ui,sans-serif;pointer-events:auto}.wnmu-cell-override-text{white-space:normal;overflow:hidden;font-weight:700}.wnmu-cell-override-tags{display:flex;flex-wrap:wrap;gap:3px;margin-bottom:3px}.wnmu-cell-override-tags span{display:inline-flex;align-items:center;border:1px solid rgba(0,0,0,.25);border-radius:999px;padding:1px 5px;font-size:9px;font-weight:800;background:rgba(255,255,255,.72)}.wnmu-cell-override-box{cursor:context-menu}.wnmu-cell-override-duration{position:absolute;right:4px;bottom:2px;font-size:9px;opacity:.62}.program-cell.wnmu-has-cell-override>.draw-rect-note,.program-cell.wnmu-has-cell-override>.wnmu-blank-slot-content{display:none!important}#contextMenu{display:none!important;z-index:1}#wnmuCellMenu.wnmu-cell-menu{position:fixed;z-index:2147483647!important;min-width:420px;max-width:min(620px,calc(100vw - 24px));max-height:calc(100vh - 28px);overflow:auto;overscroll-behavior:contain;box-sizing:border-box}.wnmu-month-topic-chosen{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:5px 0}.wnmu-month-topic-chosen span{font-weight:700;font-size:12px}.wnmu-month-topic-dialog{max-width:min(500px,92vw);width:420px;border:1px solid #99abc0;border-radius:10px;box-shadow:0 12px 45px #0005;padding:17px;background:#fff;color:#10243c;max-height:85vh}.wnmu-month-topic-dialog::backdrop{background:rgba(0,0,0,.43)}.wnmu-month-topic-dialog h4{margin:0 0 10px}.wnmu-month-topic-dialog input{box-sizing:border-box;width:100%;padding:9px;margin-bottom:9px;border:1px solid #b0bfd0;border-radius:6px}.wnmu-month-topic-options{display:grid;gap:4px;max-height:42vh;overflow-y:auto;margin-bottom:10px}.wnmu-month-topic-option{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px;border:1px solid #dbe3ec;background:#f8fafc;color:#142d49;border-radius:5px;cursor:pointer;text-align:left;font-weight:600}.wnmu-month-topic-option:hover{background:#eaf3fb}.wnmu-month-topic-option small{font-size:10px;color:#687789;font-weight:400}.wnmu-month-topic-custom{display:flex;gap:6px}.wnmu-month-topic-custom input{flex:1;min-width:100px}.wnmu-month-topic-custom button{white-space:nowrap;height:38px;border:1px solid #0d4f38;background:#0d4f38;color:#fff;border-radius:6px;padding:0 10px}.wnmu-month-topic-dialog #wnmuMonthTopicCancel{display:block;margin-left:auto}.wnmu-menu-title-tools{margin-top:5px}.wnmu-menu-title-tools #wnmuEditProgramTitleBtn{font-size:12px;padding:2px 9px}.wnmu-menu-title-editor{display:flex;flex-direction:column;gap:5px;padding:8px;margin-top:5px;background:#f6f8fc;border:1px solid #bfcbd8;border-radius:6px}.wnmu-menu-title-editor[hidden]{display:none!important}.wnmu-menu-title-editor label{font-size:12px;font-weight:700}.wnmu-menu-title-editor input{box-sizing:border-box;width:100%;font:14px system-ui;padding:7px 8px;border:1px solid #a9bad0;border-radius:4px}.wnmu-menu-title-actions{display:flex;gap:6px;flex-wrap:wrap}.wnmu-cell-form{display:flex;flex-direction:column;gap:7px}.wnmu-cell-tag-block,.wnmu-cell-custom-block{display:block}.wnmu-unified-actions{display:flex;align-items:center;gap:8px;flex-wrap:nowrap;margin:2px 0 0;padding:6px 0;border-top:1px solid #d7dee8;border-bottom:1px solid #d7dee8;background:#fff}.wnmu-unified-actions .btn{white-space:nowrap}#wnmuCommitProgramBtn{background:#17345f!important;border-color:#17345f!important;color:#fff!important;font-weight:850!important}@media(max-width:720px){#wnmuCellMenu .wnmu-cell-tag-grid{grid-template-columns:1fr!important}#wnmuCellMenu .wnmu-unified-actions{flex-wrap:wrap!important}}.wnmu-cell-tag-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px;margin:6px 0}.wnmu-cell-tag-grid .check-row{min-height:26px;margin:0;box-sizing:border-box;display:flex;align-items:center;gap:8px;border-radius:7px;border:1px solid rgba(17,17,17,.16);padding:4px 6px}.wnmu-cell-note-tools{border:2px solid rgba(255,255,255,.32);border-radius:10px;padding:8px;margin:0;background:rgba(255,255,255,.08);display:flex;flex-direction:column;gap:5px}.wnmu-cell-note-tools legend{font-weight:800}.wnmu-cell-duration-options{display:flex;flex-wrap:wrap;gap:5px;margin:0 0 4px}.wnmu-cell-pill{display:inline-flex;align-items:center;gap:4px;font-size:12px;border:1px solid rgba(255,255,255,.3);border-radius:999px;padding:5px 8px;cursor:pointer;background:rgba(255,255,255,.08)}.wnmu-cell-pill input{margin:0}.manual-rect-text{width:100%;box-sizing:border-box;border-radius:8px;border:1px solid rgba(255,255,255,.28);padding:7px;resize:vertical;font:13px/1.3 system-ui,sans-serif;color:#111;background:#fff}.wnmu-custom-tag-row{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;margin:6px 0 2px;padding:8px;border:2px solid rgba(17,52,95,.38);border-radius:10px;background:rgba(255,255,255,.92)}.wnmu-custom-tag-input{border:2px solid #17345f!important;background:#fff!important;box-shadow:inset 0 1px 2px rgba(15,23,42,.12)!important}.wnmu-custom-tag-input:focus{outline:3px solid rgba(49,95,140,.22)!important;outline-offset:1px!important}.manual-rect-label{font-size:12px;font-weight:800;margin:3px 0 3px}.manual-rect-help{margin-top:6px;font-size:11px;opacity:.75;line-height:1.25}table.screen-week-grid thead th{z-index:100}.panel-head,.topbar,.flagbar{position:relative;z-index:120}.wnmu-diag-panel{z-index:2147483200!important}.wnmu-component-versions{z-index:2147483000!important}@media print{.wnmu-cell-override-layer{display:none!important}}`;
     document.head.appendChild(style);
   }
   function relayoutVisibleOverlays() {
