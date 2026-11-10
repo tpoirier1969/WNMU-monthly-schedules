@@ -107,6 +107,7 @@
   let currentHistoryFile = '';
   let currentHistoryEntries = [];
   let currentHistoryReady = false;
+  const slotPatternCache = new Map();
 
   function normalizeProgramTitle(raw) {
     return String(raw || '').toLowerCase().replace(/&/g, ' and ')
@@ -117,52 +118,58 @@
     const file = String(c.scheduleFile || '');
     if (!file) return [];
     if (file !== currentHistoryFile || !currentHistoryReady) {
-      currentHistoryReady = true;
       currentHistoryFile = file;
+      currentHistoryReady = false;
       currentHistoryEntries = [];
+      slotPatternCache.clear();
       try {
         const key = `${JSON_CACHE_PREFIX}::schedule::${c.buildVersion}::${file}`;
         const schedule = JSON.parse(localStorage.getItem(key) || '{}');
-        currentHistoryEntries = (schedule.days || []).flatMap(day =>
-          (day.entries || []).map(entry => ({
-            date: entry.date || day.date, time: entry.time, title: entry.title
-          })));
+        if (Array.isArray(schedule.days) && schedule.days.length) {
+          currentHistoryEntries = schedule.days.flatMap(day =>
+            (day.entries || []).map(entry => ({
+              date: entry.date || day.date, time: entry.time, title: entry.title
+            })));
+          currentHistoryReady = true;
+        }
       } catch (err) {
         console.warn('PBS Feed pattern history unavailable.', err);
       }
     }
     return currentHistoryEntries;
   }
+  function regularProgramCountsForSlot(info) {
+    const current = currentImportedAirings();
+    const prior = window.WNMU_PREVIOUS_MONTH_PREMIERE_CONTEXT;
+    const context = window.WNMU_CURRENT_MONTH_META;
+    const hasPrior = prior?.available && prior.channelCode === cfg().channelCode &&
+      prior.currentMonth === context?.monthKey && Array.isArray(prior.entries);
+    const cacheKey = `${currentHistoryFile}::${info.weekday}::${info.time}::${hasPrior ? prior.previousMonth : 'no-prior'}`;
+    if (currentHistoryReady && slotPatternCache.has(cacheKey)) return slotPatternCache.get(cacheKey);
+    const matchSlot = entry => entry.time === info.time && weekday(entry.date) === info.weekday;
+    const present = current.filter(matchSlot).map(entry => normalizeProgramTitle(entry.title)).filter(Boolean);
+    const titles = present.length < 3 && hasPrior
+      ? present.concat(prior.entries.filter(matchSlot).map(entry => normalizeProgramTitle(entry.title)).filter(Boolean))
+      : present;
+    const counts = new Map();
+    titles.forEach(title => counts.set(title, (counts.get(title) || 0) + 1));
+    const result = counts;
+    if (currentHistoryReady) slotPatternCache.set(cacheKey, result);
+    return result;
+  }
   function primeTimePatternIsRegular(entryId, cell) {
     const info = entryInfo(entryId);
     const titleNode = cell?.querySelector?.('.program-title');
     const title = normalizeProgramTitle(titleNode?.dataset?.wnmuOriginalTitle || titleNode?.textContent);
     if (!title || cell?.classList?.contains('wnmu-has-cell-override')) return false;
-    const slot = (entry) => entry.time === info.time && weekday(entry.date) === info.weekday;
-    const current = currentImportedAirings().filter(slot);
-    const currentTitles = current.map(entry => normalizeProgramTitle(entry.title)).filter(Boolean);
-    const occurrences = currentTitles.filter(name => name === title).length;
-    const alternatives = currentTitles.filter(name => name !== title);
-    const strongestAlternative = alternatives.reduce((max, name) =>
-      Math.max(max, currentTitles.filter(value => value === name).length), 0);
-    // Trust a consistent title within the displayed month, but don't award
-    // PBS Feed to a one-week substitute at a known PBS hour.
-    if (currentTitles.length >= 3) {
-      return occurrences >= 2 && occurrences > strongestAlternative;
+    const counts = regularProgramCountsForSlot(info);
+    const occurrences = counts.get(title) || 0;
+    let strongestAlternative = 0;
+    for (const [name, count] of counts) {
+      if (name !== title) strongestAlternative = Math.max(strongestAlternative, count);
     }
-    const prior = window.WNMU_PREVIOUS_MONTH_PREMIERE_CONTEXT;
-    const context = window.WNMU_CURRENT_MONTH_META;
-    if (!prior?.available || prior.channelCode !== cfg().channelCode ||
-        prior.currentMonth !== context?.monthKey || !Array.isArray(prior.entries)) {
-      return occurrences >= 2 && occurrences > strongestAlternative;
-    }
-    const previous = prior.entries.filter(slot).map(entry => normalizeProgramTitle(entry.title)).filter(Boolean);
-    const history = currentTitles.concat(previous);
-    const matching = history.filter(name => name === title).length;
-    const other = history.filter(name => name !== title);
-    const strongestOther = other.reduce((max, name) =>
-      Math.max(max, history.filter(value => value === name).length), 0);
-    return matching >= 2 && matching > strongestOther;
+    // Do not automatically PBS-tag a one-off substitute at an established hour.
+    return occurrences >= 2 && occurrences > strongestAlternative;
   }
   function defaultSatellite(entryId, cell) {
     const info = entryInfo(entryId);
@@ -447,10 +454,12 @@
     window.addEventListener('wnmu:month-ready', () => {
       currentHistoryFile = '';
       currentHistoryReady = false;
+      slotPatternCache.clear();
     });
     window.addEventListener('wnmu:remote-storage-loaded', () => {
       currentHistoryFile = '';
       currentHistoryReady = false;
+      slotPatternCache.clear();
     });
     window.WNMU_REPAINT_SATELLITE_FEEDS = () => schedulePaint(fullGridRoot());
     window.WNMU_SATELLITE_FEED_API = {
