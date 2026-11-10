@@ -684,7 +684,8 @@
     box.style.width = `${Math.max(44, rect.width - 8)}px`;
     box.style.height = `${durationHeightFromRows(target.cell, normalized.durationMin)}px`;
     const tags = Object.keys(noteTags || {}).filter(tag => noteTags[tag] && (tag !== OTHER_KEY || customLabel));
-    const pills = tags.length ? `<div class="wnmu-cell-override-tags">${tags.map(tag => `<span data-wnmu-overlay-tag="${esc(tag)}">${esc(tagDisplayLabel(tag, customLabel))}</span>`).join('')}</div>` : '';
+    const selectedTopic = monthlyTopicLabel(normalized);
+    const pills = tags.length ? `<div class="wnmu-cell-override-tags">${tags.map(tag => `<span data-wnmu-overlay-tag="${esc(tag)}">${esc(tag === 'monthlyTopic' && selectedTopic ? 'Monthly Topic: ' + selectedTopic : tagDisplayLabel(tag, customLabel))}</span>`).join('')}</div>` : '';
     const text = normalized.text ? `<div class="wnmu-cell-override-text">${esc(normalized.text)}</div>` : '';
     box.innerHTML = `${pills}${text}<div class="wnmu-cell-override-duration">${nearestDuration(normalized.durationMin || 30)} min</div>`;
     layer.appendChild(box);
@@ -768,7 +769,7 @@
         });
       }
       display();
-      queryInput?.addEventListener('input', () => display(queryInput.value), { signal: AbortSignal.timeout?.(600000) });
+      if (queryInput) queryInput.oninput = () => display(queryInput.value);
     } catch(err) {
       if (dialog.open) options.textContent = 'Topic list could not be loaded. Enter a topic below.';
     }
@@ -1080,6 +1081,13 @@
       const flag = menu.querySelector('input[name="monthlyTopic"]');
       if (flag) flag.checked = true;
       openMonthlyTopicPicker(menu, target.date);
+    });
+    menu.querySelector('#wnmuMonthTopicDialog')?.addEventListener('close', () => {
+      if (!menuTopicLabel(menu)) {
+        const flag = menu.querySelector('input[name="monthlyTopic"]');
+        if (flag) flag.checked = false;
+        markMenuPlanningDirty(menu);
+      }
     });
     menu.querySelector('#wnmuMonthTopicCancel')?.addEventListener('click', () => {
       const dialog = menu.querySelector('#wnmuMonthTopicDialog');
