@@ -62,7 +62,7 @@
       const clean = word.replace(/[^a-z0-9]/g, '').toUpperCase();
       if (acronyms.has(clean)) return clean;
       if (idx > 0 && idx < words.length - 1 && lowerWords.has(word)) return word;
-      return word.replace(/(^|[-'’])([a-z])/g, (_, lead, ch) => lead + ch.toUpperCase());
+      return word.replace(/(^|[-(\[/])([a-z])/g, (_, lead, ch) => lead + ch.toUpperCase());
     }).join(' ')
       .replace(/\bPbs\b/g, 'PBS')
       .replace(/\bBbc\b/g, 'BBC')
@@ -264,10 +264,9 @@
       title = dynamic;
     }
 
-    // Do not auto-convert all-caps titles. The scheduling system exports titles
-    // in caps by design, and this display layer should only fix known/user-reviewed
-    // title errors.
-    return title;
+    // Approved corrections take precedence; otherwise standard Title Case is the
+    // preferred display for all imported programs, including older months.
+    return smartTitleCase(title);
   }
 
   function entryCodeText(entry) {
