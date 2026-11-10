@@ -191,6 +191,18 @@
   }
 
 
+  function monthlyTopicLabel(note) {
+    return String(note?.monthlyTopicLabel || note?.monthly_topic_label || note?.rectNote?.monthlyTopicLabel || '').trim().slice(0, 160);
+  }
+  function menuTopicLabel(menu) {
+    return String(menu?.querySelector('#wnmuMonthTopicValue')?.value || '').trim().slice(0, 160);
+  }
+  function topicLabelForTarget(target) {
+    return monthlyTopicLabel(storedRecordForTarget(target) || readCanonicalRecord(target?.key));
+  }
+  function monthlyTagLabel(tag, label) {
+    return tag === 'monthlyTopic' && label ? 'Monthly Topic: ' + label : tagMeta(tag).label || tag;
+  }
   function noteOtherLabel(note) {
     return cleanOtherLabel(note?.otherLabel || note?.planningOtherLabel || note?.customPlanningLabel || note?.customTagLabel || note?.otherText || note?.rectNote?.otherLabel || note?.rectNote?.planningOtherLabel || '');
   }
@@ -200,7 +212,7 @@
     const otherLabel = noteOtherLabel(note);
     const tags = normalizeTagsForStorage(note.tags || {});
     if (otherLabel) tags[OTHER_KEY] = true;
-    return { ...note, tags, otherLabel, planningOtherLabel: otherLabel, customPlanningLabel: otherLabel, customTagLabel: otherLabel };
+    return { ...note, tags, otherLabel, monthlyTopicLabel: monthlyTopicLabel(note), planningOtherLabel: otherLabel, customPlanningLabel: otherLabel, customTagLabel: otherLabel };
   }
 
   function normalizeTagsForExplicitStorage(tags, otherLabel = '') {
@@ -272,7 +284,7 @@
       const tags = normalizeTagsForExplicitStorage(explicit.tags || {}, otherLabel);
       if (otherLabel) tags[OTHER_KEY] = true;
       tags[SATELLITE_KEY] = effectiveSatelliteForTarget(target);
-      return { tags, otherLabel, explicit: true };
+      return { tags, otherLabel, monthlyTopicLabel: monthlyTopicLabel(explicit) || monthlyTopicLabel(note), explicit: true };
     }
 
     let tags = null;
@@ -284,7 +296,7 @@
     if (note?.tags && hasAnyExplicitTagState(note.tags)) tags = normalizeTagsForExplicitStorage(note.tags, otherLabel);
     if (otherLabel) tags[OTHER_KEY] = true;
     tags[SATELLITE_KEY] = effectiveSatelliteForTarget(target);
-    return { tags, otherLabel, explicit: false };
+    return { tags, otherLabel, monthlyTopicLabel: monthlyTopicLabel(explicit) || monthlyTopicLabel(note), explicit: false };
   }
 
   function ensureProgramTagsWrap(cell) {
@@ -449,7 +461,7 @@
     const base = readBaseRecord(target.key);
     if (!base || !base.cellOverrideV15) return null;
     if (base.cleared) return { cleared: true };
-    return { text: base.text || base.rectNote?.text || '', durationMin: base.durationMin || base.rectNote?.durationMin || 30, tags: base.tags || {}, otherLabel: cleanOtherLabel(base.otherLabel || base.planningOtherLabel || base.customPlanningLabel || base.customTagLabel || base.otherText || ''), canonical: true, baseCanonical: true };
+    return { text: base.text || base.rectNote?.text || '', durationMin: base.durationMin || base.rectNote?.durationMin || 30, tags: base.tags || {}, otherLabel: cleanOtherLabel(base.otherLabel || base.planningOtherLabel || base.customPlanningLabel || base.customTagLabel || base.otherText || ''), monthlyTopicLabel: monthlyTopicLabel(base), canonical: true, baseCanonical: true };
   }
   function writeCanonicalRecord(target, note) {
     const duration = nearestDuration(note.durationMin || 30);
@@ -457,7 +469,7 @@
     let cleanTags = normalizeTagsForExplicitStorage(note.tags || {}, otherLabel);
     const previous = readCanonicalRecord(target.key);
     const originalProgramMarkSnapshot = note.originalProgramMarkSnapshot || (!previous?.cleared ? previous?.originalProgramMarkSnapshot : null) || null;
-    const record = { originalProgramMarkSnapshot, channelCode: channelCode(), monthKey: monthKey() || target.date.slice(0, 7), date: target.date, time: target.time, sourceType: target.sourceType, sourceEntryId: target.entryId || '', text: note.text || '', durationMin: duration, tags: cleanTags, otherLabel, planningOtherLabel: otherLabel, customPlanningLabel: otherLabel, customTagLabel: otherLabel, cleared: !!note.cleared, updatedAt: new Date().toISOString() };
+    const record = { monthlyTopicLabel: note.tags?.monthlyTopic ? monthlyTopicLabel(note) : '', originalProgramMarkSnapshot, channelCode: channelCode(), monthKey: monthKey() || target.date.slice(0, 7), date: target.date, time: target.time, sourceType: target.sourceType, sourceEntryId: target.entryId || '', text: note.text || '', durationMin: duration, tags: cleanTags, otherLabel, planningOtherLabel: otherLabel, customPlanningLabel: otherLabel, customTagLabel: otherLabel, cleared: !!note.cleared, updatedAt: new Date().toISOString() };
     const store = readCanonicalStore();
     store[target.key] = record;
     writeJson(canonicalStoreKey(), store);
@@ -471,7 +483,7 @@
         const existing = main[target.entryId] && typeof main[target.entryId] === 'object' ? main[target.entryId] : {};
         // Replace the tag state, do not merge. Merging is what made old wrong tags
         // such as Fundraiser impossible to clear from the new menu.
-        main[target.entryId] = { ...existing, tags: cleanTags, otherLabel, planningOtherLabel: otherLabel, customPlanningLabel: otherLabel, customTagLabel: otherLabel, rectNote: record.cleared ? null : { x: 4, y: 4, w: 92, h: 92, text: record.text, durationMin: duration, anchor: 'left', cellOverrideV15: true, otherLabel, planningOtherLabel: otherLabel, customPlanningLabel: otherLabel, customTagLabel: otherLabel } };
+        main[target.entryId] = { ...existing, monthlyTopicLabel: record.monthlyTopicLabel, tags: cleanTags, otherLabel, planningOtherLabel: otherLabel, customPlanningLabel: otherLabel, customTagLabel: otherLabel, rectNote: record.cleared ? null : { x: 4, y: 4, w: 92, h: 92, text: record.text, durationMin: duration, anchor: 'left', cellOverrideV15: true, otherLabel, planningOtherLabel: otherLabel, customPlanningLabel: otherLabel, customTagLabel: otherLabel } };
       }
       writeJson(mainKey, main);
     }
@@ -515,7 +527,7 @@
   function readEffectiveNote(target) {
     if (!target) return null;
     const canon = readCanonicalRecord(target.key) || canonicalFromBase(target);
-    if (canon) return canon.cleared ? null : normalizeNoteForDisplay({ text: canon.text || '', durationMin: nearestDuration(canon.durationMin || 30), tags: canon.tags || {}, otherLabel: noteOtherLabel(canon), canonical: true });
+    if (canon) return canon.cleared ? null : normalizeNoteForDisplay({ text: canon.text || '', durationMin: nearestDuration(canon.durationMin || 30), tags: canon.tags || {}, otherLabel: noteOtherLabel(canon), monthlyTopicLabel: monthlyTopicLabel(canon), canonical: true });
     return normalizeNoteForDisplay(legacyBlankNote(target) || legacyProgramNote(target));
   }
 
@@ -541,8 +553,8 @@
   }
   function activeTagKeys(tags, includeSatellite = true) { return allMenuTags().filter(tag => !!(tags && tags[tag]) && (includeSatellite || tag !== SATELLITE_KEY)); }
   function dominantTag(tags) { const active = activeTagKeys(tags, false); const base = Array.isArray(cfg().tagPriority) ? cfg().tagPriority : tagOrderBase(); const priority = ['highlight', ...base.filter(tag => tag !== 'highlight')]; return priority.find(tag => active.includes(tag)) || active[0] || ''; }
-  function tagPillHtml(tag, otherLabel = '') {
-    const label = tagDisplayLabel(tag, otherLabel);
+  function tagPillHtml(tag, otherLabel = '', selectedTopic = '') {
+    const label = tag === 'monthlyTopic' ? monthlyTagLabel(tag, selectedTopic) : tagDisplayLabel(tag, otherLabel);
     const customAttr = tag === OTHER_KEY && cleanOtherLabel(otherLabel) ? ` data-wnmu-custom-tag-label="${esc(cleanOtherLabel(otherLabel))}"` : '';
     return `<span class="tag-pill"${customAttr} style="--tag-color:${esc(tagMeta(tag).color || '#ddd')}">${esc(label)}</span>`;
   }
@@ -576,7 +588,7 @@
       if (active.length) {
         const wrap = document.createElement('div');
         wrap.className = 'program-tags';
-        wrap.innerHTML = active.slice(0, 6).map(tag => tagPillHtml(tag, otherText)).join('');
+        wrap.innerHTML = active.slice(0, 6).map(tag => tagPillHtml(tag, otherText, topicLabelForTarget(target))).join('');
         content.appendChild(wrap);
       }
     }
@@ -788,25 +800,25 @@
       old.style.display = 'none';
     }
   }
-  function syncWhiteOverridePlanning(target, tags, otherLabel) {
+  function syncWhiteOverridePlanning(target, tags, otherLabel, selectedTopic = '') {
     if (!target?.key) return;
     const canonical = readCanonicalStore();
     const note = canonical[target.key];
     if (!note || note.cleared || !note.text) return;
-    const next = { ...note, tags: { ...tags }, otherLabel, planningOtherLabel: otherLabel,
+    const next = { ...note, monthlyTopicLabel: tags?.monthlyTopic ? selectedTopic : '', tags: { ...tags }, otherLabel, planningOtherLabel: otherLabel,
       customPlanningLabel: otherLabel, customTagLabel: otherLabel, updatedAt: new Date().toISOString() };
     canonical[target.key] = next;
     writeJson(canonicalStoreKey(), canonical);
     const main = readJson(storageKey(), {});
     if (main[target.key]?.cellOverrideV15) {
-      main[target.key] = { ...main[target.key], tags: { ...tags }, otherLabel,
+      main[target.key] = { ...main[target.key], monthlyTopicLabel: tags?.monthlyTopic ? selectedTopic : '', tags: { ...tags }, otherLabel,
         planningOtherLabel: otherLabel, customPlanningLabel: otherLabel, customTagLabel: otherLabel };
       writeJson(storageKey(), main);
     }
     paintOverlay(target, next);
   }
 
-  function writeProgramPlanningTags(target, tags, otherLabel) {
+  function writeProgramPlanningTags(target, tags, otherLabel, selectedTopic = '') {
     const key = storageKey();
     if (!key || !target) return false;
     const entryId = target?.entryId || target?.cell?.dataset?.entryId || '';
@@ -815,6 +827,7 @@
     delete rawTags[SATELLITE_KEY];
     const cleanOther = cleanOtherLabel(otherLabel || '');
     const cleanTags = normalizeTagsForExplicitStorage(rawTags, cleanOther);
+    const topicName = cleanTags.monthlyTopic ? String(selectedTopic || '').trim().slice(0, 160) : '';
 
     if (entryId) {
       const all = readJson(key, {});
@@ -822,6 +835,7 @@
       const next = {
         ...existing,
         tags: cleanTags,
+        monthlyTopicLabel: topicName,
         otherLabel: cleanOther,
         planningOtherLabel: cleanOther,
         customPlanningLabel: cleanOther,
@@ -842,7 +856,7 @@
         applyCellTagVisual(target, cleanTags, cleanOther);
         forceCustomTagDisplayForCell(target.cell, cleanOther);
       }
-      syncWhiteOverridePlanning(target, cleanTags, cleanOther);
+      syncWhiteOverridePlanning(target, cleanTags, cleanOther, topicName);
       repaintSatelliteFeedsSoon(30, target.entryId || '');
       window.dispatchEvent(new CustomEvent('wnmu:cell-planning-tags-saved', { detail: { entryId, cellKey: target.key, version: VERSION } }));
       return true;
@@ -856,6 +870,7 @@
     const next = {
       ...existing,
       tags: cleanTags,
+      monthlyTopicLabel: topicName,
       otherLabel: cleanOther,
       planningOtherLabel: cleanOther,
       customPlanningLabel: cleanOther,
@@ -879,7 +894,7 @@
       applyCellTagVisual(target, cleanTags, cleanOther);
       forceCustomTagDisplayForCell(target.cell, cleanOther);
     }
-    syncWhiteOverridePlanning(target, cleanTags, cleanOther);
+    syncWhiteOverridePlanning(target, cleanTags, cleanOther, topicName);
     repaintSatelliteFeedsSoon(30, target.entryId || '');
     window.dispatchEvent(new CustomEvent('wnmu:cell-planning-tags-saved', { detail: { cellKey: target.key, version: VERSION } }));
     return true;
@@ -891,7 +906,7 @@
     const normalized = {};
     allMenuTags().forEach(tag => { if (tag !== SATELLITE_KEY) normalized[tag] = !!tags[tag]; });
     normalized[OTHER_KEY] = !!otherLabel;
-    return JSON.stringify({ tags: normalized, otherLabel });
+    return JSON.stringify({ tags: normalized, otherLabel, monthlyTopicLabel: normalized.monthlyTopic ? menuTopicLabel(menu) : '' });
   }
   function rememberMenuPlanningState(menu) {
     if (!menu) return '';
@@ -913,7 +928,7 @@
     const otherLabel = readCustomOtherLabelFromMenu(menu);
     tags[OTHER_KEY] = !!otherLabel;
     window.WNMU_MENU_BULK_EDIT_ACTIVE_UNTIL = Date.now() + 1200;
-    const ok = writeProgramPlanningTags(target, tags, otherLabel);
+    const ok = writeProgramPlanningTags(target, tags, otherLabel, menuTopicLabel(menu));
     if (ok && target?.cell) {
       if (otherLabel) {
         target.cell.dataset.wnmuOtherLabel = otherLabel;
@@ -953,6 +968,7 @@
       return false;
     });
     updateOtherMenuLabel(menu, planningState.otherLabel, { force: true });
+    const topicField = menu.querySelector('#wnmuMonthTopicValue'); if (topicField) topicField.value = planningState.monthlyTopicLabel || '';
     rememberMenuPlanningState(menu);
     const customInput = customTagInput(menu);
     if (customInput) {
@@ -1044,12 +1060,12 @@
       existed: Object.prototype.hasOwnProperty.call(beforeMarks, target.entryId),
       value: beforeMarks[target.entryId] ? JSON.parse(JSON.stringify(beforeMarks[target.entryId])) : null
     } : null);
-    writeProgramPlanningTags(target, tags, otherLabel);
+    writeProgramPlanningTags(target, tags, otherLabel, menuTopicLabel(menu));
     try {
-      writeCanonicalRecord(target, { text, durationMin: duration, tags, otherLabel, originalProgramMarkSnapshot });
+      writeCanonicalRecord(target, { text, durationMin: duration, tags, otherLabel, monthlyTopicLabel: menuTopicLabel(menu), originalProgramMarkSnapshot });
       const reread = readEffectiveNote(target);
       removeOverlayElementsForDateTime(target.date, target.time);
-      paintOverlay(target, { text, durationMin: duration, tags, otherLabel, planningOtherLabel: otherLabel });
+      paintOverlay(target, { text, durationMin: duration, tags, otherLabel, monthlyTopicLabel: menuTopicLabel(menu), planningOtherLabel: otherLabel });
       applyCellTagVisual(target, tags, otherLabel);
       forceCustomTagDisplayForCell(target.cell, otherLabel);
       window.WNMU_LAST_CELL_NOTE_SAVE = { target: { key: target.key, date: target.date, time: target.time, entryId: target.entryId || '', sourceType: target.sourceType }, text, durationMin: duration, tags, reread, savedAt: new Date().toISOString() };
