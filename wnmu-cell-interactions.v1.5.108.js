@@ -204,7 +204,10 @@
     return normalizeMonthlyTopicName(menu?.querySelector('#wnmuMonthTopicValue')?.value);
   }
   function topicLabelForTarget(target) {
-    return monthlyTopicLabel(storedRecordForTarget(target) || readCanonicalRecord(target?.key));
+    const stored = storedRecordForTarget(target);
+    const canonical = readCanonicalRecord(target?.key);
+    return monthlyTopicLabel(stored) || monthlyTopicLabel(canonical) ||
+      normalizeMonthlyTopicName(target?.cell?.dataset?.wnmuMonthlyTopicLabel);
   }
   function monthlyTagLabel(tag, label) {
     // Use the selected topic as the full pill text, not a category prefix.
@@ -563,12 +566,16 @@
   function tagPillHtml(tag, otherLabel = '', selectedTopic = '') {
     const label = tag === 'monthlyTopic' ? monthlyTagLabel(tag, selectedTopic) : tagDisplayLabel(tag, otherLabel);
     const customAttr = tag === OTHER_KEY && cleanOtherLabel(otherLabel) ? ` data-wnmu-custom-tag-label="${esc(cleanOtherLabel(otherLabel))}"` : '';
-    return `<span class="tag-pill"${customAttr} style="--tag-color:${esc(tagMeta(tag).color || '#ddd')}">${esc(label)}</span>`;
+    return `<span class="tag-pill" data-wnmu-planning-tag="${esc(tag)}"${customAttr} style="--tag-color:${esc(tagMeta(tag).color || '#ddd')}">${esc(label)}</span>`;
   }
-  function applyCellTagVisual(target, tags, otherLabel = '') {
+  function applyCellTagVisual(target, tags, otherLabel = '', selectedTopic = '') {
     const cell = target?.cell;
     if (!cell) return;
     let cleanTags = normalizeTagsForStorage(tags || {});
+    const topicName = cleanTags.monthlyTopic
+      ? normalizeMonthlyTopicName(selectedTopic || topicLabelForTarget(target)) : '';
+    if (topicName) cell.dataset.wnmuMonthlyTopicLabel = topicName;
+    else delete cell.dataset.wnmuMonthlyTopicLabel;
     const otherText = cleanOtherLabel(otherLabel);
     if (otherText) {
       cleanTags[OTHER_KEY] = true;
@@ -595,7 +602,7 @@
       if (active.length) {
         const wrap = document.createElement('div');
         wrap.className = 'program-tags';
-        wrap.innerHTML = active.slice(0, 6).map(tag => tagPillHtml(tag, otherText, topicLabelForTarget(target))).join('');
+        wrap.innerHTML = active.slice(0, 6).map(tag => tagPillHtml(tag, otherText, topicName)).join('');
         content.appendChild(wrap);
       }
     }
@@ -966,7 +973,7 @@
       if (target.cell) {
         if (cleanOther) target.cell.dataset.wnmuOtherLabel = cleanOther;
         else { delete target.cell.dataset.wnmuOtherLabel; delete target.cell.dataset.wnmuCustomPlanningTag; }
-        applyCellTagVisual(target, cleanTags, cleanOther);
+        applyCellTagVisual(target, cleanTags, cleanOther, topicName);
         forceCustomTagDisplayForCell(target.cell, cleanOther);
       }
       syncWhiteOverridePlanning(target, cleanTags, cleanOther, topicName);
@@ -1004,7 +1011,7 @@
         delete target.cell.dataset.wnmuOtherLabel;
         delete target.cell.dataset.wnmuCustomPlanningTag;
       }
-      applyCellTagVisual(target, cleanTags, cleanOther);
+      applyCellTagVisual(target, cleanTags, cleanOther, topicName);
       forceCustomTagDisplayForCell(target.cell, cleanOther);
     }
     syncWhiteOverridePlanning(target, cleanTags, cleanOther, topicName);
@@ -1050,7 +1057,7 @@
         delete target.cell.dataset.wnmuOtherLabel;
         delete target.cell.dataset.wnmuCustomPlanningTag;
       }
-      applyCellTagVisual(target, tags, otherLabel);
+      applyCellTagVisual(target, tags, otherLabel, menuTopicLabel(menu));
       forceCustomTagDisplayForCell(target.cell, otherLabel);
     }
     if (ok) rememberMenuPlanningState(menu);
@@ -1068,7 +1075,7 @@
     const menu = ensureCellMenu();
     const baseNote = readEffectiveNote(target) || { text: '', durationMin: Math.max(30, Number(target.cell?.rowSpan || 1) * 30), tags: {} };
     const planningState = readEffectivePlanningState(target, baseNote);
-    const note = { ...baseNote, tags: planningState.tags, otherLabel: planningState.otherLabel, planningOtherLabel: planningState.otherLabel, customPlanningLabel: planningState.otherLabel, customTagLabel: planningState.otherLabel };
+    const note = { ...baseNote, tags: planningState.tags, monthlyTopicLabel: planningState.monthlyTopicLabel, otherLabel: planningState.otherLabel, planningOtherLabel: planningState.otherLabel, customPlanningLabel: planningState.otherLabel, customTagLabel: planningState.otherLabel };
     menu.dataset.wnmuCellKey = target.key; menu.dataset.wnmuDate = target.date; menu.dataset.wnmuTime = target.time; menu.dataset.wnmuEntryId = target.entryId || '';
     menu.innerHTML = cellMenuHtml(target, note);
     hardenMenuForm(menu);
@@ -1219,7 +1226,7 @@
       const reread = readEffectiveNote(target);
       removeOverlayElementsForDateTime(target.date, target.time);
       paintOverlay(target, { text, durationMin: duration, tags, otherLabel, monthlyTopicLabel: menuTopicLabel(menu), planningOtherLabel: otherLabel });
-      applyCellTagVisual(target, tags, otherLabel);
+      applyCellTagVisual(target, tags, otherLabel, menuTopicLabel(menu));
       forceCustomTagDisplayForCell(target.cell, otherLabel);
       window.WNMU_LAST_CELL_NOTE_SAVE = { target: { key: target.key, date: target.date, time: target.time, entryId: target.entryId || '', sourceType: target.sourceType }, text, durationMin: duration, tags, reread, savedAt: new Date().toISOString() };
       rememberMenuPlanningState(menu);
