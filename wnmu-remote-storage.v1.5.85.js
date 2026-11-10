@@ -221,6 +221,7 @@
         throw new Error(`Remote storage load failed ${res.status}: ${text}`.trim());
       }
       const rows = await res.json();
+      let changedKeys = 0;
       if (Array.isArray(rows)) {
         rows.forEach((row) => {
           if (!row || !row.storage_key) return;
@@ -232,13 +233,22 @@
           // This is what made custom tag text vanish shortly after typing and could
           // also make box-note saves appear to fail even though the local write ran.
           if (lastLocalWrite && (!remoteUpdatedAt || remoteUpdatedAt <= lastLocalWrite || lastLocalWrite >= loadStartedAt)) return;
+          const previous = cache.has(storageKey) ? cache.get(storageKey) : originalGetItem.call(localStorage, storageKey);
+          if (previous === raw) return; // Identical remote snapshot: no redraw needed.
           cache.set(storageKey, raw);
           tryWriteLocalShadow(storageKey, raw);
+          changedKeys += 1;
           uploadState.loadedRemoteKeys += 1;
         });
       }
       uploadState.lastError = '';
-      window.dispatchEvent(new CustomEvent('wnmu:remote-storage-loaded', { detail: { version: VERSION, rows: Array.isArray(rows) ? rows.length : 0, channel, month } }));
+      // A no-op snapshot used to trigger costly month-wide tag/rollup paints.
+      // Continue fetching for sync, but notify renderers only for real changes.
+      if (changedKeys > 0) {
+        window.dispatchEvent(new CustomEvent('wnmu:remote-storage-loaded', {
+          detail: { version: VERSION, rows: Array.isArray(rows) ? rows.length : 0, changedKeys, channel, month }
+        }));
+      }
     } catch (err) {
       uploadState.failed += 1;
       uploadState.lastError = err.message || String(err);
