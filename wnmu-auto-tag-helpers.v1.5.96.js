@@ -733,7 +733,10 @@
         gridObs.observe(host, { childList:true, subtree:true });
       }
     }
-    [600,1600,3200].forEach(ms => window.setTimeout(() => { sanitizeVisibleHighlights(); scheduleCustomLabelRepair(40); }, ms));
+    // Progressive week insertion and remote-load events already trigger repairs.
+    // Two fallback passes cover startup without repeatedly scanning all cells
+    // and scheduling another redundant whole-grid custom-label sweep.
+    [700,2200].forEach(ms => window.setTimeout(sanitizeVisibleHighlights, ms));
   }
 
   function installRemoteStorageListener(){
