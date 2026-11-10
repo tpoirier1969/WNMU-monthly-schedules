@@ -229,6 +229,28 @@
     if (!res.ok) throw new Error(`Supabase correction save failed (${res.status}) ${await res.text()}`);
     return res.json().catch(() => null);
   }
+  // Also used by the program right-click menu. Keep a single correction
+  // workflow for review-panel suggestions and manually discovered titles.
+  window.WNMU_TITLE_REVIEW_API = {
+    saveApprovedTitle: async (rawTitle, correctedTitle) => {
+      const from = cleanTitle(rawTitle);
+      const to = cleanTitle(correctedTitle);
+      if (!from || !to) throw new Error('Both the imported title and corrected title are required.');
+      if (from === to) return { from, to, unchanged: true };
+      // Require Supabase to accept the mapping before announcing success.
+      // The preview sandbox intercepts this request without touching production.
+      await saveCorrectionRemote(from, to);
+      if (!saveCorrection(from, to)) throw new Error('Could not save the approved title locally.');
+      // Refresh the displayed review without rewriting imported month data.
+      if (lastResult) {
+        const updated = analyze(lastResult.row);
+        lastResult = updated;
+        renderResult(updated, `Approved title: ${from} → ${to}`);
+      }
+      return { from, to, saved: true };
+    }
+  };
+  
   async function deactivateCorrectionRemote(rawKey) {
     const c = cfg();
     if (!c.url || !c.anonKey) throw new Error('config.js is missing Supabase credentials.');
